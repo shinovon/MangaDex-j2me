@@ -108,7 +108,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
-		settingsCmd = new Command("Screen", Command.SCREEN, 3);
+		settingsCmd = new Command("Settings", Command.SCREEN, 3);
 		aboutCmd = new Command("About", Command.SCREEN, 4);
 		
 		searchCmd = new Command("Search", Command.ITEM, 1);
@@ -125,6 +125,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		Form f = new Form("MangaDex");
 		f.addCommand(exitCmd);
 		f.addCommand(settingsCmd);
+		f.addCommand(aboutCmd);
 		f.setCommandListener(this);
 		
 		StringItem s;
