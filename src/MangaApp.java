@@ -153,6 +153,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// запустить тред обложек
 		start(RUN_COVERS);
+		
+		// второй тред обложек если симбиан
+		String p = System.getProperty("microedition.platform");
+		if (p != null && p.indexOf("platform=S60") != -1) {
+			start(RUN_COVERS);
+		}
 	}
 
 	public void commandAction(Command c, Displayable d) {
@@ -458,8 +464,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					Thread.sleep(500);
 					while (coversToLoad.size() > 0) {
 						int i = 0;
-						Object[] o = (Object[]) coversToLoad.elementAt(i);
-						coversToLoad.removeElementAt(i);
+						Object[] o = null;
+						
+						try {
+							synchronized (coverLoadLock) {
+								o = (Object[]) coversToLoad.elementAt(i);
+								coversToLoad.removeElementAt(i);
+							}
+						} catch (Exception e) {
+							continue;
+						}
+						
+						if (o == null) continue;
+						
 						String mangaId = (String) o[0];
 						ImageItem item = (ImageItem) o[1];
 						
