@@ -512,8 +512,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 					// TODO автор, картинка языка
 					sb.setLength(0);
-					sb.append(lang).append(' ')
-					.append(title != null ? title : "Ch. ".concat(chapter)).append(' ')
+					sb.append("* ").append(lang).append(" / ")
+					.append(title != null ? title : "Ch. ".concat(chapter)).append(" / ")
 					.append(localizeTime(time));
 					
 					s = new StringItem(null, sb.toString());
