@@ -1,5 +1,9 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Hashtable;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import javax.microedition.io.Connector;
@@ -17,12 +21,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_MANGAS = 1;
 	private static final int RUN_MANGA = 2;
 	private static final int RUN_COVERS = 3;
+	private static final int RUN_CHAPTERS = 4;
 	
 	private static final String APIURL = "https://api.mangadex.dev/"; // TODO dev домен
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
 	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
+	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
+	private static final Font smallboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_SMALL);
 	private static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
 
 	private static boolean started;
@@ -38,11 +45,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command tagItemCmd;
 	private static Command addFavoriteCmd;
 	private static Command coverItemCmd;
+	private static Command chapterCmd;
 	
 	// ui
 	private static Form mainForm;
 	private static Form listForm;
 	private static Form mangaForm;
+	private static Form chaptersForm;
 	
 	private static TextField searchField;
 	
@@ -54,6 +63,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String currentMangaId;
 	private static ImageItem mangaItem;
 	
+	private static int chaptersLimit = 10;
+	private static int chaptersOffset = 0;
+	private static int chaptersTotal;
+	private static Hashtable chapterItems = new Hashtable();
+	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
 	
@@ -61,7 +75,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
-	
+	private static String timezone;
 
 	public MangaApp() {
 	}
@@ -83,6 +97,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// TODO локализации и загрузка настроек здесь
 		
+		try {
+			// определение таймзоны системы
+			int i = TimeZone.getDefault().getRawOffset() / 60000;
+			timezone = (i < 0 ? '-' : '+') + n(Math.abs(i / 60)) + ':' + n(Math.abs(i % 60));
+		} catch (Exception e) {}
+		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
 		searchCmd = new Command("Search", Command.ITEM, 1);
@@ -92,6 +112,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		tagItemCmd = new Command("Tag", Command.ITEM, 1);
 		addFavoriteCmd = new Command("Add to favorite", Command.ITEM, 1);
 		coverItemCmd = new Command("Show cover", Command.ITEM, 1);
+		chapterCmd = new Command("Chapter", Command.ITEM, 1);
 		
 		// главная форма
 		
@@ -128,6 +149,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	public void commandAction(Command c, Displayable d) {
 		if (d == mangaForm && c == backCmd) {
+			// возвращение из глв
+			display(chaptersForm != null ? chaptersForm : listForm != null ? listForm : mainForm);
+			chaptersForm = null;
+			chapterItems.clear();
+			return;
+		}
+		if (d == mangaForm && c == backCmd) {
 			// возвращение из манги
 			display(listForm != null ? listForm : mainForm);
 			mangaForm = null;
@@ -153,6 +181,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	public void commandAction(Command c, Item item) {
 		if (c == mangaItemCmd) {
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
+			coversToLoad.removeAllElements();
+			
 			String id = (mangaItem = (ImageItem) item).getAltText();
 			
 			Form f = new Form("Manga " + id);
@@ -169,6 +199,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		if (c == searchCmd || c == updatesCmd) {
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
+			coversToLoad.removeAllElements();
 			
 			// поиск и список манг
 			Form f = new Form("MangaDex");
@@ -184,7 +215,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == chaptersCmd) {
 			// TODO главы
+			chaptersOffset = 0;
 			
+			Form f = new Form(mangaForm.getTitle());
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			f.setTicker(new Ticker("Loading..."));
+			
+			display(chaptersForm = f);
+			start(RUN_CHAPTERS);
 			return;
 		}
 		if (c == addFavoriteCmd) {
@@ -203,6 +243,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			return;
+		}
+		if (c == chapterCmd) {
+			// TODO просмотр главы
+			if (running) return;
+			
+			String chapterId = (String) chapterItems.get(item);
+			if (chapterId == null) return;
 			return;
 		}
 	}
@@ -396,6 +444,90 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				e.printStackTrace();
 			}
 			return;
+		}
+		case RUN_CHAPTERS: { // главы манги
+			String id = currentMangaId;
+			Form f = chaptersForm;
+			f.deleteAll();
+			chapterItems.clear();
+			
+			try {
+				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
+						.append("&order[chapter]=desc")
+						.append("&limit=").append(chaptersLimit)
+						;
+				if (chaptersOffset > 0)
+					sb.append("&offset=").append(chaptersOffset);
+				JSONObject j = api(sb.toString());
+				
+				chaptersTotal = j.getInt("total");
+				
+				StringItem s;
+				
+				sb.setLength(0);
+				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).append("\n\n").toString());
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				JSONArray data = j.getArray("data");
+				int l = data.size();
+				
+				String lastVolume = null;
+				String lastChapter = null;
+				for (int i = 0; i < l; i++) {
+					JSONObject c = data.getObject(i);
+					JSONObject a = c.getObject("attributes");
+					
+					String volume = a.getString("volume");
+					String chapter = a.getString("chapter");
+					String title = a.getString("title");
+					String time = a.getString("publishAt");
+					String lang = a.getString("translatedLanguage");
+					
+					// выглядит страшно
+					if (i == 0 && (lastVolume == null && volume == null)) {
+						s = new StringItem(null, "No Volume");
+						s.setFont(smallfont);
+						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+						f.append(s);
+					} else if ((volume == null && lastVolume != null) ||
+							(volume != null && !volume.equals(lastVolume))) {
+						s = new StringItem(null, volume == null ? "No Volume" : "Volume ".concat(volume));
+						s.setFont(smallfont);
+						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+						f.append(s);
+					}
+					
+					if (i == 0 || !chapter.equals(lastChapter)) {
+						s = new StringItem(null, "\nChapter ".concat(chapter));
+						s.setFont(smallboldfont);
+						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+						f.append(s);
+					}
+
+					// TODO автор, картинка языка
+					sb.setLength(0);
+					sb.append(lang).append(' ')
+					.append(title != null ? title : "Ch. ".concat(chapter)).append(' ')
+					.append(localizeTime(time));
+					
+					s = new StringItem(null, sb.toString());
+					s.setFont(medfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					s.addCommand(chapterCmd);
+					s.setDefaultCommand(chapterCmd);
+					s.setItemCommandListener(this);
+					f.append(s);
+					chapterItems.put(s, c.get("id"));
+					
+					lastVolume = volume;
+					lastChapter = chapter;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			f.setTicker(null);
+			break;
 		}
 		}
 		running = false;
@@ -644,6 +776,130 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String hex(int i) {
 		String s = Integer.toHexString(i);
 		return "%".concat(s.length() < 2 ? "0" : "").concat(s);
+	}
+	
+	// date utils
+	
+	static String localizeTime(String date) {
+		Calendar c = getLocalizedCalendar(date);
+		long now = System.currentTimeMillis();
+		long t = c.getTime().getTime();
+		long d = now - t;
+		
+		d /= 1000L;
+		
+		if (d < 60) {
+			if (d == 1) return Integer.toString((int) d).concat(" second ago");
+			return Integer.toString((int) d).concat(" seconds ago");
+		}
+		
+		if (d < 60 * 60) {
+			d /= 60L;
+			if (d == 1) return Integer.toString((int) d).concat(" minute ago");
+			return Integer.toString((int) d).concat(" minutes ago");
+		}
+		
+		if (d < 24 * 60 * 60) {
+			d /= 60 * 60L;
+			if (d == 1) return Integer.toString((int) d).concat(" hour ago");
+			return Integer.toString((int) d).concat(" hours ago");
+		}
+		
+		if (d < 365 * 60 * 60) {
+			d /= 24 * 60 * 60L;
+			if (d == 1) return Integer.toString((int) d).concat(" day ago");
+			return Integer.toString((int) d).concat(" days ago");
+		}
+
+		d /= 365 * 60 * 60L;
+		if (d == 1) return Integer.toString((int) d).concat(" year ago");
+		return Integer.toString((int) d).concat(" years ago");
+	}
+	
+	static Calendar getLocalizedCalendar(String date) {
+		Calendar c = parseDate(date);
+		c.setTime(new Date(c.getTime().getTime() - parseTimeZone(date) + parseTimeZone(timezone)));
+		return c;
+	}
+	
+	// парсер даты ISO 8601 без учета часового пояса
+	static Calendar parseDate(String date) {
+		Calendar c = Calendar.getInstance();
+		if(date.indexOf('T') != -1) {
+			String[] dateSplit = split(date.substring(0, date.indexOf('T')), '-');
+			String[] timeSplit = split(date.substring(date.indexOf('T')+1), ':');
+			String second = split(timeSplit[2], '.')[0];
+			int i = second.indexOf('+');
+			if(i == -1) {
+				i = second.indexOf('-');
+			}
+			if(i != -1) {
+				second = second.substring(0, i);
+			}
+			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
+			c.set(Calendar.MONTH, Integer.parseInt(dateSplit[1])-1);
+			c.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dateSplit[2]));
+			c.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timeSplit[0]));
+			c.set(Calendar.MINUTE, Integer.parseInt(timeSplit[1]));
+			c.set(Calendar.SECOND, Integer.parseInt(second));
+		} else {
+			String[] dateSplit = split(date, '-');
+			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
+			c.set(Calendar.MONTH, Integer.parseInt(dateSplit[1])-1);
+			c.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dateSplit[2]));
+		}
+		return c;
+	}
+	
+	// отрезать таймзону из даты
+	static String getTimeZoneStr(String date) {
+		int i = date.lastIndexOf('+');
+		if(i == -1)
+			i = date.lastIndexOf('-');
+		if(i == -1)
+			return null;
+		return date.substring(i);
+	}
+
+	// получение оффсета таймзоны даты в миллисекундах
+	static int parseTimeZone(String date) {
+		int i = date.lastIndexOf('+');
+		boolean m = false;
+		if(i == -1) {
+			i = date.lastIndexOf('-');
+			m = true;
+		}
+		if(i == -1)
+			return 0;
+		date = date.substring(i + 1);
+		int offset = date.lastIndexOf(':');
+		offset = (Integer.parseInt(date.substring(0, offset)) * 3600000) +
+				(Integer.parseInt(date.substring(offset + 1)) * 60000);
+		return m ? -offset : offset;
+	}
+	
+	static String n(int n) {
+		if(n < 10) {
+			return "0".concat(Integer.toString(n));
+		} else return Integer.toString(n);
+	}
+	
+	static String[] split(String str, char d) {
+		int i = str.indexOf(d);
+		if(i == -1)
+			return new String[] {str};
+		Vector v = new Vector();
+		v.addElement(str.substring(0, i));
+		while(i != -1) {
+			str = str.substring(i + 1);
+			if((i = str.indexOf(d)) != -1)
+				v.addElement(str.substring(0, i));
+			i = str.indexOf(d);
+		}
+		v.addElement(str);
+		String[] r = new String[v.size()];
+		v.copyInto(r);
+		return r;
 	}
 	
 	// image utils
