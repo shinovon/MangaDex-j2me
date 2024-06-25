@@ -20,6 +20,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static final String APIURL = "https://api.mangadex.dev/"; // TODO dev домен
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
+	
+	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
+	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
+	private static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
 
 	private static boolean started;
 	private static Display display;
@@ -30,6 +34,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command searchCmd;
 	private static Command updatesCmd;
 	private static Command mangaItemCmd;
+	private static Command chaptersCmd;
+	private static Command tagItemCmd;
+	private static Command addFavoriteCmd;
+	private static Command coverItemCmd;
 	
 	// ui
 	private static Form mainForm;
@@ -80,6 +88,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		searchCmd = new Command("Search", Command.ITEM, 1);
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
 		mangaItemCmd = new Command("Open", Command.ITEM, 1);
+		chaptersCmd = new Command("Chapters", Command.ITEM, 1);
+		tagItemCmd = new Command("Tag", Command.ITEM, 1);
+		addFavoriteCmd = new Command("Add to favorite", Command.ITEM, 1);
+		coverItemCmd = new Command("Show cover", Command.ITEM, 1);
 		
 		// главная форма
 		
@@ -170,6 +182,29 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 			return;
 		}
+		if (c == chaptersCmd) {
+			// TODO главы
+			
+			return;
+		}
+		if (c == addFavoriteCmd) {
+			// TODO список локальных закладок
+			
+			return;
+		}
+		if (c == coverItemCmd) {
+			// TODO показать обложку
+			
+			try {
+				String url = proxyUrl(COVERSURL + currentMangaId + '/' + getMangaCover(currentMangaId));
+				
+				if (platformRequest(url))
+					notifyDestroyed();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return;
+		}
 	}
 	
 	// трединг
@@ -192,12 +227,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				for (int i = 0; i < l; i++) {
 					JSONObject m = data.getObject(i);
 					String id = m.getString("id");
-					String title = "Unknown";
 					
 					JSONObject attributes = m.getObject("attributes");
-					if (attributes.has("title"))
-						title = attributes.getObject("title").getString("en", title);
-					
+
+					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
 					item = new ImageItem(title, null, Item.LAYOUT_EXPAND, id);
 					item.addCommand(mangaItemCmd);
 					item.setDefaultCommand(mangaItemCmd);
@@ -213,7 +246,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setTicker(null);
 			break;
 		}
-		case RUN_MANGA: {
+		case RUN_MANGA: { // открыта манга
 			String id = currentMangaId;
 			Image thumb = null;
 			
@@ -225,14 +258,97 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = mangaForm;
 			
 			ImageItem coverItem = new ImageItem("", thumb, Item.LAYOUT_LEFT, id);
+			coverItem.addCommand(coverItemCmd);
+			coverItem.addCommand(coverItemCmd);
 			coverItem.setItemCommandListener(this);
+			coverItem.setLayout(Item.LAYOUT_NEWLINE_AFTER);
 			f.append(coverItem);
 			
 			try {
-				JSONObject j = api("manga/" + id).getObject("data");
+				JSONObject j = api("manga/" + id).getObject("data");	
+				JSONObject attributes = j.getObject("attributes");
 				
-				// TODO страница манги
-				f.append(j.toString());
+				StringItem s;
+				String t;
+				
+				if (attributes.has("title")) {
+					f.setTitle(t = getTitle(attributes.getObject("title")));
+					s = new StringItem(null, t);
+					s.setFont(largefont);
+					s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
+				
+				if (attributes.has("altTitle") && (t = getTitle(attributes.getArray("altTitle"))) != null) {
+					s = new StringItem(null, t);
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
+
+				// теги
+				s = new StringItem(null, "Tags");
+				s.setFont(medboldfont);
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				JSONArray tags = attributes.getArray("tags");
+				int l = tags.size();
+				for (int i = 0; i < l; i++) {
+					// отображение тегов как кнопки потому что почему нет
+					s = new StringItem(null, getTitle(tags.getObject(i).getObject("attributes").getObject("name")), StringItem.BUTTON);
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_LEFT);
+					s.addCommand(tagItemCmd);
+					s.setDefaultCommand(tagItemCmd);
+					s.setItemCommandListener(this);
+					f.append(s);
+				}
+				
+				f.append("\n");
+
+				// статус
+				s = new StringItem(null, "Publication");
+				s.setFont(medboldfont);
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				s = new StringItem(null, attributes.getString("year") + ", " + attributes.getString("status").toUpperCase());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				// описание
+				if (attributes.has("description")) {
+					s = new StringItem(null, "Description");
+					s.setFont(medboldfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+					
+					s = new StringItem(null, getTitle(attributes.getObject("description")));
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
+				
+				// кнопки
+				s = new StringItem(null, "Chapters", StringItem.BUTTON);
+				s.setFont(Font.getDefaultFont());
+				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				s.addCommand(chaptersCmd);
+				s.setDefaultCommand(chaptersCmd);
+				s.setItemCommandListener(this);
+				f.append(s);
+				
+				s = new StringItem(null, "Add to favorites", StringItem.BUTTON);
+				s.setFont(Font.getDefaultFont());
+				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				s.addCommand(addFavoriteCmd);
+				s.setDefaultCommand(addFavoriteCmd);
+				s.setItemCommandListener(this);
+				f.append(s);
+
+//				f.append(j.format());
 			} catch (Exception e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
@@ -260,33 +376,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						ImageItem item = (ImageItem) o[1];
 						
 						try { 
-							JSONStream j = apiStream("cover?manga[]=" + mangaId);
-//							String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
-							try {
-								if (!(j.nextTrim() == '{' &&
-										j.jumpToKey("data") &&
-										j.nextTrim() == '[' &&
-										j.nextTrim() == '{' &&
-										j.jumpToKey("attributes") &&
-										j.nextTrim() == '{' &&
-										j.jumpToKey("fileName"))) throw new Exception("corrupt");
-									String filename = j.nextString();
-									
-									// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
-									Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
-									
-									// ресайз обложки
-									int h = getHeight() / 3; // TODO константа?
-									int w = (int) (((float) h / img.getHeight()) * img.getWidth());
-									img = resize(img, w, h);
-									
-									item.setImage(img);
-							} finally {
-								j.close();
-							}
+							String filename = getMangaCover(mangaId);
+							
+							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
+							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
+
+							// ресайз обложки
+							int h = getHeight() / 3; // TODO константа?
+							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
+							img = resize(img, w, h);
+							
+							item.setImage(img);
 						} catch (Exception e) {
 							e.printStackTrace();
-						}
+						} 
 					}
 				}
 			} catch (Exception e) {
@@ -314,6 +417,38 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		synchronized (coverLoadLock) {
 			coverLoadLock.notifyAll();
 		}
+	}
+	
+	// возвращает файлнейм обложки
+	private static String getMangaCover(String mangaId) throws Exception {
+		JSONStream j = apiStream("cover?manga[]=" + mangaId);
+//		String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
+		try {
+			if (!(j.nextTrim() == '{' &&
+					j.jumpToKey("data") &&
+					j.nextTrim() == '[' &&
+					j.nextTrim() == '{' &&
+					j.jumpToKey("attributes") &&
+					j.nextTrim() == '{' &&
+					j.jumpToKey("fileName"))) throw new Exception("corrupt");
+			return j.nextString();
+		} finally {
+			j.close();
+		}
+	}
+
+	private static String getTitle(JSONObject j) {
+		if (j.has("en")) return j.getString("en");
+		return "";
+	}
+
+	private static String getTitle(JSONArray j) {
+		int l = j.size();
+		for (int i = 0; i < l; i++) {
+			JSONObject t = j.getObject(i);
+			if (t.has("en")) return t.getString("en");
+		}
+		return null;
 	}
 	
 	private static int getHeight() {
