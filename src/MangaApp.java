@@ -184,6 +184,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						title = attributes.getObject("title").getString("en", title);
 					
 					item = new ImageItem(title, null, Item.LAYOUT_EXPAND, id);
+					item.addCommand(mangaItemCmd);
+					item.setDefaultCommand(mangaItemCmd);
+					item.setItemCommandListener(this);
 					scheduleCover(item, id);
 					f.append(item);
 				}
