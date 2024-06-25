@@ -183,8 +183,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		case RUN_MANGAS: { // поиск и список манг
 			Form f = listForm;
 			try {
-				// TODO обернуть в api()
-				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga" + (query != null ? "title=" + url(query) : ""))));
+				JSONObject j = api("manga" + (query != null ? "?title=" + url(query) : ""));
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				
@@ -229,7 +228,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(coverItem);
 			
 			try {
-				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga/" + id))).getObject("data");
+				JSONObject j = api("manga/" + id).getObject("data");
 				
 				// TODO страница манги
 				f.append(j.toString());
@@ -261,7 +260,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						
 						try { 
 							// TODO по идее можно переписать на JSONStream
-							String filename = JSON.getObject(getUtf(proxyUrl(APIURL + "cover?manga[]=" + mangaId))).getArray("data").getObject(0).getObject("attributes").getString("fileName");
+							String filename = api("cover?manga[]=" + mangaId).getArray("data").getObject(0).getObject("attributes").getString("fileName");
 							
 							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
 							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
@@ -334,6 +333,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	// http
+	
+	private static JSONObject api(String url) throws IOException {
+		JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL.concat(url))));
+		
+		System.out.println(j);
+		return j;
+	}
 
 	private static Image getImage(String url) throws IOException {
 		byte[] b = get(url);
