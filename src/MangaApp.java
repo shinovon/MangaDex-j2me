@@ -63,7 +63,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String currentMangaId;
 	private static ImageItem mangaItem;
 	
-	private static int chaptersLimit = 10;
+	private static int chaptersLimit = 20;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
 	private static Hashtable chapterItems = new Hashtable();
@@ -458,9 +458,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						;
 				if (chaptersOffset > 0)
 					sb.append("&offset=").append(chaptersOffset);
-				JSONObject j = api(sb.toString());
 				
+				JSONObject j = api(sb.toString());
+				JSONArray data = j.getArray("data");
+				int l = data.size();
 				chaptersTotal = j.getInt("total");
+				
+				// TODO pagination
 				
 				StringItem s;
 				
@@ -468,9 +472,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).append("\n\n").toString());
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
-				
-				JSONArray data = j.getArray("data");
-				int l = data.size();
 				
 				String lastVolume = null;
 				String lastChapter = null;
@@ -484,22 +485,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					String time = a.getString("publishAt");
 					String lang = a.getString("translatedLanguage");
 					
+					boolean b = false;
+					
 					// выглядит страшно
 					if (i == 0 && (lastVolume == null && volume == null)) {
 						s = new StringItem(null, "No Volume");
-						s.setFont(smallfont);
+						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
+						b = true;
 					} else if ((volume == null && lastVolume != null) ||
 							(volume != null && !volume.equals(lastVolume))) {
-						s = new StringItem(null, volume == null ? "No Volume" : "Volume ".concat(volume));
-						s.setFont(smallfont);
+						s = new StringItem(null, volume == null ? "\nNo Volume" : "\nVolume ".concat(volume));
+						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
+						b = true;
 					}
 					
-					if (i == 0 || !chapter.equals(lastChapter)) {
-						s = new StringItem(null, "\nChapter ".concat(chapter));
+					if (i == 0 || !chapter.equals(lastChapter) || b) {
+						s = new StringItem(null, (b ? "" : "\n").concat("Chapter ").concat(chapter));
 						s.setFont(smallboldfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
@@ -512,7 +517,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					.append(localizeTime(time));
 					
 					s = new StringItem(null, sb.toString());
-					s.setFont(medfont);
+					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					s.addCommand(chapterCmd);
 					s.setDefaultCommand(chapterCmd);
