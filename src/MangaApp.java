@@ -23,7 +23,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
 	
-	private static final String APIURL = "https://api.mangadex.dev/"; // TODO dev домен
+	private static final String APIURL = "https://api.mangadex.org/"; // TODO dev домен
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
