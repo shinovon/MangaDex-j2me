@@ -7,6 +7,10 @@ import javax.microedition.io.HttpConnection;
 import javax.microedition.lcdui.*;
 import javax.microedition.midlet.MIDlet;
 
+import cc.nnproject.json.JSON;
+import cc.nnproject.json.JSONArray;
+import cc.nnproject.json.JSONObject;
+
 public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemCommandListener {
 
 	private static final int RUN_MANGAS = 1;
@@ -14,6 +18,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	
 	private static final String APIURL = "https://api.mangadex.dev/";
+	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 
 	private static boolean started;
 	private static Display display;
@@ -22,6 +27,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command backCmd;
 	private static Command searchCmd;
 	private static Command updatesCmd;
+	private static Command mangaItemCmd;
 	
 	private static Form mainForm;
 	private static Form listForm;
@@ -31,7 +37,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static int run;
 	private static boolean running;
+	
 	private static String query;
+	private static String currentMangaId;
+	private static ImageItem mangaItem;
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
@@ -63,6 +72,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		backCmd = new Command("Back", Command.EXIT, 2);
 		searchCmd = new Command("Search", Command.ITEM, 1);
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
+		mangaItemCmd = new Command("Open", Command.ITEM, 1);
 		
 		Form f = new Form("MangaDex");
 		f.addCommand(exitCmd);
@@ -90,6 +100,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		
 		display.setCurrent(mainForm = f);
+		
+		start(RUN_COVERS);
 	}
 
 	public void commandAction(Command c, Displayable d) {
@@ -115,9 +127,25 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public void commandAction(Command c, Item item) {
+		if (c == mangaItemCmd) {
+			if (running) return;
+			String id = (mangaItem = (ImageItem) item).getAltText();
+			
+			Form f = new Form("Manga " + id);
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			f.setTicker(new Ticker("Loading..."));
+			
+			currentMangaId = id;
+			display(mangaForm = f);
+			start(RUN_MANGA);
+			return;
+		}
+		
 		if (c == searchCmd || c == updatesCmd) {
 			if (running) return;
-			Form f = new Form("List");
+			Form f = new Form("MangaDex");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			
@@ -141,14 +169,61 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		case RUN_MANGAS: {
 			Form f = listForm;
 			try {
+				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga" + (query != null ? "title=" + url(query) : ""))));
+				JSONArray data = j.getArray("data");
+				int l = data.size();
+				
+				ImageItem item;
+				for (int i = 0; i < l; i++) {
+					JSONObject m = data.getObject(i);
+					String id = m.getString("id");
+					String title = "Unknown";
+					
+					JSONObject attributes = m.getObject("attributes");
+					if (attributes.has("title"))
+						title = attributes.getObject("title").getString("en", title);
+					
+					item = new ImageItem(title, null, Item.LAYOUT_EXPAND, id);
+					scheduleCover(item, id);
+					f.append(item);
+				}
 				
 			} catch (Exception e) {
 				e.printStackTrace();
+				display(errorAlert(e.toString()), f);
 			}
+			f.setTicker(null);
 			break;
 		}
 		case RUN_MANGA: {
+			String id = currentMangaId;
+			Image thumb = null;
 			
+			if(mangaItem != null) {
+				thumb = mangaItem.getImage();
+				mangaItem = null;
+			}
+			
+			Form f = mangaForm;
+			
+			ImageItem coverItem = new ImageItem("", thumb, Item.LAYOUT_LEFT, id);
+			coverItem.setItemCommandListener(this);
+			f.append(coverItem);
+			
+			try {
+				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga/" + id))).getObject("data");
+				
+				// TODO manga page
+				f.append(j.toString());
+			} catch (Exception e) {
+				e.printStackTrace();
+				display(errorAlert(e.toString()), f);
+			}
+			
+			if (thumb == null) {
+				scheduleCover(coverItem, id);
+			}
+			f.setTicker(null);
 			break;
 		}
 		case RUN_COVERS: {
@@ -157,13 +232,27 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					synchronized (coverLoadLock) {
 						coverLoadLock.wait();
 					}
+					// подождать перед тем как начать грузить обложки, может сверху что-то не допарсилось и они друг другу будут мешать
+					Thread.sleep(500);
 					while (coversToLoad.size() > 0) {
 						int i = 0;
 						Object[] o = (Object[]) coversToLoad.elementAt(i);
 						coversToLoad.removeElementAt(i);
-						String path = (String) o[0];
-						ImageItem img = (ImageItem) o[1];
-						img.setImage(getImage(proxyUrl(path)));
+						String mangaId = (String) o[0];
+						ImageItem item = (ImageItem) o[1];
+						
+						try { 
+							String filename = JSON.getObject(getUtf(proxyUrl(APIURL + "cover?manga[]=" + mangaId))).getArray("data").getObject(0).getObject("attributes").getString("fileName");
+							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
+							
+							int h = getHeight() / 3;
+							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
+							img = resize(img, w, h);
+							
+							item.setImage(img);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -185,11 +274,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} catch (Exception e) {}
 	}
 
-	private static void scheduleCover(ImageItem img, String path, String thumb) {
-		coversToLoad.addElement(new Object[] { thumb, img });
+	private static void scheduleCover(ImageItem img, String mangaId) {
+		coversToLoad.addElement(new Object[] { mangaId, img });
 		synchronized (coverLoadLock) {
 			coverLoadLock.notifyAll();
 		}
+	}
+	
+	private static int getHeight() {
+		return display.getCurrent().getHeight();
 	}
 	
 	private static void display(Alert a, Displayable d) {
@@ -319,7 +412,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static String proxyUrl(String url) {
-		if(url == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
+		System.out.println(url);
+		if(url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
 		return proxyUrl + url(url);
