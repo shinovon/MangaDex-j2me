@@ -38,6 +38,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// команды
 	private static Command exitCmd;
 	private static Command backCmd;
+	private static Command settingsCmd;
+	private static Command aboutCmd;
+	
 	private static Command searchCmd;
 	private static Command updatesCmd;
 	private static Command mangaItemCmd;
@@ -105,6 +108,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
+		settingsCmd = new Command("Screen", Command.SCREEN, 3);
+		aboutCmd = new Command("About", Command.SCREEN, 4);
+		
 		searchCmd = new Command("Search", Command.ITEM, 1);
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
 		mangaItemCmd = new Command("Open", Command.ITEM, 1);
@@ -118,6 +124,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		Form f = new Form("MangaDex");
 		f.addCommand(exitCmd);
+		f.addCommand(settingsCmd);
 		f.setCommandListener(this);
 		
 		StringItem s;
@@ -166,6 +173,38 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(mainForm);
 			coversToLoad.removeAllElements();
 			listForm = null;
+			return;
+		}
+		if (c == settingsCmd) {
+			// TODO
+			
+			return;
+		}
+		if (c == aboutCmd) {
+			// TODO
+			Form f = new Form("About");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			StringItem s;
+			s = new StringItem(null, "unnamed mangadex reader v" + version);
+			s.setFont(largefont);
+			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+			f.append(s);
+
+			s = new StringItem("Deeloper", "shinovon");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+			s.setFont(Font.getDefaultFont());
+			f.append(s);
+
+			s = new StringItem("Chat", "t.me/nnmidletschat");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+			f.append(s);
+			
+			s = new StringItem(null, "\n292 labs (tm)");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+			f.append(s);
+			display(f);
 			return;
 		}
 		if (c == backCmd) {
@@ -466,9 +505,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// TODO pagination
 				
-				StringItem s;
-				
 				sb.setLength(0);
+				StringItem s;
 				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).append("\n\n").toString());
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
