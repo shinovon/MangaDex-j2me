@@ -158,7 +158,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	public void commandAction(Command c, Displayable d) {
 		if (d == chaptersForm && c == backCmd) {
 			// возвращение из глв
-			display(chaptersForm != null ? chaptersForm : listForm != null ? listForm : mainForm);
+			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
 			chaptersForm = null;
 			chapterItems.clear();
 			return;
