@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Vector;
 
 import javax.microedition.io.Connector;
 import javax.microedition.io.HttpConnection;
@@ -8,10 +9,9 @@ import javax.microedition.midlet.MIDlet;
 
 public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemCommandListener {
 
-	private static final int RUN_UPDATES = 1;
-	private static final int RUN_SEARCH = 2;
-	private static final int RUN_MANGA = 3;
-	private static final int RUN_COVERS = 4;
+	private static final int RUN_MANGAS = 1;
+	private static final int RUN_MANGA = 2;
+	private static final int RUN_COVERS = 3;
 	
 	private static final String APIURL = "https://api.mangadex.dev/";
 
@@ -25,11 +25,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Form mainForm;
 	private static Form listForm;
+	private static Form mangaForm;
 	
 	private static TextField searchField;
 	
 	private static int run;
 	private static boolean running;
+	private static String query;
+	
+	private static Object coverLoadLock = new Object();
+	private static Vector coversToLoad = new Vector();
 	
 	private static String version;
 	
@@ -65,7 +70,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		StringItem s;
 		
-		searchField = new TextField("Tags", "", 200, TextField.NON_PREDICTIVE);
+		searchField = new TextField("", "", 200, TextField.NON_PREDICTIVE);
 		f.append(searchField);
 		
 		s = new StringItem(null, "Search", StringItem.BUTTON);
@@ -76,13 +81,53 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		
+		s = new StringItem(null, "Updates", StringItem.BUTTON);
+		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+		s.addCommand(updatesCmd);
+		s.setDefaultCommand(updatesCmd);
+		s.setItemCommandListener(this);
+		f.append(s);
+		
+		
 		display.setCurrent(mainForm = f);
 	}
 
 	public void commandAction(Command c, Displayable d) {
+		if (d == mangaForm && c == backCmd) {
+			display(listForm != null ? listForm : mainForm);
+			mangaForm = null;
+			return;
+		}
+		if (d == listForm && c == backCmd) {
+			display(mainForm);
+			coversToLoad.removeAllElements();
+			listForm = null;
+			return;
+		}
+		if (c == backCmd) {
+			display(mainForm);
+			return;
+		}
+		if (c == exitCmd) {
+			notifyDestroyed();
+			return;
+		}
 	}
 
 	public void commandAction(Command c, Item item) {
+		if (c == searchCmd || c == updatesCmd) {
+			if (running) return;
+			Form f = new Form("List");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			f.setTicker(new Ticker("Loading..."));
+			
+			query = c == searchCmd ? searchField.getString().trim() : null;
+			display(listForm = f);
+			start(RUN_MANGAS);
+			return;
+		}
 	}
 	
 	public void run() {
@@ -93,11 +138,38 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		running = run != RUN_COVERS;
 		switch (run) {
-		case RUN_UPDATES: {
+		case RUN_MANGAS: {
+			Form f = listForm;
+			try {
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			break;
 		}
-		case RUN_SEARCH: {
+		case RUN_MANGA: {
+			
 			break;
+		}
+		case RUN_COVERS: {
+			try {
+				while (true) {
+					synchronized (coverLoadLock) {
+						coverLoadLock.wait();
+					}
+					while (coversToLoad.size() > 0) {
+						int i = 0;
+						Object[] o = (Object[]) coversToLoad.elementAt(i);
+						coversToLoad.removeElementAt(i);
+						String path = (String) o[0];
+						ImageItem img = (ImageItem) o[1];
+						img.setImage(getImage(proxyUrl(path)));
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return;
 		}
 		}
 		running = false;
@@ -111,6 +183,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				wait();
 			}
 		} catch (Exception e) {}
+	}
+
+	private static void scheduleCover(ImageItem img, String path, String thumb) {
+		coversToLoad.addElement(new Object[] { thumb, img });
+		synchronized (coverLoadLock) {
+			coverLoadLock.notifyAll();
+		}
 	}
 	
 	private static void display(Alert a, Displayable d) {
