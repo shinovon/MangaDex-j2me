@@ -10,6 +10,7 @@ import javax.microedition.midlet.MIDlet;
 import cc.nnproject.json.JSON;
 import cc.nnproject.json.JSONArray;
 import cc.nnproject.json.JSONObject;
+import cc.nnproject.json.JSONStream;
 
 public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemCommandListener {
 
@@ -259,18 +260,30 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						ImageItem item = (ImageItem) o[1];
 						
 						try { 
-							// TODO по идее можно переписать на JSONStream
-							String filename = api("cover?manga[]=" + mangaId).getArray("data").getObject(0).getObject("attributes").getString("fileName");
-							
-							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
-							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
-							
-							// ресайз обложки
-							int h = getHeight() / 3; // TODO константа?
-							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
-							img = resize(img, w, h);
-							
-							item.setImage(img);
+							JSONStream j = apiStream("cover?manga[]=" + mangaId);
+//							String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
+							try {
+								if (!(j.nextTrim() == '{' &&
+										j.jumpToKey("data") &&
+										j.nextTrim() == '[' &&
+										j.nextTrim() == '{' &&
+										j.jumpToKey("attributes") &&
+										j.nextTrim() == '{' &&
+										j.jumpToKey("fileName"))) throw new Exception("corrupt");
+									String filename = j.nextString();
+									
+									// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
+									Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
+									
+									// ресайз обложки
+									int h = getHeight() / 3; // TODO константа?
+									int w = (int) (((float) h / img.getHeight()) * img.getWidth());
+									img = resize(img, w, h);
+									
+									item.setImage(img);
+							} finally {
+								j.close();
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -336,9 +349,31 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static JSONObject api(String url) throws IOException {
 		JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL.concat(url))));
-		
 		System.out.println(j);
+		// хендлить ошибки апи
+		if ("error".equals(j.get("result", ""))) {
+			throw new RuntimeException("API " + j.getArray("errors").getObject(0).toString());
+		}
 		return j;
+	}
+	
+	private static JSONStream apiStream(String url) throws IOException {
+		// коннекшн остается гнить незакрытым, не порядок
+		HttpConnection hc = open(proxyUrl(APIURL.concat(url)));
+		
+		int r;
+		if((r = hc.getResponseCode()) >= 400) {
+			throw new IOException("HTTP " + r);
+		}
+		return JSONStream.getStream(hc.openInputStream());
+	}
+	
+	private static String proxyUrl(String url) {
+		System.out.println(url);
+		if(url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
+			return url;
+		}
+		return proxyUrl + url(url);
 	}
 
 	private static Image getImage(String url) throws IOException {
@@ -439,14 +474,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		hc.setRequestMethod("GET");
 		hc.setRequestProperty("User-Agent", "j2me-client/" + version + " (https://github.com/shinovon)");
 		return hc;
-	}
-	
-	private static String proxyUrl(String url) {
-		System.out.println(url);
-		if(url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
-			return url;
-		}
-		return proxyUrl + url(url);
 	}
 	
 	public static String url(String url) {
