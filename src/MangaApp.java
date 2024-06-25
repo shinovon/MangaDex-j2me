@@ -17,24 +17,27 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_MANGA = 2;
 	private static final int RUN_COVERS = 3;
 	
-	private static final String APIURL = "https://api.mangadex.dev/";
+	private static final String APIURL = "https://api.mangadex.dev/"; // TODO dev домен
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 
 	private static boolean started;
 	private static Display display;
 	
+	// команды
 	private static Command exitCmd;
 	private static Command backCmd;
 	private static Command searchCmd;
 	private static Command updatesCmd;
 	private static Command mangaItemCmd;
 	
+	// ui
 	private static Form mainForm;
 	private static Form listForm;
 	private static Form mangaForm;
 	
 	private static TextField searchField;
 	
+	// трединг
 	private static int run;
 	private static boolean running;
 	
@@ -47,6 +50,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String version;
 	
+	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
 	
 
@@ -68,11 +72,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		version = getAppProperty("MIDlet-Version");
 		display = Display.getDisplay(this);
 		
+		// TODO локализации и загрузка настроек здесь
+		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
 		searchCmd = new Command("Search", Command.ITEM, 1);
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
 		mangaItemCmd = new Command("Open", Command.ITEM, 1);
+		
+		// главная форма
 		
 		Form f = new Form("MangaDex");
 		f.addCommand(exitCmd);
@@ -101,16 +109,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		display.setCurrent(mainForm = f);
 		
+		// запустить тред обложек
 		start(RUN_COVERS);
 	}
 
 	public void commandAction(Command c, Displayable d) {
 		if (d == mangaForm && c == backCmd) {
+			// возвращение из манги
 			display(listForm != null ? listForm : mainForm);
 			mangaForm = null;
 			return;
 		}
 		if (d == listForm && c == backCmd) {
+			// возвращение из списка
 			display(mainForm);
 			coversToLoad.removeAllElements();
 			listForm = null;
@@ -128,7 +139,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	public void commandAction(Command c, Item item) {
 		if (c == mangaItemCmd) {
-			if (running) return;
+			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			String id = (mangaItem = (ImageItem) item).getAltText();
 			
 			Form f = new Form("Manga " + id);
@@ -144,7 +155,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		
 		if (c == searchCmd || c == updatesCmd) {
-			if (running) return;
+			if (running) return; // игнорировать запросы, пока что-то еще грузится
+			
+			// поиск и список манг
 			Form f = new Form("MangaDex");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -158,6 +171,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 	}
 	
+	// трединг
 	public void run() {
 		int run;
 		synchronized(this) {
@@ -166,9 +180,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		running = run != RUN_COVERS;
 		switch (run) {
-		case RUN_MANGAS: {
+		case RUN_MANGAS: { // поиск и список манг
 			Form f = listForm;
 			try {
+				// TODO обернуть в api()
 				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga" + (query != null ? "title=" + url(query) : ""))));
 				JSONArray data = j.getArray("data");
 				int l = data.size();
@@ -216,7 +231,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			try {
 				JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL + "manga/" + id))).getObject("data");
 				
-				// TODO manga page
+				// TODO страница манги
 				f.append(j.toString());
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -229,7 +244,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setTicker(null);
 			break;
 		}
-		case RUN_COVERS: {
+		case RUN_COVERS: { // скачиватель обложек, постоянно крутится на фоне
 			try {
 				while (true) {
 					synchronized (coverLoadLock) {
@@ -245,10 +260,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						ImageItem item = (ImageItem) o[1];
 						
 						try { 
+							// TODO по идее можно переписать на JSONStream
 							String filename = JSON.getObject(getUtf(proxyUrl(APIURL + "cover?manga[]=" + mangaId))).getArray("data").getObject(0).getObject("attributes").getString("fileName");
+							
+							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
 							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
 							
-							int h = getHeight() / 3;
+							// ресайз обложки
+							int h = getHeight() / 3; // TODO константа?
 							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
 							img = resize(img, w, h);
 							
@@ -278,6 +297,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	private static void scheduleCover(ImageItem img, String mangaId) {
+		// засунуть имагитем в очередь на скачивание обложки
 		coversToLoad.addElement(new Object[] { mangaId, img });
 		synchronized (coverLoadLock) {
 			coverLoadLock.notifyAll();
@@ -285,6 +305,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static int getHeight() {
+		// а что выдает это на форме?
 		return display.getCurrent().getHeight();
 	}
 	
