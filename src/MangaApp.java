@@ -33,6 +33,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final Font smallboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_SMALL);
 	private static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
 //	private static final Font selectedpagefont = Font.getFont(0, Font.STYLE_BOLD | Font.STYLE_ITALIC, Font.SIZE_SMALL);
+	
+	private static final String[] MANGA_STATUSES = {
+			"ongoing", "completed", "hiatus", "cancelled"
+	};
+	
+	private static final String[] MANGA_DEMOGRAPHIC = {
+			"shounen", "shoujo", "josei", "seinen", "none"
+	};
+	
+	private static final String[] MANGA_RATINGS = {
+			"safe", "suggestive", "erotica", "pornographic"
+	};
+
 
 	private static boolean started;
 	private static Display display;
@@ -46,6 +59,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command searchCmd;
 	private static Command updatesCmd;
 	private static Command bookmarksCmd;
+	private static Command advSearchCmd;
+	
+	private static Command advSubmitCmd;
 	
 	private static Command mangaItemCmd;
 	private static Command chaptersCmd;
@@ -63,8 +79,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form listForm;
 	private static Form mangaForm;
 	private static Form chaptersForm;
+	private static Form searchForm;
 	
 	private static TextField searchField;
+
+	private static TextField advTitleField;
+	private static TextField advYearField;
+	private static ChoiceGroup advStatusChoice;
+	private static ChoiceGroup advDemographicChoice;
+	private static ChoiceGroup advRatingChoice;
 	
 	// трединг
 	private static int run;
@@ -76,6 +99,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int listLimit = 10;
 	private static int listOffset = 0;
 	private static int listTotal;
+	private static boolean advanced;
 
 	private static String currentChapterId;
 	private static int chaptersLimit = 20;
@@ -132,6 +156,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		searchCmd = new Command("Search", Command.ITEM, 1);
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
 		bookmarksCmd = new Command("Bookmarks", Command.ITEM, 1);
+		advSearchCmd = new Command("Adv. Search", Command.ITEM, 1);
+		
+		advSubmitCmd = new Command("Search", Command.OK, 1);
 		
 		mangaItemCmd = new Command("Open", Command.ITEM, 1);
 		chaptersCmd = new Command("Chapters", Command.ITEM, 1);
@@ -172,6 +199,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		
+		s = new StringItem(null, "Advanced Search", StringItem.BUTTON);
+		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+		s.addCommand(advSearchCmd);
+		s.setDefaultCommand(advSearchCmd);
+		s.setItemCommandListener(this);
+		f.append(s);
+		
 		s = new StringItem(null, "Bookmarks", StringItem.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(bookmarksCmd);
@@ -208,9 +242,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d == listForm && c == backCmd) {
 			// возвращение из списка манг
-			display(mainForm);
+			display(searchForm != null ? searchForm : mainForm);
 			coversToLoad.removeAllElements();
 			listForm = null;
+			return;
+		}
+		if (d == searchForm && c == backCmd) {
+			// возвращение из поиска
+			display(mainForm);
+			searchForm = null;
 			return;
 		}
 		if (c == settingsCmd) {
@@ -275,6 +315,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
+		if (c == advSubmitCmd) {
+			// адвансед поиск
+			if (running) return;
+			coversToLoad.removeAllElements();
+			
+			// поиск и список манг
+			Form f = new Form("MangaDex");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			f.setTicker(new Ticker("Loading..."));
+			
+			listOffset = 0;
+			query = null;
+			advanced = true;
+			display(listForm = f);
+			start(RUN_MANGAS);
+		}
 		if (c == backCmd) {
 			display(mainForm);
 			return;
@@ -303,7 +360,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGA);
 			return;
 		}
-		
 		if (c == searchCmd || c == updatesCmd) {
 			// открыть поиск или список последних обновленных манг
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
@@ -317,6 +373,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			listOffset = 0;
 			query = c == searchCmd ? searchField.getString().trim() : null;
+			advanced = false;
 			display(listForm = f);
 			start(RUN_MANGAS);
 			return;
@@ -380,6 +437,48 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
+		if (c == advSearchCmd) {
+			// форма адвансед поиска
+			Form f = new Form("Advanced Search");
+			f.addCommand(advSubmitCmd);
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			TextField t;
+			
+			t = new TextField("Title", "", 200, TextField.ANY);
+			f.append(advTitleField = t);
+			
+			t = new TextField("Year", "", 4, TextField.NUMERIC);
+			f.append(advYearField = t);
+			
+			ChoiceGroup g;
+			
+			g = new ChoiceGroup("Status", ChoiceGroup.MULTIPLE, new String[] {
+					"Ongoing", "Completed", "Hiatus", "Cancelled"
+			}, null);
+			f.append(advStatusChoice = g);
+			
+			g = new ChoiceGroup("Magazine demographic", ChoiceGroup.MULTIPLE, new String[] {
+					"Shounen", "Shoujo", "Josei", "Seinen", "None"
+			}, null);
+			f.append(advDemographicChoice = g);
+			
+			g = new ChoiceGroup("Rating", ChoiceGroup.MULTIPLE, new String[] {
+					"Safe", "Suggestive", "Erotica", "Pornographic"
+			}, null);
+			f.append(advRatingChoice = g);
+			
+			// TODO автор, ориг язык, сортировать по
+			
+			display(searchForm = f);
+			return;
+		}
+		if (c == bookmarksCmd) {
+			// TODO закладки
+			
+			return;
+		}
 		commandAction(c, display.getCurrent());
 	}
 	
@@ -406,6 +505,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					sb.append("&offset=").append(listOffset);
 					f.addCommand(prevPageCmd);
 				}
+				if (advanced) {
+					// TODO адвансед поиск
+					
+				}
+				
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
 				int l = data.size();
