@@ -24,6 +24,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER = 5;
 	
+	private static final int LIST_UPDATES = 1;
+	private static final int LIST_RECENT = 2;
+	private static final int LIST_SEARCH = 3;
+	private static final int LIST_ADVANCED_SEARCH = 4;
+	
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	
@@ -60,6 +65,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command updatesCmd;
 	private static Command bookmarksCmd;
 	private static Command advSearchCmd;
+	private static Command recentCmd;
 	
 	private static Command advSubmitCmd;
 	
@@ -88,6 +94,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup advStatusChoice;
 	private static ChoiceGroup advDemographicChoice;
 	private static ChoiceGroup advRatingChoice;
+	private static ChoiceGroup advSortChoice;
 	
 	// трединг
 	private static int run;
@@ -99,7 +106,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int listLimit = 10;
 	private static int listOffset = 0;
 	private static int listTotal;
-	private static boolean advanced;
+	private static int listMode;
 
 	private static String currentChapterId;
 	private static int chaptersLimit = 20;
@@ -157,6 +164,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		updatesCmd = new Command("Updates", Command.ITEM, 1);
 		bookmarksCmd = new Command("Bookmarks", Command.ITEM, 1);
 		advSearchCmd = new Command("Adv. Search", Command.ITEM, 1);
+		recentCmd = new Command("Recent", Command.ITEM, 1);
 		
 		advSubmitCmd = new Command("Search", Command.OK, 1);
 		
@@ -192,7 +200,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		
-		s = new StringItem(null, "Updates", StringItem.BUTTON);
+		s = new StringItem(null, "Recently Added", StringItem.BUTTON);
+		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+		s.addCommand(recentCmd);
+		s.setDefaultCommand(recentCmd);
+		s.setItemCommandListener(this);
+		f.append(s);
+		
+		s = new StringItem(null, "Latest Updates", StringItem.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(updatesCmd);
 		s.setDefaultCommand(updatesCmd);
@@ -328,7 +343,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			listOffset = 0;
 			query = null;
-			advanced = true;
+			listMode = LIST_ADVANCED_SEARCH;
 			display(listForm = f);
 			start(RUN_MANGAS);
 		}
@@ -360,7 +375,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGA);
 			return;
 		}
-		if (c == searchCmd || c == updatesCmd) {
+		if (c == searchCmd || c == updatesCmd || c == recentCmd) {
 			// открыть поиск или список последних обновленных манг
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
@@ -373,7 +388,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			listOffset = 0;
 			query = c == searchCmd ? searchField.getString().trim() : null;
-			advanced = false;
+			
+			listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
 			display(listForm = f);
 			start(RUN_MANGAS);
 			return;
@@ -470,7 +486,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}, null);
 			f.append(advRatingChoice = g);
 			
-			// TODO автор, ориг язык, сортировать по
+			g = new ChoiceGroup("Sort by", ChoiceGroup.EXCLUSIVE, new String[] {
+					"None", "Best Match", // relevance
+					"Latest Upload", "Oldest Upload", // latestUploadedChapter
+					"Title Ascending", "Title Descending", // title
+					"Highest Rating", "Lowest Rating", // rating
+					"Most Follows", "Fewest Follows", // followedCount
+					"Recently Added", "Oldest Added", // createdAt
+					"Year Ascending", "Year Descending" // year
+			}, null);
+			f.append(advSortChoice = g);
+			
+			// TODO автор, ориг язык
 			
 			display(searchForm = f);
 			return;
@@ -504,7 +531,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					sb.append("&offset=").append(listOffset);
 					f.addCommand(prevPageCmd);
 				}
-				if (advanced) {
+				switch(listMode) {
+				case LIST_UPDATES: {
+					sb.append("&order[latestUploadedChapter]=desc");
+					break;
+				}
+				case LIST_RECENT: {
+					sb.append("&order[createdAt]=desc");
+					break;
+				}
+				case LIST_SEARCH: {
+					if (query != null)
+						sb.append("&title=").append(url(query));
+					break;
+				}
+				case LIST_ADVANCED_SEARCH: {
 					String t = advTitleField.getString().trim();
 					if (t.length() > 0)
 						sb.append("&title=").append(url(t));
@@ -549,8 +590,55 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						sb.append(MANGA_RATINGS[i]).append(',');
 					}
 					if (w) sb.setLength(sb.length() - 1);
-				} else if (query != null)
-					sb.append("&title=").append(url(query));
+					
+					switch (advSortChoice.getSelectedIndex()) {
+					case -1:
+					case 0:
+						break;
+					case 1:
+						sb.append("&order[relevance]=desc");
+						break;
+					case 2:
+						sb.append("&order[latestUploadedChapter]=desc");
+						break;
+					case 3:
+						sb.append("&order[latestUploadedChapter]=asc");
+						break;
+					case 4:
+						sb.append("&order[title]=asc");
+						break;
+					case 5:
+						sb.append("&order[title]=desc");
+						break;
+					case 6:
+						sb.append("&order[rating]=desc");
+						break;
+					case 7:
+						sb.append("&order[rating]=asc");
+						break;
+					case 8:
+						sb.append("&order[followedCount]=desc");
+						break;
+					case 9:
+						sb.append("&order[followedCount]=asc");
+						break;
+					case 10:
+						sb.append("&order[createdAt]=desc");
+						break;
+					case 11:
+						sb.append("&order[createdAt]=asc");
+						break;
+					case 12:
+						sb.append("&order[year]=asc");
+						break;
+					case 13:
+						sb.append("&order[year]=desc");
+						break;
+					}
+					
+					break;
+				}
+				}
 				
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
