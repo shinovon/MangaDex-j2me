@@ -22,6 +22,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_MANGA = 2;
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
+	private static final int RUN_CHAPTER = 5;
 	
 	private static final String APIURL = "https://api.mangadex.dev/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
@@ -75,11 +76,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int listLimit = 10;
 	private static int listOffset = 0;
 	private static int listTotal;
-	
+
+	private static String currentChapterId;
 	private static int chaptersLimit = 20;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
 	private static Hashtable chapterItems = new Hashtable();
+	
+	// для просмотра
+	private static int chapterPages;
+	private static String chapterBaseUrl;
+	private static Vector chapterFilenames;
+	private static String chapterHash;
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
@@ -345,9 +353,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (c == chapterCmd) {
 			// TODO просмотр главы
 			if (running) return;
-			
-			String chapterId = (String) chapterItems.get(item);
-			if (chapterId == null) return;
+			if ((currentChapterId = (String) chapterItems.get(item)) == null)
+				return;
+			start(RUN_CHAPTER);
 			return;
 		}
 		if (c == nPageCmd) {
@@ -362,7 +370,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal - listLimit)); 
 				start(RUN_MANGAS);
 			} else if(f == chaptersForm) {
-				chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal - chaptersLimit)); 
+				chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal - chaptersLimit));
 				start(RUN_CHAPTERS);
 			}
 			return;
@@ -674,8 +682,41 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+				display(errorAlert(e.toString()), f);
 			}
 			f.setTicker(null);
+			break;
+		}
+		case RUN_CHAPTER: { // TODO просмотр главы
+			String mangaId = currentMangaId;
+			String chapterId = currentChapterId;
+			if (mangaId == null || chapterId == null) break;
+			
+			try {
+				// колво и номер страницы
+				JSONObject j = api("chapter/" + chapterId).getObject("data");
+				chapterPages = j.getInt("pages");
+				
+				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
+				j = api("at-home/server/" + chapterId);
+				chapterBaseUrl = j.getString("baseUrl");
+				chapterFilenames = new Vector(chapterPages);
+				
+				j = j.getObject("chapter");
+				chapterHash = j.getString("hash");
+				
+				JSONArray data;
+				if (j.has("dataSaver")) data = j.getArray("dataSaver");
+				else data = j.getArray("data");
+				
+				int l = data.size();
+				for (int i = 0; i < l; i++) {
+					 chapterFilenames.addElement(data.get(i));
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				display(errorAlert(e.toString()));
+			}
 			break;
 		}
 		}
