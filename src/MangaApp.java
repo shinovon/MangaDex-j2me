@@ -85,7 +85,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
+	private static Command gotoPageCmd;
 	private static Command nPageCmd;
+
+	private static Command goCmd;
+	private static Command cancelCmd;
 	
 	// ui
 	private static Form mainForm;
@@ -106,6 +110,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup advSortChoice;
 	
 	private static TextField proxyField;
+	private static ChoiceGroup coversChoice;
 	
 	// трединг
 	private static int run;
@@ -144,6 +149,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
 	private static String timezone;
+	private static int coverLoading = 0; // 0 - auto threads, 1 - 1 threads, 2 - 2 threads, 3 - disabled
 
 	public MangaApp() {}
 
@@ -173,6 +179,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			proxyUrl = j.getString("proxy", proxyUrl);
 			timezone = j.getString("timezone", timezone);
+			coverLoading = j.getInt("coverLoading", coverLoading);
 		} catch (Exception e) {}
 		
 //		try {
@@ -210,7 +217,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		nextPageCmd = new Command("Next page", Command.SCREEN, 2);
 		prevPageCmd = new Command("Prev. page", Command.SCREEN, 3);
+		gotoPageCmd = new Command("Go to page", Command.SCREEN, 4);
 		nPageCmd = new Command("Go to page", Command.ITEM, 2);
+
+		goCmd = new Command("Go", Command.OK, 1);
+		cancelCmd = new Command("Cancel", Command.CANCEL, 2);
 		
 		// главная форма
 		
@@ -269,7 +280,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// второй тред обложек если симбиан
 		String p = System.getProperty("microedition.platform");
-		if (p != null && p.indexOf("platform=S60") != -1) {
+		if (coverLoading != 1 && ((p != null && p.indexOf("platform=S60") != -1) || coverLoading == 2)) {
 			start(RUN_COVERS);
 		}
 	}
@@ -331,11 +342,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (d == settingsForm && c == backCmd) {
 			// сохранить настройки
 			proxyUrl = proxyField.getString();
+			coverLoading = coversChoice.getSelectedIndex();
 			
 			try {
 				JSONObject j = new JSONObject();
 				j.put("proxyUrl", proxyUrl);
 //				j.put("timezone", timezone);
+				j.put("coverLoading", coverLoading);
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
 				if (r.getNumRecords() > 0)
@@ -351,14 +364,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == settingsCmd) {
 			// настройки
-			Form f = new Form("Settings");
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			
-			proxyField = new TextField("Proxy URL", proxyUrl, 200, TextField.URL);
-			f.append(proxyField);
-			
-			display(settingsForm = f);
+			if (settingsForm == null) {
+				Form f = new Form("Settings");
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				
+				proxyField = new TextField("Proxy URL", proxyUrl, 200, TextField.URL);
+				f.append(proxyField);
+				
+				coversChoice = new ChoiceGroup("Covers loading", ChoiceGroup.POPUP, new String[] {
+						"Auto", "1 thread", "2 threads", "Disabled"
+				}, null);
+				coversChoice.setSelectedIndex(coverLoading, true);
+				f.append(coversChoice);
+				
+				settingsForm = f;
+			}
+			display(settingsForm);
 			return;
 		}
 		if (c == aboutCmd) {
@@ -418,6 +440,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
+		if (c == gotoPageCmd) {
+			// диалог страницы
+			if (running) return;
+			int a, b;
+			if (chaptersForm != null) {
+				a = (chaptersOffset / chaptersLimit) + 1;
+				b = chaptersTotal / chaptersLimit;
+			} else {
+				a = (listOffset / listLimit) + 1;
+				b = listTotal / listLimit;
+			}
+			TextBox t = new TextBox("Page number (" + a + '/' + b + ")", "", 10, TextField.NUMERIC);
+			t.addCommand(goCmd);
+			t.addCommand(cancelCmd);
+			t.setCommandListener(this);
+			display(t);
+			return;
+		}
 		if (c == advSubmitCmd) {
 			// адвансед поиск
 			if (running) return;
@@ -434,6 +474,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listMode = LIST_ADVANCED_SEARCH;
 			display(listForm = f);
 			start(RUN_MANGAS);
+		}
+		if (d instanceof TextBox) {
+			Form f = chaptersForm != null ? chaptersForm : listForm != null ? listForm : mainForm;
+			if (c == goCmd) {
+				gotoPage(f, ((TextBox) d).getString());
+			}
+			display(f);
 		}
 		if (c == backCmd) {
 			display(mainForm);
@@ -509,17 +556,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (running) return;
 			coversToLoad.removeAllElements();
 			
-			Form f = (Form) display.getCurrent();
-			f.setTicker(new Ticker("Loading..."));
-			
-			int page = Integer.parseInt(((StringItem) item).getText());
-			if (f == listForm) {
-				listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal - listLimit)); 
-				start(RUN_MANGAS);
-			} else if(f == chaptersForm) {
-				chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal - chaptersLimit));
-				start(RUN_CHAPTERS);
-			}
+			gotoPage((Form) display.getCurrent(), ((StringItem) item).getText());
 			return;
 		}
 		if (c == advSearchCmd) {
@@ -596,6 +633,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.deleteAll();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
+			f.addCommand(gotoPageCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("manga?limit=").append(listLimit);
@@ -731,7 +769,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					JSONObject attributes = m.getObject("attributes");
 
 					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
-					item = new ImageItem(title, null, Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER, id);
+					item = new ImageItem(title, null, Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER, id, Item.BUTTON);
 					item.addCommand(mangaItemCmd);
 					item.setDefaultCommand(mangaItemCmd);
 					item.setItemCommandListener(this);
@@ -933,6 +971,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterItems.clear();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
+			f.addCommand(gotoPageCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
@@ -1072,9 +1111,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		} catch (Exception e) {}
 	}
+	
+	private void gotoPage(Form f, String t) {
+		int page = Integer.parseInt(t);
+		if (page <= 0) return;
+		f.setTicker(new Ticker("Loading..."));
+		
+		if (f == listForm) {
+			listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal - listLimit)); 
+			start(RUN_MANGAS);
+		} else if(f == chaptersForm) {
+			chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal - chaptersLimit));
+			start(RUN_CHAPTERS);
+		}
+	}
 
 	// засунуть имагитем в очередь на скачивание обложки
 	private static void scheduleCover(ImageItem img, String mangaId) {
+		if (coverLoading == 3) return; // выключены
 		synchronized (coverLoadLock) {
 			coversToLoad.addElement(new Object[] { mangaId, img });
 			coverLoadLock.notifyAll();
