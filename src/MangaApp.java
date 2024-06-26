@@ -1418,13 +1418,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return Integer.toString((int) d).concat(" hours ago");
 		}
 		
-		if (d < 365 * 60 * 60) {
+		if (d < 365 * 24 * 60 * 60) {
 			d /= 24 * 60 * 60L;
 			if (d == 1) return Integer.toString((int) d).concat(" day ago");
 			return Integer.toString((int) d).concat(" days ago");
 		}
 
-		d /= 365 * 60 * 60L;
+		d /= 365 * 24 * 60 * 60L;
 		if (d == 1) return Integer.toString((int) d).concat(" year ago");
 		return Integer.toString((int) d).concat(" years ago");
 	}
