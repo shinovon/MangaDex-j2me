@@ -612,7 +612,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				sb.setLength(0);
 				StringItem s;
-				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).append("\n\n").toString());
+				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).toString());
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
@@ -632,7 +632,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					// выглядит страшно
 					if (i == 0 && (lastVolume == null && volume == null)) {
-						s = new StringItem(null, "No Volume");
+						s = new StringItem(null, "\nNo Volume");
 						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
