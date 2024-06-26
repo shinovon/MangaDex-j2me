@@ -117,13 +117,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup coversChoice;
 	private static ChoiceGroup contentFilterChoice;
 	private static ChoiceGroup langChoice;
+	private static ChoiceGroup itemsLimitChoice;
+	private static ChoiceGroup chaptersLimitChoice;
 	
 	// трединг
 	private static int run;
 	private static boolean running;
 	
 	private static String query;
-	private static int listLimit = 10;
 	private static int listOffset = 0;
 	private static int listTotal;
 	private static int listMode;
@@ -133,7 +134,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String mangaLastChapter;
 
 	private static String chapterId;
-	private static int chaptersLimit = 20;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
 	private static Hashtable chapterItems = new Hashtable();
@@ -159,6 +159,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int coverLoading = 0; // 0 - auto, 1 - single, 2 - multi thread, 3 - disabled
 	private static boolean[] contentFilter = {true, true, true, false};
 	private static String lang = "en";
+	private static int listLimit = 8;
+	private static int chaptersLimit = 32;
 
 	public MangaApp() {}
 
@@ -193,6 +195,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			for (int i = 0; i < 4; i++) {
 				contentFilter[i] = j.getBoolean("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
 			}
+			listLimit = j.getInt("listLimit", listLimit);
+			chaptersLimit = j.getInt("chaptersLimit", chaptersLimit);
 		} catch (Exception e) {}
 		
 //		try {
@@ -387,6 +391,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			coverLoading = coversChoice.getSelectedIndex();
 			contentFilterChoice.getSelectedFlags(contentFilter);
 			lang = langChoice.isSelected(1) ? "ru" : "en";
+			listLimit = (itemsLimitChoice.getSelectedIndex() + 1) * 8;
+			chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
+			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
 			} catch (Exception e) {}
@@ -396,12 +403,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				j.put("timezone", timezone);
 				j.put("coverLoading", coverLoading);
 				j.put("lang", lang);
-				
 				if(contentFilter != null) {
 					for (int i = 0; i < 4; i++) {
 						j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
 					}
 				}
+				j.put("listLimit", listLimit);
+				j.put("chaptersLimit", chaptersLimit);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -425,6 +433,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}, null);
 				langChoice.setSelectedIndex("ru".equals(lang) ? 1 : 0, true);
 				f.append(langChoice);
+				
+				itemsLimitChoice = new ChoiceGroup(L[ItemsPerPage], ChoiceGroup.POPUP, new String[] {
+						"8", "16", "24", "32", "40"
+				}, null);
+				itemsLimitChoice.setSelectedIndex(Math.max(0, Math.min((listLimit / 8) - 1, 4)), true);
+				f.append(itemsLimitChoice);
+				
+				chaptersLimitChoice = new ChoiceGroup(L[ChaptersPerPage], ChoiceGroup.POPUP, new String[] {
+						"8", "16", "24", "32", "40"
+				}, null);
+				chaptersLimitChoice.setSelectedIndex(Math.max(0, Math.min((chaptersLimit / 8) - 1, 4)), true);
+				f.append(chaptersLimitChoice);
 				
 				contentFilterChoice = new ChoiceGroup(L[ContentFilter], ChoiceGroup.MULTIPLE, new String[] {
 						L[Safe], L[Suggestive], L[Erotica], L[Pornographic]
