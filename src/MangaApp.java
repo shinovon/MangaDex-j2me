@@ -350,7 +350,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == settingsCmd) {
-			// TODO настройки
+			// настройки
 			Form f = new Form("Settings");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -368,7 +368,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setCommandListener(this);
 			
 			StringItem s;
-			s = new StringItem(null, "unnamed mangadex reader v" + version);
+			s = new StringItem(null, "unnamed j2me mangadex reader v" + version);
 			s.setFont(largefont);
 			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			f.append(s);
@@ -571,7 +571,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == bookmarksCmd) {
-			// TODO закладки
 			Form f = new Form("Bookmarks");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -606,19 +605,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				switch(listMode) {
 				case LIST_UPDATES: {
+					f.setTitle("MangaDex - Updates");
 					sb.append("&order[latestUploadedChapter]=desc");
 					break;
 				}
 				case LIST_RECENT: {
+					f.setTitle("MangaDex - Recent");
 					sb.append("&order[createdAt]=desc");
 					break;
 				}
 				case LIST_SEARCH: {
+					f.setTitle("MangaDex - Search");
 					if (query != null)
 						sb.append("&title=").append(url(query));
 					break;
 				}
 				case LIST_ADVANCED_SEARCH: {
+					f.setTitle("MangaDex - Search");
 					String t = advTitleField.getString().trim();
 					if (t.length() > 0)
 						sb.append("&title=").append(url(t));
@@ -1017,7 +1020,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setTicker(null);
 			break;
 		}
-		case RUN_CHAPTER: { // TODO просмотр главы
+		case RUN_CHAPTER: { // просмотр главы
 			String id = chapterId;
 			if (mangaId == null || id == null) break;
 			
@@ -1044,10 +1047,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				for (int i = 0; i < l; i++) {
 					 chapterFilenames.addElement(data.get(i));
 				}
+				
+				// TODO
 			} catch (Exception e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()));
 			}
+			break;
+		}
+		case RUN_BOOKMARKS: { // загрузить список закладок
+			// TODO
 			break;
 		}
 		}
