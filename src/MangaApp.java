@@ -24,7 +24,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER = 5;
 	
-	private static final String APIURL = "https://api.mangadex.dev/";
+	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
@@ -110,8 +110,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// для просмотра
 	private static int chapterPages;
 	private static String chapterBaseUrl;
-	private static Vector chapterFilenames;
 	private static String chapterHash;
+	private static Vector chapterFilenames;
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
@@ -465,7 +465,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(advDemographicChoice = g);
 			
 			g = new ChoiceGroup("Rating", ChoiceGroup.MULTIPLE, new String[] {
-					"Safe", "Suggestive", "Erotica", "Pornographic"
+					"Safe", "Suggestive", "Erotica",
+//					"Pornographic"
 			}, null);
 			f.append(advRatingChoice = g);
 			
@@ -499,16 +500,57 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			try {
 				StringBuffer sb = new StringBuffer("manga?limit=").append(listLimit);
-				if (query != null)
-					sb.append("&title=").append(query);
 				if (listOffset > 0) {
 					sb.append("&offset=").append(listOffset);
 					f.addCommand(prevPageCmd);
 				}
 				if (advanced) {
-					// TODO адвансед поиск
+					String t = advTitleField.getString().trim();
+					if (t.length() > 0)
+						sb.append("&title=").append(url(t));
 					
-				}
+					t = advYearField.getString().trim();
+					if (t.length() > 0)
+						sb.append("&year=").append(t);
+					
+					boolean[] sel = new boolean[5];
+					boolean w = false;
+					advStatusChoice.getSelectedFlags(sel);
+					for (int i = 0; i < MANGA_STATUSES.length; i++) {
+						if (!sel[i]) continue;
+						if (!w) {
+							sb.append("&status[]=");
+							w = true;
+						}
+						sb.append(MANGA_STATUSES[i]).append(',');
+					}
+					if (w) sb.setLength(sb.length() - 1);
+
+					w = false;
+					advDemographicChoice.getSelectedFlags(sel);
+					for (int i = 0; i < MANGA_DEMOGRAPHIC.length; i++) {
+						if (!sel[i]) continue;
+						if (!w) {
+							sb.append("&publicationDemographic[]=");
+							w = true;
+						}
+						sb.append(MANGA_DEMOGRAPHIC[i]).append(',');
+					}
+					if (w) sb.setLength(sb.length() - 1);
+
+					w = false;
+					advRatingChoice.getSelectedFlags(sel);
+					for (int i = 0; i < MANGA_RATINGS.length; i++) {
+						if (!sel[i]) continue;
+						if (!w) {
+							sb.append("&contentRating[]=");
+							w = true;
+						}
+						sb.append(MANGA_RATINGS[i]).append(',');
+					}
+					if (w) sb.setLength(sb.length() - 1);
+				} else if (query != null)
+					sb.append("&title=").append(url(query));
 				
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
