@@ -81,7 +81,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command mangaItemCmd;
 	private static Command chaptersCmd;
 	private static Command tagItemCmd;
-	private static Command addFavoriteCmd;
+	private static Command saveCmd;
 	private static Command coverItemCmd;
 	private static Command chapterCmd;
 	private static Command chapterPageItemCmd;
@@ -234,7 +234,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		mangaItemCmd = new Command(L[Open], Command.ITEM, 1);
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
-		addFavoriteCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
+		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
 		coverItemCmd = new Command(L[ShowCover], Command.ITEM, 1);
 		chapterCmd = new Command(L[Chapter], Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
@@ -289,13 +289,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		
-		s = new StringItem(null, L[Bookmarks], StringItem.BUTTON);
-		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
-		s.addCommand(bookmarksCmd);
-		s.setDefaultCommand(bookmarksCmd);
-		s.setItemCommandListener(this);
-		f.append(s);
-		
+//		s = new StringItem(null, L[Bookmarks], StringItem.BUTTON);
+//		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+//		s.addCommand(bookmarksCmd);
+//		s.setDefaultCommand(bookmarksCmd);
+//		s.setItemCommandListener(this);
+//		f.append(s);
 		
 		display.setCurrent(mainForm = f);
 		
@@ -325,7 +324,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				start(RUN_CHAPTERS);
 				return;
 			}
-			if (c == addFavoriteCmd) {
+			if (c == saveCmd) {
 				// TODO список локальных закладок
 				
 				return;
@@ -647,7 +646,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == advSearchCmd) {
 			// форма адвансед поиска
-			Form f = new Form("Advanced Search");
+			Form f = new Form(L[AdvancedSearch]);
 			f.addCommand(advSubmitCmd);
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -668,7 +667,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(advStatusChoice = g);
 			
 			g = new ChoiceGroup("Magazine demographic", ChoiceGroup.MULTIPLE, new String[] {
-					"Shounen", "Shoujo", "Josei", "Seinen", "None"
+					"Shounen", "Shoujo", "Josei", "Seinen", "None" // XXX не переведено
 			}, null);
 			f.append(advDemographicChoice = g);
 			
@@ -681,7 +680,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(advRatingChoice = g);
 			
 			g = new ChoiceGroup(L[SortBy], ChoiceGroup.EXCLUSIVE, new String[] {
-					"None", "Best Match", // relevance
+					"None", "Best Match", // relevance // XXX не переведено
 					"Latest Upload", "Oldest Upload", // latestUploadedChapter
 					"Title Ascending", "Title Descending", // title
 					"Highest Rating", "Lowest Rating", // rating
@@ -740,12 +739,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				switch(listMode) {
 				case LIST_UPDATES: {
-					f.setTitle(L[0].concat(" - Updates"));
+					f.setTitle(L[0].concat(" - ").concat(L[Updates])); 
 					sb.append("&order[latestUploadedChapter]=desc");
 					break;
 				}
 				case LIST_RECENT: {
-					f.setTitle(L[0].concat(" - Recent"));
+					f.setTitle(L[0].concat(" - ").concat(L[Recent]));
 					sb.append("&order[createdAt]=desc");
 					break;
 				}
@@ -910,7 +909,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(coverItem);
 			
 			f.addCommand(chaptersCmd);
-			f.addCommand(addFavoriteCmd);
+//			f.addCommand(saveCmd);
 			
 			try {
 				JSONObject j = api("manga/" + id).getObject("data");	
@@ -1012,15 +1011,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setItemCommandListener(this);
 				f.append(s);
 				
-				s = new StringItem(null, L[Save], StringItem.BUTTON);
-				s.setFont(Font.getDefaultFont());
-				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
-				s.addCommand(addFavoriteCmd);
-				s.setDefaultCommand(addFavoriteCmd);
-				s.setItemCommandListener(this);
-				f.append(s);
-
-//				f.append(j.format());
+//				s = new StringItem(null, L[Save], StringItem.BUTTON);
+//				s.setFont(Font.getDefaultFont());
+//				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+//				s.addCommand(saveCmd);
+//				s.setDefaultCommand(saveCmd);
+//				s.setItemCommandListener(this);
+//				f.append(s);
 			} catch (Exception e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
