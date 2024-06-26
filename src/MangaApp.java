@@ -814,7 +814,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 
 					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
-					item = new ImageItem(title, null, Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE, id, Item.BUTTON);
+					item = new ImageItem(title, null, Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE, id, Item.BUTTON);
 					item.addCommand(mangaItemCmd);
 					item.setDefaultCommand(mangaItemCmd);
 					item.setItemCommandListener(this);
