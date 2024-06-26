@@ -488,7 +488,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				listOffset = o;
 				start(RUN_MANGAS);
-			} else if(d == chaptersForm) {
+			} else if (d == chaptersForm) {
 				int o = chaptersOffset;
 				if (c == prevPageCmd) {
 					o -= chaptersLimit;
@@ -721,7 +721,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.deleteAll();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
-			f.addCommand(gotoPageCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("manga?limit=").append(listLimit);
@@ -840,6 +839,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				listTotal = j.getInt("total");
+				if (listTotal > 0)
+					f.addCommand(gotoPageCmd);
 				
 				if (listOffset < listTotal - listLimit)
 					f.addCommand(nextPageCmd);
@@ -879,7 +880,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			String id = mangaId;
 			Image thumb = null;
 			
-			if(mangaItem != null) {
+			if (mangaItem != null) {
 				thumb = mangaItem.getImage();
 				mangaItem = null;
 			}
@@ -1069,7 +1070,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterItems.clear();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
-			f.addCommand(gotoPageCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
@@ -1085,6 +1085,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				chaptersTotal = j.getInt("total");
+				
+				if (chaptersTotal > 0)
+					f.addCommand(gotoPageCmd);
 				
 				if (chaptersOffset < chaptersTotal - chaptersLimit)
 					f.addCommand(nextPageCmd);
@@ -1234,7 +1237,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (f == listForm) {
 			listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal)); 
 			start(RUN_MANGAS);
-		} else if(f == chaptersForm) {
+		} else if (f == chaptersForm) {
 			chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal));
 			start(RUN_CHAPTERS);
 		}
@@ -1307,13 +1310,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		StringBuffer s = new StringBuffer();
 		int c;
 		int i = 1;
-		while((c = r.read()) > 0) {
-			if(c == '\r') continue;
-			if(c == '\\') {
+		while ((c = r.read()) > 0) {
+			if (c == '\r') continue;
+			if (c == '\\') {
 				s.append((c = r.read()) == 'n' ? '\n' : (char) c);
 				continue;
 			}
-			if(c == '\n') {
+			if (c == '\n') {
 				L[i++] = s.toString();
 				s.setLength(0);
 				continue;
@@ -1329,7 +1332,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static void display(Alert a, Displayable d) {
-		if(d == null) {
+		if (d == null) {
 			display.setCurrent(a);
 			return;
 		}
@@ -1337,7 +1340,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	private static void display(Displayable d) {
-		if(d instanceof Alert) {
+		if (d instanceof Alert) {
 			display.setCurrent((Alert) d, mainForm);
 			return;
 		}
@@ -1369,7 +1372,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		HttpConnection hc = open(proxyUrl(APIURL.concat(url)));
 		
 		int r;
-		if((r = hc.getResponseCode()) >= 400) {
+		if ((r = hc.getResponseCode()) >= 400) {
 			throw new IOException("HTTP " + r);
 		}
 		return JSONStream.getStream(hc.openInputStream());
@@ -1377,7 +1380,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String proxyUrl(String url) {
 		System.out.println(url);
-		if(url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
+		if (url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
 		return proxyUrl + url(url);
