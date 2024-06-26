@@ -871,7 +871,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						coverLoadLock.wait();
 					}
 					// подождать перед тем как начать грузить обложки, может сверху что-то не допарсилось и они друг другу будут мешать
-					Thread.sleep(500);
+					Thread.sleep(200);
 					while (coversToLoad.size() > 0) {
 						int i = 0;
 						Object[] o = null;
@@ -1056,8 +1056,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	// засунуть имагитем в очередь на скачивание обложки
 	private static void scheduleCover(ImageItem img, String mangaId) {
-		coversToLoad.addElement(new Object[] { mangaId, img });
 		synchronized (coverLoadLock) {
+			coversToLoad.addElement(new Object[] { mangaId, img });
 			coverLoadLock.notifyAll();
 		}
 	}
