@@ -876,7 +876,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s);
 				}
 				
-				if (attributes.has("altTitle") && (t = getTitle(attributes.getArray("altTitle"))) != null) {
+				if ((attributes.has("altTitle") && (t = getTitle(attributes.getArray("altTitle"))) != null) || (attributes.has("altTitles") && (t = getTitle(attributes.getArray("altTitles"))) != null)) {
 					s = new StringItem(null, t);
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
