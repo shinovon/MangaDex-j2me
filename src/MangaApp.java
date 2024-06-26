@@ -239,6 +239,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == nextPageCmd || c == prevPageCmd) {
 			if (running) return;
+			coversToLoad.removeAllElements();
+			
 			Form f = (Form) d;
 			f.setTicker(new Ticker("Loading..."));
 			if (d == listForm) {
@@ -249,6 +251,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					o = Math.min(o + listLimit, listTotal - listLimit);
 				}
+				listOffset = o;
 				start(RUN_MANGAS);
 			} else if(d == chaptersForm) {
 				int o = chaptersOffset;
@@ -258,6 +261,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					o = Math.min(o + chaptersLimit, chaptersTotal - chaptersLimit);
 				}
+				chaptersOffset = o;
 				start(RUN_CHAPTERS);
 			}
 			return;
@@ -347,6 +351,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == nPageCmd) {
 			if (running) return;
+			coversToLoad.removeAllElements();
+			
 			Form f = (Form) display.getCurrent();
 			f.setTicker(new Ticker("Loading..."));
 			
@@ -374,6 +380,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		switch (run) {
 		case RUN_MANGAS: { // поиск и список манг
 			Form f = listForm;
+			f.deleteAll();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
 			
