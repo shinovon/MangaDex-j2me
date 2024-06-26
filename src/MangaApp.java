@@ -332,7 +332,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			// TODO просмотр обложки
 			
 			try {
-				String url = proxyUrl(COVERSURL + currentMangaId + '/' + getMangaCover(currentMangaId));
+				// TODO пока что рескейл в 512px, потом настройка будет
+				String url = proxyUrl(COVERSURL + currentMangaId + '/' + getMangaCover(currentMangaId) + ".512.jpg");
 				
 				if (platformRequest(url))
 					notifyDestroyed();
