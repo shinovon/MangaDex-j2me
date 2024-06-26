@@ -31,7 +31,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
 	private static final Font smallboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_SMALL);
 	private static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
-	private static final Font selectedpagefont = Font.getFont(0, Font.STYLE_BOLD | Font.STYLE_ITALIC, Font.SIZE_SMALL);
+//	private static final Font selectedpagefont = Font.getFont(0, Font.STYLE_BOLD | Font.STYLE_ITALIC, Font.SIZE_SMALL);
 
 	private static boolean started;
 	private static Display display;
@@ -374,16 +374,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		switch (run) {
 		case RUN_MANGAS: { // поиск и список манг
 			Form f = listForm;
+			f.removeCommand(prevPageCmd);
+			f.removeCommand(nextPageCmd);
+			
 			try {
 				StringBuffer sb = new StringBuffer("manga?limit=").append(listLimit);
 				if (query != null)
 					sb.append("&title=").append(query);
-				if (listOffset > 0)
+				if (listOffset > 0) {
 					sb.append("&offset=").append(listOffset);
+					f.addCommand(prevPageCmd);
+				}
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				listTotal = j.getInt("total");
+				
+				if (listOffset < listTotal - listLimit)
+					f.addCommand(nextPageCmd);
 				
 				ImageItem item;
 				for (int i = 0; i < l; i++) {
@@ -574,21 +582,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = chaptersForm;
 			f.deleteAll();
 			chapterItems.clear();
+			f.removeCommand(prevPageCmd);
+			f.removeCommand(nextPageCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
 						.append("&order[chapter]=desc")
 						.append("&limit=").append(chaptersLimit)
 						;
-				if (chaptersOffset > 0)
+				if (chaptersOffset > 0) {
 					sb.append("&offset=").append(chaptersOffset);
+					f.addCommand(prevPageCmd);
+				}
 				
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				chaptersTotal = j.getInt("total");
 				
-				// TODO pagination
+				if (chaptersOffset < chaptersTotal - chaptersLimit)
+					f.addCommand(nextPageCmd);
 				
 				sb.setLength(0);
 				StringItem s;
