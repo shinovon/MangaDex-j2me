@@ -691,6 +691,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.setTitle("MangaDex - Search");
 					if (query != null)
 						sb.append("&title=").append(url(query));
+					sb.append("&order[relevance]=desc");
 					break;
 				}
 				case LIST_ADVANCED_SEARCH: {
@@ -882,7 +883,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s);
 				}
 				
-				f.append("\n");
+				f.append(new Spacer(10, 16));
 
 				// теги
 				s = new StringItem(null, "Tags");
