@@ -142,6 +142,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
+	private static Hashtable mangaCoversCache = new Hashtable();
 	
 //	private static int bookmarksPage;
 //	private static int bookmarksTotalPages;
@@ -332,6 +333,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			// возвращение из списка манг
 			display(searchForm != null ? searchForm : mainForm);
 			coversToLoad.removeAllElements();
+			mangaCoversCache.clear();
 			listForm = null;
 			return;
 		}
@@ -573,10 +575,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == coverItemCmd) {
 			// TODO просмотр обложки
-			
 			try {
 				// TODO пока что рескейл в 512px, потом настройка будет
-				String url = proxyUrl(COVERSURL + mangaId + '/' + getMangaCover(mangaId) + ".512.jpg");
+				String url = proxyUrl(COVERSURL + mangaId + '/' + getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
 				
 				if (platformRequest(url))
 					notifyDestroyed();
@@ -801,6 +802,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					JSONObject m = data.getObject(i);
 					String id = m.getString("id");
 					JSONObject attributes = m.getObject("attributes");
+					JSONArray relationships = m.getArray("relationships");
+					
+					int k = relationships.size();
+					for (int p = 0; p < k; p++) {
+						JSONObject r = relationships.getObject(p);
+						if (!"cover_art".equals(r.getString("type"))) continue;
+						mangaCoversCache.put(id, r.getString("id"));
+						break;
+					}
 
 					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
 					item = new ImageItem(title, null, Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER, id, Item.BUTTON);
@@ -842,6 +852,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			try {
 				JSONObject j = api("manga/" + id).getObject("data");	
 				JSONObject attributes = j.getObject("attributes");
+				JSONArray relationships = j.getArray("relationships");
+				
+				int k = relationships.size();
+				for (int p = 0; p < k; p++) {
+					JSONObject r = relationships.getObject(p);
+					if (!"cover_art".equals(r.getString("type"))) continue;
+					mangaCoversCache.put(id, r.getString("id"));
+					break;
+				}
 				
 				mangaLastChapter = attributes.getString("lastChapter", null);
 				
@@ -977,7 +996,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						ImageItem item = (ImageItem) o[1];
 						
 						try { 
-							String filename = getMangaCover(mangaId);
+							String filename = getCover((String) mangaCoversCache.get(mangaId), false);
 							
 							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
 							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
@@ -1184,8 +1203,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	// возвращает файлнейм обложки
-	private static String getMangaCover(String mangaId) throws Exception {
-		JSONStream j = apiStream("cover?manga[]=" + mangaId);
+	private static String getCover(String id, boolean manga) throws Exception {
+		if (manga && mangaCoversCache.containsKey(id)) {
+			id = (String) mangaCoversCache.get(id);
+			manga = false;
+		}
+		JSONStream j = apiStream("cover?" + (manga ? "manga" : "ids") + "[]=" + id);
 //		String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
 		try {
 			if (!(j.nextTrim() == '{' &&
