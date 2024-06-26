@@ -112,14 +112,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean running;
 	
 	private static String query;
-	private static String currentMangaId;
-	private static ImageItem mangaItem;
 	private static int listLimit = 10;
 	private static int listOffset = 0;
 	private static int listTotal;
 	private static int listMode;
+	
+	private static String mangaId;
+	private static ImageItem mangaItem;
+	private static String mangaLastChapter;
 
-	private static String currentChapterId;
+	private static String chapterId;
 	private static int chaptersLimit = 20;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
@@ -200,9 +202,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		advSubmitCmd = new Command("Search", Command.OK, 1);
 		
 		mangaItemCmd = new Command("Open", Command.ITEM, 1);
-		chaptersCmd = new Command("Chapters", Command.ITEM, 1);
+		chaptersCmd = new Command("Chapters", Command.SCREEN, 2);
 		tagItemCmd = new Command("Tag", Command.ITEM, 1);
-		addFavoriteCmd = new Command("Add to favorite", Command.ITEM, 1);
+		addFavoriteCmd = new Command("Add to favorite", Command.SCREEN, 3);
 		coverItemCmd = new Command("Show cover", Command.ITEM, 1);
 		chapterCmd = new Command("Chapter", Command.ITEM, 1);
 		
@@ -280,11 +282,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterItems.clear();
 			return;
 		}
-		if (d == mangaForm && c == backCmd) {
-			// возвращение из манги
-			display(listForm != null ? listForm : mainForm);
-			mangaForm = null;
-			return;
+		if (d == mangaForm) {
+			if (c == chaptersCmd) {
+				// открыть список глав
+				if (running) return;
+				
+				Form f = new Form(mangaForm.getTitle());
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				f.setTicker(new Ticker("Loading..."));
+
+				listOffset = 0;
+				display(chaptersForm = f);
+				start(RUN_CHAPTERS);
+				return;
+			}
+			if (c == addFavoriteCmd) {
+				// TODO список локальных закладок
+				
+				return;
+			}
+			if (c == backCmd) {
+				// возвращение из манги
+				display(listForm != null ? listForm : mainForm);
+				mangaForm = null;
+				return;
+			}
 		}
 		if (d == listForm && c == backCmd) {
 			// возвращение из списка манг
@@ -332,7 +355,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			
-			proxyField = new TextField("", "", 200, TextField.URL);
+			proxyField = new TextField("Proxy URL", proxyUrl, 200, TextField.URL);
 			f.append(proxyField);
 			
 			display(settingsForm = f);
@@ -435,7 +458,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setCommandListener(this);
 			f.setTicker(new Ticker("Loading..."));
 			
-			currentMangaId = id;
+			mangaId = id;
 			display(mangaForm = f);
 			start(RUN_MANGA);
 			return;
@@ -459,31 +482,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 			return;
 		}
-		if (c == chaptersCmd) {
-			// открыть список глав
-			if (running) return;
-			
-			Form f = new Form(mangaForm.getTitle());
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			f.setTicker(new Ticker("Loading..."));
-
-			listOffset = 0;
-			display(chaptersForm = f);
-			start(RUN_CHAPTERS);
-			return;
-		}
-		if (c == addFavoriteCmd) {
-			// TODO список локальных закладок
-			
-			return;
-		}
 		if (c == coverItemCmd) {
 			// TODO просмотр обложки
 			
 			try {
 				// TODO пока что рескейл в 512px, потом настройка будет
-				String url = proxyUrl(COVERSURL + currentMangaId + '/' + getMangaCover(currentMangaId) + ".512.jpg");
+				String url = proxyUrl(COVERSURL + mangaId + '/' + getMangaCover(mangaId) + ".512.jpg");
 				
 				if (platformRequest(url))
 					notifyDestroyed();
@@ -495,7 +499,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (c == chapterCmd) {
 			// просмотр главы
 			if (running) return;
-			if ((currentChapterId = (String) chapterItems.get(item)) == null)
+			if ((chapterId = (String) chapterItems.get(item)) == null)
 				return;
 			start(RUN_CHAPTER);
 			return;
@@ -740,7 +744,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			break;
 		}
 		case RUN_MANGA: { // открыта манга
-			String id = currentMangaId;
+			String id = mangaId;
 			Image thumb = null;
 			
 			if(mangaItem != null) {
@@ -752,14 +756,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			ImageItem coverItem = new ImageItem("", thumb, Item.LAYOUT_LEFT, id);
 			coverItem.addCommand(coverItemCmd);
-			coverItem.addCommand(coverItemCmd);
+			coverItem.setDefaultCommand(coverItemCmd);
 			coverItem.setItemCommandListener(this);
 			coverItem.setLayout(Item.LAYOUT_NEWLINE_AFTER);
 			f.append(coverItem);
 			
+			f.addCommand(chaptersCmd);
+			f.addCommand(addFavoriteCmd);
+			
 			try {
 				JSONObject j = api("manga/" + id).getObject("data");	
 				JSONObject attributes = j.getObject("attributes");
+				
+				mangaLastChapter = attributes.getString("lastChapter", null);
 				
 				StringItem s;
 				String t;
@@ -778,6 +787,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 				}
+				
+				f.append("\n");
 
 				// теги
 				s = new StringItem(null, "Tags");
@@ -913,7 +924,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		case RUN_CHAPTERS: { // главы манги
-			String id = currentMangaId;
+			String id = mangaId;
 			Form f = chaptersForm;
 			f.deleteAll();
 			chapterItems.clear();
@@ -975,7 +986,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					
 					if (i == 0 || !chapter.equals(lastChapter) || b) {
-						s = new StringItem(null, (b ? "" : "\n").concat("Chapter ").concat(chapter));
+						s = new StringItem(null, (b ? "" : "\n").concat("Chapter ").concat(chapter).concat(chapter.equals(mangaLastChapter) ? " (END)" : ""));
 						s.setFont(smallboldfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
@@ -1007,9 +1018,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			break;
 		}
 		case RUN_CHAPTER: { // TODO просмотр главы
-			String mangaId = currentMangaId;
-			String chapterId = currentChapterId;
-			if (mangaId == null || chapterId == null) break;
+			String id = chapterId;
+			if (mangaId == null || id == null) break;
 			
 			try {
 				// колво и номер страницы
@@ -1018,7 +1028,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				chapterPages = j.getInt("pages");
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
-				j = api("at-home/server/" + chapterId);
+				j = api("at-home/server/" + id);
 //				chapterBaseUrl = j.getString("baseUrl");
 				chapterFilenames = new Vector(/*chapterPages*/);
 				
