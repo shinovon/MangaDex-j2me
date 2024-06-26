@@ -116,13 +116,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		version = getAppProperty("MIDlet-Version");
 		display = Display.getDisplay(this);
 		
-		// TODO локализации и загрузка настроек здесь
-		
 		try {
 			// определение таймзоны системы
 			int i = TimeZone.getDefault().getRawOffset() / 60000;
 			timezone = (i < 0 ? '-' : '+') + n(Math.abs(i / 60)) + ':' + n(Math.abs(i % 60));
 		} catch (Exception e) {}
+		
+		// TODO локализации и загрузка настроек здесь
 		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
@@ -194,7 +194,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	public void commandAction(Command c, Displayable d) {
 		if (d == chaptersForm && c == backCmd) {
-			// возвращение из глв
+			// возвращение из списка глав
 			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
 			chaptersForm = null;
 			chapterItems.clear();
@@ -207,19 +207,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (d == listForm && c == backCmd) {
-			// возвращение из списка
+			// возвращение из списка манг
 			display(mainForm);
 			coversToLoad.removeAllElements();
 			listForm = null;
 			return;
 		}
 		if (c == settingsCmd) {
-			// TODO
+			// TODO настройки
 			
 			return;
 		}
 		if (c == aboutCmd) {
-			// TODO
+			// о программе
 			Form f = new Form("About");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -246,6 +246,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == nextPageCmd || c == prevPageCmd) {
+			// переключение страниц в списке манг и глав
 			if (running) return;
 			coversToLoad.removeAllElements();
 			
@@ -286,6 +287,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	public void commandAction(Command c, Item item) {
 		if (c == mangaItemCmd) {
+			// открыть мангу
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
 			
@@ -303,6 +305,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		
 		if (c == searchCmd || c == updatesCmd) {
+			// открыть поиск или список последних обновленных манг
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
 			
@@ -319,6 +322,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == chaptersCmd) {
+			// открыть список глав
 			if (running) return;
 			
 			Form f = new Form(mangaForm.getTitle());
@@ -351,7 +355,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == chapterCmd) {
-			// TODO просмотр главы
+			// просмотр главы
 			if (running) return;
 			if ((currentChapterId = (String) chapterItems.get(item)) == null)
 				return;
@@ -359,6 +363,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == nPageCmd) {
+			// перейти на конкретный номер страницы
 			if (running) return;
 			coversToLoad.removeAllElements();
 			
@@ -733,8 +738,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} catch (Exception e) {}
 	}
 
+	// засунуть имагитем в очередь на скачивание обложки
 	private static void scheduleCover(ImageItem img, String mangaId) {
-		// засунуть имагитем в очередь на скачивание обложки
 		coversToLoad.addElement(new Object[] { mangaId, img });
 		synchronized (coverLoadLock) {
 			coverLoadLock.notifyAll();
