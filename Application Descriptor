@@ -1,5 +1,5 @@
 MIDlet-Vendor: nnproject
-MIDlet-Version: 0.2.4
+MIDlet-Version: 0.2.5
 Nokia-UI-Enhancement: PopUpTextBox
 MicroEdition-Configuration: CLDC-1.1
 MIDlet-1: MangaApp,,MangaApp
