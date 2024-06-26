@@ -317,6 +317,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// возвращение из манги
 				display(listForm != null ? listForm : mainForm);
 				mangaForm = null;
+				
+				if (coverLoading == 3) return;
+				try {
+					// докачивание обложек
+					int l = listForm.size();
+					for (int i = 0; i < l; i++) {
+						Item item = listForm.get(i);
+						if (!(item instanceof ImageItem)) continue;
+						if (((ImageItem) item).getImage() != null) continue;
+						scheduleCover((ImageItem) item, ((ImageItem) item).getAltText());
+					}
+				} catch (Exception e) {}
 				return;
 			}
 		}
