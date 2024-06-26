@@ -10,6 +10,7 @@ import javax.microedition.io.Connector;
 import javax.microedition.io.HttpConnection;
 import javax.microedition.lcdui.*;
 import javax.microedition.midlet.MIDlet;
+import javax.microedition.rms.RecordStore;
 
 import cc.nnproject.json.JSON;
 import cc.nnproject.json.JSONArray;
@@ -28,6 +29,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_RECENT = 2;
 	private static final int LIST_SEARCH = 3;
 	private static final int LIST_ADVANCED_SEARCH = 4;
+	
+	private static final String SETTINGS_RECORDNAME = "mangaDsets";
+//	private static final String BOOKMARKS_RECORDPREFIX = "mDbm."; // я пока только придумал как будут работать закладки
 	
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
@@ -48,7 +52,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	};
 	
 	private static final String[] MANGA_RATINGS = {
-			"safe", "suggestive", "erotica", "pornographic"
+			"safe", "suggestive", "erotica", //"pornographic"
 	};
 
 
@@ -86,6 +90,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form mangaForm;
 	private static Form chaptersForm;
 	private static Form searchForm;
+	private static Form settingsForm;
 	
 	private static TextField searchField;
 
@@ -95,6 +100,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup advDemographicChoice;
 	private static ChoiceGroup advRatingChoice;
 	private static ChoiceGroup advSortChoice;
+	
+	private static TextField proxyField;
 	
 	// трединг
 	private static int run;
@@ -122,6 +129,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
+	
+//	private static int currentBookmarksPage;
 	
 	private static String version;
 	
@@ -153,7 +162,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			timezone = (i < 0 ? '-' : '+') + n(Math.abs(i / 60)) + ':' + n(Math.abs(i % 60));
 		} catch (Exception e) {}
 		
-		// TODO локализации и загрузка настроек здесь
+		try {
+			RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, false);
+			JSONObject j = JSON.getObject(new String(r.getRecord(1), "UTF-8"));
+			r.closeRecordStore();
+			
+			proxyUrl = j.getString("proxy", proxyUrl);
+			timezone = j.getString("timezone", timezone);
+		} catch (Exception e) {}
+		
+		// TODO локализации
 		
 		exitCmd = new Command("Exit", Command.EXIT, 2);
 		backCmd = new Command("Back", Command.EXIT, 2);
@@ -268,9 +286,37 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			searchForm = null;
 			return;
 		}
+		if (d == settingsForm && c == backCmd) {
+			// сохранить настройки
+			proxyUrl = proxyField.getString();
+			
+			try {
+				JSONObject j = new JSONObject();
+				j.put("proxyUrl", proxyUrl);
+//				j.put("timezone", timezone);
+				byte[] b = j.toString().getBytes("UTF-8");
+				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
+				if (r.getNumRecords() > 0)
+					r.setRecord(1, b , 0, b.length);
+				else
+					r.addRecord(b, 0, b.length);
+				r.closeRecordStore();
+			} catch (Exception e) {}
+			
+			display(mainForm);
+//			settingsForm = null;
+			return;
+		}
 		if (c == settingsCmd) {
 			// TODO настройки
+			Form f = new Form("Settings");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
 			
+			proxyField = new TextField("", "", 200, TextField.URL);
+			f.append(proxyField);
+			
+			display(settingsForm = f);
 			return;
 		}
 		if (c == aboutCmd) {
@@ -481,8 +527,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(advDemographicChoice = g);
 			
 			g = new ChoiceGroup("Rating", ChoiceGroup.MULTIPLE, new String[] {
-					"Safe", "Suggestive", "Erotica",
-//					"Pornographic"
+					"Safe", "Suggestive", "Erotica", //"Pornographic"
 			}, null);
 			f.append(advRatingChoice = g);
 			
