@@ -402,7 +402,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setCommandListener(this);
 			
 			StringItem s;
-			s = new StringItem(null, "unnamed j2me mangadex reader v" + version);
+			s = new StringItem(null, "unnamed mangadex j2me reader v" + version);
 			s.setFont(largefont);
 			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			f.append(s);
@@ -435,7 +435,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					o -= listLimit;
 					if (o < 0) o = 0;
 				} else {
-					o = Math.min(o + listLimit, listTotal - listLimit);
+					o = Math.min(o + listLimit, listTotal);
 				}
 				listOffset = o;
 				start(RUN_MANGAS);
@@ -445,7 +445,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					o -= chaptersLimit;
 					if (o < 0) o = 0;
 				} else {
-					o = Math.min(o + chaptersLimit, chaptersTotal - chaptersLimit);
+					o = Math.min(o + chaptersLimit, chaptersTotal);
 				}
 				chaptersOffset = o;
 				start(RUN_CHAPTERS);
@@ -458,10 +458,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			int a, b;
 			if (chaptersForm != null) {
 				a = (chaptersOffset / chaptersLimit) + 1;
-				b = chaptersTotal / chaptersLimit;
+				b = chaptersTotal / chaptersLimit + (chaptersTotal % chaptersLimit != 0 ? 1 : 0);
 			} else {
 				a = (listOffset / listLimit) + 1;
-				b = listTotal / listLimit;
+				b = listTotal / listLimit + (listTotal % listLimit != 0 ? 1 : 0);
 			}
 			TextBox t = new TextBox("Page number (" + a + '/' + b + ")", "", 10, TextField.NUMERIC);
 			t.addCommand(goCmd);
@@ -1130,10 +1130,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.setTicker(new Ticker("Loading..."));
 		
 		if (f == listForm) {
-			listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal - listLimit)); 
+			listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal)); 
 			start(RUN_MANGAS);
 		} else if(f == chaptersForm) {
-			chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal - chaptersLimit));
+			chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal));
 			start(RUN_CHAPTERS);
 		}
 	}
