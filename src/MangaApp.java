@@ -1373,7 +1373,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		Alert a = new Alert("");
 		a.setType(AlertType.ERROR);
 		a.setString(text);
-		a.setTimeout(2000);
+		a.setTimeout(3000);
 		return a;
 	}
 	
