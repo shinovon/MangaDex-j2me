@@ -82,6 +82,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command addFavoriteCmd;
 	private static Command coverItemCmd;
 	private static Command chapterCmd;
+	private static Command chapterPageItemCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -99,6 +100,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form searchForm;
 	private static Form settingsForm;
 	private static Form bookmarksForm;
+	private static Form viewForm;
 	
 	private static TextField searchField;
 
@@ -134,8 +136,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	// для просмотра
 //	private static int chapterPages;
-//	private static String chapterBaseUrl;
-//	private static String chapterHash;
+	private static String chapterBaseUrl;
+	private static String chapterHash;
 	private static Vector chapterFilenames;
 	
 	private static Object coverLoadLock = new Object();
@@ -214,6 +216,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		addFavoriteCmd = new Command("Add to favorite", Command.SCREEN, 3);
 		coverItemCmd = new Command("Show cover", Command.ITEM, 1);
 		chapterCmd = new Command("Chapter", Command.ITEM, 1);
+		chapterPageItemCmd = new Command("View page", Command.ITEM, 1);
 		
 		nextPageCmd = new Command("Next page", Command.SCREEN, 2);
 		prevPageCmd = new Command("Prev. page", Command.SCREEN, 3);
@@ -286,13 +289,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public void commandAction(Command c, Displayable d) {
-		if (d == chaptersForm && c == backCmd) {
-			// возвращение из списка глав
-			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
-			chaptersForm = null;
-			chapterItems.clear();
-			return;
-		}
 		if (d == mangaForm) {
 			if (c == chaptersCmd) {
 				// открыть список глав
@@ -343,6 +339,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			// возвращение из поиска
 			display(mainForm);
 			searchForm = null;
+			return;
+		}
+		if (d == chaptersForm && c == backCmd) {
+			// возвращение из списка глав
+			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
+			chaptersForm = null;
+			chapterItems.clear();
+			return;
+		}
+		if (d == viewForm && c == backCmd) {
+			// ВРЕМЕННОЕ
+			display(chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : mainForm);
+			viewForm = null;
 			return;
 		}
 		if (d == bookmarksForm && c == backCmd) {
@@ -541,6 +550,27 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 			return;
 		}
+		if (c == chapterCmd) {
+			// просмотр главы
+			if (running) return;
+			if ((chapterId = (String) chapterItems.get(item)) == null)
+				return;
+			Form f = new Form("chapter view");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			display(viewForm = f);
+			start(RUN_CHAPTER);
+			return;
+		}
+		if (c == chapterPageItemCmd) {
+			try {
+				if (platformRequest(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + ((StringItem) item).getText())))
+					notifyDestroyed();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		if (c == coverItemCmd) {
 			// TODO просмотр обложки
 			
@@ -553,14 +583,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			return;
-		}
-		if (c == chapterCmd) {
-			// просмотр главы
-			if (running) return;
-			if ((chapterId = (String) chapterItems.get(item)) == null)
-				return;
-			start(RUN_CHAPTER);
 			return;
 		}
 		if (c == nPageCmd) {
@@ -1005,7 +1027,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				sb.setLength(0);
 				StringItem s;
-				s = new StringItem(null, sb.append("Offset: ").append(Math.min(chaptersOffset + chaptersLimit, chaptersTotal)).append('/').append(chaptersTotal).toString());
+				s = new StringItem(null, 
+						sb.append("Page: ")
+						.append((chaptersOffset / chaptersLimit) + 1).append('/')
+						.append(chaptersTotal / chaptersLimit + (chaptersTotal % chaptersLimit != 0 ? 1 : 0))
+						.toString());
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
@@ -1075,6 +1101,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			String id = chapterId;
 			if (mangaId == null || id == null) break;
 			
+			Form f = viewForm;
 			try {
 				// колво и номер страницы
 				JSONObject j;
@@ -1083,11 +1110,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
 				j = api("at-home/server/" + id);
-//				chapterBaseUrl = j.getString("baseUrl");
+				chapterBaseUrl = j.getString("baseUrl");
 				chapterFilenames = new Vector(/*chapterPages*/);
 				
 				j = j.getObject("chapter");
-//				chapterHash = j.getString("hash");
+				chapterHash = j.getString("hash");
 				
 				JSONArray data;
 				// жпег, если нет то пнг
@@ -1095,15 +1122,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				else data = j.getArray("data");
 				
 				int l = data.size();
+				StringItem s;
 				for (int i = 0; i < l; i++) {
-					 chapterFilenames.addElement(data.get(i));
+					String n = data.getString(i);
+					chapterFilenames.addElement(n);
+					
+					s = new StringItem("Page " + (i +1), n);
+					s.setLayout(Item.LAYOUT_NEWLINE_AFTER);
+					s.addCommand(chapterPageItemCmd);
+					s.setDefaultCommand(chapterPageItemCmd);
+					s.setItemCommandListener(this);
+					f.append(s); 
 				}
 				
-				// TODO
 			} catch (Exception e) {
 				e.printStackTrace();
-				display(errorAlert(e.toString()));
+				display(errorAlert(e.toString()), f);
 			}
+			f.setTicker(null);
 			break;
 		}
 		case RUN_BOOKMARKS: { // загрузить список закладок
