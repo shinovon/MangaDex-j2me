@@ -24,6 +24,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER = 5;
+	private static final int RUN_BOOKMARKS = 6;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -31,7 +32,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_ADVANCED_SEARCH = 4;
 	
 	private static final String SETTINGS_RECORDNAME = "mangaDsets";
-//	private static final String BOOKMARKS_RECORDPREFIX = "mDbm."; // я пока только придумал как будут работать закладки
+//	private static final String BOOKMARKS_RECORDPREFIX = "mDbm."; // я не знаю
+//	private static final String BOOKMARKS_INDEX_RECORDNAME = "mDbmi";
+//	private static final int BOOKMARKS_PAGE_LIMIT = 30;
 	
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
@@ -91,6 +94,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form chaptersForm;
 	private static Form searchForm;
 	private static Form settingsForm;
+	private static Form bookmarksForm;
 	
 	private static TextField searchField;
 
@@ -122,15 +126,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Hashtable chapterItems = new Hashtable();
 	
 	// для просмотра
-	private static int chapterPages;
-	private static String chapterBaseUrl;
-	private static String chapterHash;
+//	private static int chapterPages;
+//	private static String chapterBaseUrl;
+//	private static String chapterHash;
 	private static Vector chapterFilenames;
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
 	
-//	private static int currentBookmarksPage;
+//	private static int bookmarksPage;
+//	private static int bookmarksTotalPages;
 	
 	private static String version;
 	
@@ -138,16 +143,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
 	private static String timezone;
 
-	public MangaApp() {
-	}
+	public MangaApp() {}
 
 	protected void destroyApp(boolean unconditional) {
-
+//		writeBookmarksIndex();
 	}
 
-	protected void pauseApp() {
-
-	}
+	protected void pauseApp() {}
 
 	protected void startApp() {
 		if (started) return;
@@ -170,6 +172,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			proxyUrl = j.getString("proxy", proxyUrl);
 			timezone = j.getString("timezone", timezone);
 		} catch (Exception e) {}
+		
+//		try {
+//			RecordStore r = RecordStore.openRecordStore(BOOKMARKS_INDEX_RECORDNAME, false);
+//			if (r.getNumRecords() > 0) {
+//				DataInputStream in = new DataInputStream(new ByteArrayInputStream(r.getRecord(1)));
+//				bookmarksTotalPages = in.readInt();
+//				bookmarksPage = in.readInt();
+//				in.close();
+//			}
+//			r.closeRecordStore();
+//		} catch (Exception e) {}
 		
 		// TODO локализации
 		
@@ -286,6 +299,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			searchForm = null;
 			return;
 		}
+		if (d == bookmarksForm && c == backCmd) {
+			// возвращение из закладок
+			display(mainForm);
+			bookmarksForm = null;
+			return;
+		}
 		if (d == settingsForm && c == backCmd) {
 			// сохранить настройки
 			proxyUrl = proxyField.getString();
@@ -297,7 +316,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
 				if (r.getNumRecords() > 0)
-					r.setRecord(1, b , 0, b.length);
+					r.setRecord(1, b, 0, b.length);
 				else
 					r.addRecord(b, 0, b.length);
 				r.closeRecordStore();
@@ -549,7 +568,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == bookmarksCmd) {
 			// TODO закладки
+			Form f = new Form("Bookmarks");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
 			
+			display(bookmarksForm = f);
+			start(RUN_BOOKMARKS);
 			return;
 		}
 		commandAction(c, display.getCurrent());
@@ -978,18 +1002,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			try {
 				// колво и номер страницы
-				JSONObject j = api("chapter/" + chapterId).getObject("data");
-				chapterPages = j.getInt("pages");
+				JSONObject j;
+//				j = api("chapter/" + chapterId).getObject("data");
+//				chapterPages = j.getInt("pages");
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
 				j = api("at-home/server/" + chapterId);
-				chapterBaseUrl = j.getString("baseUrl");
-				chapterFilenames = new Vector(chapterPages);
+//				chapterBaseUrl = j.getString("baseUrl");
+				chapterFilenames = new Vector(/*chapterPages*/);
 				
 				j = j.getObject("chapter");
-				chapterHash = j.getString("hash");
+//				chapterHash = j.getString("hash");
 				
 				JSONArray data;
+				// жпег, если нет то пнг
 				if (j.has("dataSaver")) data = j.getArray("dataSaver");
 				else data = j.getArray("data");
 				
@@ -1056,6 +1082,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		return null;
 	}
+	
+//	private static void writeBookmarksIndex() {
+//		try {
+//			ByteArrayOutputStream o = new ByteArrayOutputStream();
+//			DataOutputStream d = new DataOutputStream(o);
+//			d.writeInt(bookmarksTotalPages);
+//			d.writeInt(bookmarksPage);
+//			
+//			byte[] b = o.toByteArray();
+//			RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
+//			if (r.getNumRecords() > 0)
+//				r.setRecord(1, b, 0, b.length);
+//			else
+//				r.addRecord(b, 0, b.length);
+//			r.closeRecordStore();
+//		} catch (Exception e) {}
+//	}
 	
 	private static int getHeight() {
 		// а что выдает это на форме?
