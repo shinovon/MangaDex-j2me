@@ -800,6 +800,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				f.append("\n");
 
+				// рейтинг
+				s = new StringItem(null, "Rating");
+				s.setFont(medboldfont);
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				s = new StringItem(null, attributes.getString("contentRating").toUpperCase());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+
 				// статус
 				s = new StringItem(null, "Publication");
 				s.setFont(medboldfont);
