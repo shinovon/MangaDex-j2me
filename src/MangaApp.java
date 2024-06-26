@@ -729,13 +729,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					sb.append("&offset=").append(listOffset);
 					f.addCommand(prevPageCmd);
 				}
-				if (listMode != LIST_ADVANCED_SEARCH) {
+				if (listMode != LIST_ADVANCED_SEARCH && contentFilter != null) {
 					// фильтр содержимого
-					sb.append("&contentRating[]=");
+					int j = 0;
 					for (int i = 0; i < MANGA_RATINGS.length; i++) {
-						if (contentFilter[i]) sb.append(MANGA_RATINGS[i]).append(',');
+						if (!contentFilter[i]) continue;
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
 					}
-					sb.setLength(sb.length() - 1);
 				}
 				switch(listMode) {
 				case LIST_UPDATES: {
@@ -766,41 +766,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						sb.append("&year=").append(t);
 					
 					boolean[] sel = new boolean[5];
-					boolean w = false;
+					int j = 0;
 					advStatusChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_STATUSES.length; i++) {
 						if (!sel[i]) continue;
-						if (!w) {
-							sb.append("&status[]=");
-							w = true;
-						}
-						sb.append(MANGA_STATUSES[i]).append(',');
+						sb.append("&status[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_STATUSES[i]);
 					}
-					if (w) sb.setLength(sb.length() - 1);
 
-					w = false;
+					j = 0;
 					advDemographicChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_DEMOGRAPHIC.length; i++) {
 						if (!sel[i]) continue;
-						if (!w) {
-							sb.append("&publicationDemographic[]=");
-							w = true;
-						}
-						sb.append(MANGA_DEMOGRAPHIC[i]).append(',');
+						sb.append("&publicationDemographic[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_DEMOGRAPHIC[i]);
 					}
-					if (w) sb.setLength(sb.length() - 1);
 
-					w = false;
+					j = 0;
 					advRatingChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_RATINGS.length && i < advRatingChoice.size(); i++) {
 						if (!sel[i]) continue;
-						if (!w) {
-							sb.append("&contentRating[]=");
-							w = true;
-						}
-						sb.append(MANGA_RATINGS[i]).append(',');
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
 					}
-					if (w) sb.setLength(sb.length() - 1);
 					
 					switch (advSortChoice.getSelectedIndex()) {
 					case -1:
