@@ -387,23 +387,25 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			coverLoading = coversChoice.getSelectedIndex();
 			contentFilterChoice.getSelectedFlags(contentFilter);
 			lang = langChoice.isSelected(1) ? "ru" : "en";
-			
+			try {
+				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
+			} catch (Exception e) {}
 			try {
 				JSONObject j = new JSONObject();
 				j.put("proxyUrl", proxyUrl);
 //				j.put("timezone", timezone);
 				j.put("coverLoading", coverLoading);
 				j.put("lang", lang);
-				for (int i = 0; i < 4; i++) {
-					j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
+				
+				if(contentFilter != null) {
+					for (int i = 0; i < 4; i++) {
+						j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
+					}
 				}
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
-				if (r.getNumRecords() > 0)
-					r.setRecord(1, b, 0, b.length);
-				else
-					r.addRecord(b, 0, b.length);
+				r.addRecord(b, 0, b.length);
 				r.closeRecordStore();
 			} catch (Exception e) {}
 			
