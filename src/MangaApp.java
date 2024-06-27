@@ -213,6 +213,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} else if (System.getProperty("kemulator.version") != null) { // ннмод
 			downloadPath = "root/MangaDex";
 		} else {
+			// попробовать галерею
 			try {
 				downloadPath = System.getProperty("fileconn.dir.photos").substring(8).concat("MangaDex");
 			} catch (Exception e) {
@@ -744,7 +745,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			
 			// TODO
-			Form f = new Form("chapter view");
+			Form f = new Form("");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			f.setTicker(new Ticker(L[Loading]));
@@ -1425,6 +1426,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			try {
 				// колво и номер страницы
 				JSONObject j;
+				
+				try {
+					j = api("chapter?ids[]=" + id).getArray("data").getObject(0).getObject("attributes");
+					f.setTitle(
+							(j.isNull("volume") ? "" : "Vol. ".concat(j.getString("volume")).concat(" "))
+							.concat("Ch. ").concat(j.getString("chapter")).concat(" ")
+							.concat(j.getString("translatedLanguage"))
+							);
+				} catch (Exception e) {}
+				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
 				j = api("at-home/server/" + id);
 				chapterBaseUrl = j.getString("baseUrl");
@@ -1483,8 +1494,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				try {
-					// TODO нормальные названия
-					fc = (FileConnection) Connector.open(folder = folder.concat(mangaId).concat("/"));
+					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
 					fc.mkdir();
 				} catch (Exception e) {
 				} finally {
@@ -1492,8 +1502,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				try {
-					// TODO тоже самое
-					fc = (FileConnection) Connector.open(folder = folder.concat(chapterId).concat("/"));
+					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(viewForm.getTitle(), chapterId)).concat("/"));
 					fc.mkdir();
 				} catch (Exception e) {
 				} finally {
@@ -1727,6 +1736,25 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		a.setString(text);
 		a.setTimeout(1500);
 		return a;
+	}
+	
+	private static String safeFileName(String s, String alt) {
+		if (s == null || s.trim().length() == 0)
+			return alt;
+		StringBuffer t = new StringBuffer();
+		int l = s.length();
+		for (int i = 0; (i < l && i < 24); i++) {
+			char c = s.charAt(i);
+			if (c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'
+					|| c == '_' || c == '!') {
+				t.append(c);
+			}
+		}
+
+		s = s.toString().trim();
+		if (s.length() == 0)
+			return alt;
+		return s;
 	}
 	
 	// http
