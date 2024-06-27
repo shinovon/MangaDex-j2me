@@ -1429,7 +1429,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				try {
 					// TODO тоже самое
-					fc = (FileConnection) Connector.open(folder = folder + chapterId + "/");
+					fc = (FileConnection) Connector.open(folder = folder.concat(chapterId).concat("/"));
 					fc.mkdir();
 				} catch (Exception e) {
 				} finally {
