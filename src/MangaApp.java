@@ -1547,7 +1547,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				if (downloadIndicator != null) {
-					display(infoAlert("Done"), viewForm);
+					display(infoAlert("Done \n".concat(folder)), viewForm);
 					downloadIndicator = null;
 					downloadAlert = null;
 					break;
@@ -1743,7 +1743,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return alt;
 		StringBuffer t = new StringBuffer();
 		int l = s.length();
-		for (int i = 0; (i < l && i < 24); i++) {
+		for (int i = 0; (i < l && i < 32); i++) {
 			char c = s.charAt(i);
 			if (c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'
 					|| c == '_' || c == '!') {
