@@ -409,7 +409,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// скачать главу
 				if (running) return;
 
-				Alert a = new Alert("Downloading", "Initializing", null, null);
+				Alert a = new Alert(mangaForm.getTitle(), "Initializing", null, null);
 				a.setIndicator(downloadIndicator = new Gauge(null, false, 100, 0));
 				a.setTimeout(Alert.FOREVER);
 				a.addCommand(cancelCmd);
