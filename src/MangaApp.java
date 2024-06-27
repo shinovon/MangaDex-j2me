@@ -89,6 +89,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command nextPageCmd;
 	private static Command gotoPageCmd;
 	private static Command nPageCmd;
+	private static Command toggleOrderCmd;
 
 	private static Command goCmd;
 	private static Command cancelCmd;
@@ -139,6 +140,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
 	private static Hashtable chapterItems = new Hashtable();
+	private static boolean chaptersOrder;
 	
 	// для просмотра
 	private static String chapterBaseUrl;
@@ -161,6 +163,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String lang = "en";
 	private static int listLimit = 8;
 	private static int chaptersLimit = 32;
+	private static boolean chaptersOrderDef = false;
 
 	public MangaApp() {}
 
@@ -199,7 +202,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} catch (Exception e) {}
 		
 		// загрузка локализации
-		(L = new String[60])[0] = "MangaDex";
+		(L = new String[70])[0] = "MangaDex";
 		try {
 			loadLocale(lang);
 		} catch (Exception e) {
@@ -239,6 +242,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
 		gotoPageCmd = new Command(L[GoToPage], Command.SCREEN, 4);
 		nPageCmd = new Command(L[Page], Command.ITEM, 2);
+		toggleOrderCmd = new Command(L[ToggleOrder], Command.SCREEN, 5);
 
 		goCmd = new Command(L[Go], Command.OK, 1);
 		cancelCmd = new Command(L[Cancel], Command.CANCEL, 2);
@@ -324,7 +328,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.setCommandListener(this);
 				f.setTicker(new Ticker(L[Loading]));
 
-				listOffset = 0;
+				chaptersOffset = 0;
+				chaptersOrder = chaptersOrderDef;
 				display(chaptersForm = f);
 				start(RUN_CHAPTERS);
 				return;
@@ -368,12 +373,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			searchForm = null;
 			return;
 		}
-		if (d == chaptersForm && c == backCmd) {
-			// возвращение из списка глав
-			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
-			chaptersForm = null;
-			chapterItems.clear();
-			return;
+		if (d == chaptersForm) {
+			if (c == toggleOrderCmd) {
+				// переключить порядок сортировки глав
+				chaptersOffset = 0;
+				chaptersOrder = !chaptersOrder;
+				start(RUN_CHAPTERS);
+				return;
+			}
+			if (c == backCmd) {
+				// возвращение из списка глав
+				display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
+				chaptersForm = null;
+				chapterItems.clear();
+				return;
+			}
 		}
 		if (d == tempListForm && c == backCmd) {
 			// возвращение из времменого списка манги
@@ -1191,10 +1205,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterItems.clear();
 			f.removeCommand(prevPageCmd);
 			f.removeCommand(nextPageCmd);
+			f.addCommand(toggleOrderCmd);
 			
 			try {
 				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
-						.append("&order[chapter]=desc")
+						.append("&order[chapter]=").append(chaptersOrder ? "asc" : "desc")
 						.append("&limit=").append(chaptersLimit)
 						;
 				
