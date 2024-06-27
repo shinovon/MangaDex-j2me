@@ -1265,6 +1265,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 							// ресайз обложки
 							int h = (int) (getHeight() * coverSize / 25F);
+							if (h < 4) h = 4; // защита от иллегал аргумент эксепшна
 							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
 							img = resize(img, w, h);
 							
@@ -1655,6 +1656,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// создаем картинку с каким нибудь заполнением для плейсхолдера
 		try {
 			float h = getHeight() * coverSize / 25F;
+			if (h < 4) h = 4;
 			Graphics g = (coverPlaceholder = Image.createImage((int) (h / 1.6F), (int) h)).getGraphics();
 			g.setColor(0x333333);
 			g.fillRect(0, 0, (int) (h / 1.6F) + 1, (int) h + 1);
@@ -1662,8 +1664,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static int getHeight() {
-		// а что выдает это на форме?
-		return display.getCurrent().getHeight();
+		return mainForm.getHeight();
 	}
 	
 	private static void display(Alert a, Displayable d) {
