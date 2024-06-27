@@ -57,4 +57,5 @@ public interface LangConstants {
 	static final int END = 56;
 	static final int ItemsPerPage = 57;
 	static final int ChaptersPerPage = 58;
+	static final int Related = 59;
 }
