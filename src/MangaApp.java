@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
@@ -9,6 +10,7 @@ import java.util.Vector;
 
 import javax.microedition.io.Connector;
 import javax.microedition.io.HttpConnection;
+import javax.microedition.io.file.FileConnection;
 import javax.microedition.lcdui.*;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.rms.RecordStore;
@@ -26,6 +28,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER = 5;
 	private static final int RUN_BOOKMARKS = 6;
+	private static final int RUN_DOWNLOAD_CHAPTER = 7;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -84,6 +87,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command chapterCmd;
 	private static Command chapterPageItemCmd;
 	private static Command relatedCmd;
+	private static Command downloadCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -123,6 +127,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup itemsLimitChoice;
 	private static ChoiceGroup chaptersLimitChoice;
 	private static ChoiceGroup chaptersOrderChoice;
+	
+	private static Alert downloadAlert;
+	private static Gauge downloadIndicator;
 	
 	// трединг
 	private static int run;
@@ -167,6 +174,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int listLimit = 8;
 	private static int chaptersLimit = 32;
 	private static boolean chaptersOrderDef = false;
+	private static String downloadPath = "E:/MangaDex";
 
 	public MangaApp() {}
 
@@ -241,6 +249,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		chapterCmd = new Command(L[Chapter], Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
+		downloadCmd = new Command(L[Download], Command.SCREEN, 3);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -392,10 +401,31 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			tempListForm = null;
 			return;
 		}
-		if (d == viewForm && c == backCmd) {
-			// ВРЕМЕННОЕ
-			display(chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : mainForm);
-			viewForm = null;
+		if (d == viewForm) {
+			if (c == downloadCmd) {
+				// скачать главу
+				if (running) return;
+
+				Alert a = new Alert("Downloading", "Initializing", null, null);
+				a.setIndicator(downloadIndicator = new Gauge(null, false, 100, 0));
+				a.setTimeout(Alert.FOREVER);
+				a.addCommand(cancelCmd);
+				a.setCommandListener(this);
+				
+				display(downloadAlert = a, d);
+				start(RUN_DOWNLOAD_CHAPTER);
+				return;
+			}
+			if (c == backCmd) {
+				display(chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : mainForm);
+				viewForm = null;
+				return;
+			}
+		}
+		if (d == downloadAlert) {
+			if (c == cancelCmd) {
+				downloadIndicator = null;
+			}
 			return;
 		}
 		if (d == bookmarksForm && c == backCmd) {
@@ -1359,6 +1389,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s); 
 				}
 				
+				f.addCommand(downloadCmd);
 			} catch (Exception e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
@@ -1368,6 +1399,91 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		case RUN_BOOKMARKS: { // загрузить список закладок
 			// TODO
+			break;
+		}
+		case RUN_DOWNLOAD_CHAPTER: { // скачать главу
+			int l = chapterFilenames.size();
+			
+			FileConnection fc = null;
+			HttpConnection hc;
+			InputStream in;
+			OutputStream out;
+			String n, tn, folder = null;
+			try {
+				try {
+					fc = (FileConnection) Connector.open(folder = "file:///".concat(downloadPath).concat("/"));
+					fc.mkdir();
+				} catch (Exception e) {
+				} finally {
+					if(fc != null) fc.close();
+				}
+				
+				try {
+					// TODO нормальные названия
+					fc = (FileConnection) Connector.open(folder = folder.concat(mangaId).concat("/"));
+					fc.mkdir();
+				} catch (Exception e) {
+				} finally {
+					if(fc != null) fc.close();
+				}
+				
+				try {
+					// TODO тоже самое
+					fc = (FileConnection) Connector.open(folder = folder + chapterId + "/");
+					fc.mkdir();
+				} catch (Exception e) {
+				} finally {
+					if(fc != null) fc.close();
+				}
+				
+				for (int i = 0; i < l && downloadIndicator != null; i++) {
+					downloadAlert.setString("Preparing (" + (i+1) + "/" + (l) + ")");
+					n = (String) chapterFilenames.elementAt(i);
+					tn = Integer.toString(i + 1);
+					while (tn.length() < 3) tn = "0".concat(tn);
+					fc = (FileConnection) Connector.open(folder + n);
+					try {
+						if (!fc.exists()) fc.create();
+						hc = open(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + tn + ".jpg"));
+						try {
+							if (hc.getResponseCode() != 200) {
+								throw new IOException("Bad response");
+							}
+							in = hc.openDataInputStream();
+							downloadAlert.setString("Downloading (" + (i+1) + "/" + (l) + ")");
+							try {
+								out = fc.openDataOutputStream();
+								try {
+									int r;
+									byte[] buf = new byte[64 * 1024];
+									while ((r = in.read(buf)) != -1) {
+										out.write(buf, 0, r);
+									}
+									out.flush();
+								} finally {
+									out.close();
+								}
+							} finally {
+								in.close();
+							}
+						} finally {
+							hc.close();
+						}
+					} finally {
+						fc.close();
+					}
+				}
+				display(infoAlert("Done"), viewForm);
+				break;
+			} catch (NullPointerException e) {
+			} catch (Exception e) {
+				display(errorAlert(e.toString()), viewForm);
+				break;
+			}
+			if (downloadIndicator == null) {
+				display(infoAlert("Downloading aborted"), viewForm);
+				break;
+			} else display(viewForm);
 			break;
 		}
 		}
@@ -1513,6 +1629,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		a.setType(AlertType.ERROR);
 		a.setString(text);
 		a.setTimeout(3000);
+		return a;
+	}
+	
+	private static Alert infoAlert(String text) {
+		Alert a = new Alert("");
+		a.setType(AlertType.CONFIRMATION);
+		a.setString(text);
+		a.setTimeout(1500);
 		return a;
 	}
 	
