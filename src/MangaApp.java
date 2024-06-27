@@ -131,6 +131,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup chaptersLimitChoice;
 	private static ChoiceGroup chaptersOrderChoice;
 	private static TextField downloadPathField;
+	private static Gauge coverSizeGauge;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -179,6 +180,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int chaptersLimit = 32;
 	private static boolean chaptersOrderDef = false;
 	private static String downloadPath = "E:/MangaDex";
+	private static int coverSize = 10;
+	
+	private static Image coverPlaceholder;
 
 	public MangaApp() {}
 
@@ -216,6 +220,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chaptersLimit = j.getInt("chaptersLimit", chaptersLimit);
 			chaptersOrderDef = j.getBoolean("chaptersOrder", chaptersOrderDef);
 			downloadPath = j.getString("downloadPath", downloadPath);
+			coverSize = j.getInt("coverSize", coverSize);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -450,6 +455,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
 			chaptersOrderDef = chaptersOrderChoice.isSelected(1);
 			downloadPath = downloadPathField.getString();
+			coverSize = coverSizeGauge.getValue();
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -469,6 +475,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("chaptersLimit", chaptersLimit);
 				j.put("chaptersOrder", chaptersOrderDef);
 				j.put("downloadPath", downloadPath);
+				j.put("coverSize", coverSize);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -477,6 +484,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {}
 			
 			display(mainForm);
+			// пересоздать плейсхолдер на случай если поменяли размер обложек
+			makeCoverPlaceholder();
 //			settingsForm = null;
 			return;
 		}
@@ -511,6 +520,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chaptersOrderChoice.setSelectedIndex(chaptersOrderDef ? 1 : 0, true);
 				f.append(chaptersOrderChoice);
 				
+				coversChoice = new ChoiceGroup(L[CoversLoading], ChoiceGroup.POPUP, new String[] {
+						L[Auto], L[SingleThread], L[MultiThread], L[Disabled]
+				}, null);
+				coversChoice.setSelectedIndex(coverLoading, true);
+				f.append(coversChoice);
+				
+				coverSizeGauge = new Gauge("Covers size", true, 25, coverSize);
+				f.append(coverSizeGauge);
+				
 				contentFilterChoice = new ChoiceGroup(L[ContentFilter], ChoiceGroup.MULTIPLE, new String[] {
 						L[Safe], L[Suggestive], L[Erotica], L[Pornographic]
 				}, null);
@@ -524,12 +542,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
 				f.append(proxyField);
-				
-				coversChoice = new ChoiceGroup(L[CoversLoading], ChoiceGroup.POPUP, new String[] {
-						L[Auto], L[SingleThread], L[MultiThread], L[Disabled]
-				}, null);
-				coversChoice.setSelectedIndex(coverLoading, true);
-				f.append(coversChoice);
 				
 				settingsForm = f;
 			}
@@ -1002,6 +1014,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					JSONArray relationships = m.getArray("relationships");
 					
 					int k = relationships.size();
+					// получение айдишника обложки
 					for (int p = 0; p < k; p++) {
 						JSONObject r = relationships.getObject(p);
 						if (!"cover_art".equals(r.getString("type"))) continue;
@@ -1010,7 +1023,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 
 					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
-					item = new ImageItem(title, null, Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE, id, Item.BUTTON);
+					item = new ImageItem(title,
+							coverLoading != 3 ? coverPlaceholder : null,
+							Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
+							id, Item.BUTTON);
 					item.addCommand(mangaItemCmd);
 					item.setDefaultCommand(mangaItemCmd);
 					item.setItemCommandListener(this);
@@ -1179,7 +1195,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			
 			// если обложка потерялась, поставить ее в очередь
-			if (thumb == null) {
+			if (thumb == null || thumb == coverPlaceholder) {
 				scheduleCover(coverItem, id);
 			}
 			f.setTicker(null);
@@ -1187,6 +1203,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		case RUN_COVERS: { // скачиватель обложек, постоянно крутится на фоне
 			try {
+				if (coverPlaceholder == null && coverLoading != 3)
+					makeCoverPlaceholder();
 				while (true) {
 					synchronized (coverLoadLock) {
 						coverLoadLock.wait();
@@ -1246,7 +1264,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
 
 							// ресайз обложки
-							int h = getHeight() / 3; // TODO константа?
+							int h = (int) (getHeight() * coverSize / 25F);
 							int w = (int) (((float) h / img.getHeight()) * img.getWidth());
 							img = resize(img, w, h);
 							
@@ -1629,6 +1647,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		r.close();
 	}
 	
+	private static void makeCoverPlaceholder() {
+		if (coverLoading == 3) {
+			coverPlaceholder = null;
+			return;
+		}
+		// создаем картинку с каким нибудь заполнением для плейсхолдера
+		try {
+			float h = getHeight() * coverSize / 25F;
+			Graphics g = (coverPlaceholder = Image.createImage((int) (h / 1.6F), (int) h)).getGraphics();
+			g.setColor(0x333333);
+			g.fillRect(0, 0, (int) (h / 1.6F) + 1, (int) h + 1);
+		} catch (Exception e) {}
+	}
+	
 	private static int getHeight() {
 		// а что выдает это на форме?
 		return display.getCurrent().getHeight();
@@ -1648,6 +1680,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		display.setCurrent(d);
+		if (coverLoading == 3) return;
 		if (d == listForm || d == tempListForm) {
 			try {
 				// докачивание обложек
@@ -1655,7 +1688,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				for (int i = 0; i < l; i++) {
 					Item item = ((Form) d).get(i);
 					if (!(item instanceof ImageItem)) continue;
-					if (((ImageItem) item).getImage() != null) continue;
+					if (((ImageItem) item).getImage() != null
+							&& ((ImageItem) item).getImage() != coverPlaceholder) continue;
 					scheduleCover((ImageItem) item, ((ImageItem) item).getAltText());
 				}
 			} catch (Exception e) {}
