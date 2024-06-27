@@ -107,6 +107,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static TextField searchField;
 
+	// элементы расширенного поиска
 	private static TextField advTitleField;
 	private static TextField advYearField;
 	private static ChoiceGroup advStatusChoice;
@@ -114,12 +115,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup advRatingChoice;
 	private static ChoiceGroup advSortChoice;
 	
+	// элементы настроек
 	private static TextField proxyField;
 	private static ChoiceGroup coversChoice;
 	private static ChoiceGroup contentFilterChoice;
 	private static ChoiceGroup langChoice;
 	private static ChoiceGroup itemsLimitChoice;
 	private static ChoiceGroup chaptersLimitChoice;
+	private static ChoiceGroup chaptersOrderChoice;
 	
 	// трединг
 	private static int run;
@@ -199,6 +202,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			listLimit = j.getInt("listLimit", listLimit);
 			chaptersLimit = j.getInt("chaptersLimit", chaptersLimit);
+			chaptersOrderDef = j.getBoolean("chaptersOrder", chaptersOrderDef);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -416,6 +420,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			lang = langChoice.isSelected(1) ? "ru" : "en";
 			listLimit = (itemsLimitChoice.getSelectedIndex() + 1) * 8;
 			chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
+			chaptersOrderDef = chaptersOrderChoice.isSelected(1);
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -433,6 +438,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				j.put("listLimit", listLimit);
 				j.put("chaptersLimit", chaptersLimit);
+				j.put("chaptersOrder", chaptersOrderDef);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -468,6 +474,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}, null);
 				chaptersLimitChoice.setSelectedIndex(Math.max(0, Math.min((chaptersLimit / 8) - 1, 4)), true);
 				f.append(chaptersLimitChoice);
+				
+				chaptersOrderChoice = new ChoiceGroup("Chapters order", ChoiceGroup.POPUP, new String[] {
+						"Descending", "Ascending"
+				}, null);
+				chaptersOrderChoice.setSelectedIndex(chaptersOrderDef ? 1 : 0, true);
+				f.append(chaptersOrderChoice);
 				
 				contentFilterChoice = new ChoiceGroup(L[ContentFilter], ChoiceGroup.MULTIPLE, new String[] {
 						L[Safe], L[Suggestive], L[Erotica], L[Pornographic]
