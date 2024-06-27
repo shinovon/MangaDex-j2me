@@ -1451,10 +1451,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					n = (String) chapterFilenames.elementAt(i);
 					tn = Integer.toString(i + 1);
 					while (tn.length() < 3) tn = "0".concat(tn);
-					fc = (FileConnection) Connector.open(folder + n);
+					fc = (FileConnection) Connector.open(folder + tn + ".jpg");
 					try {
 						if (!fc.exists()) fc.create();
-						hc = open(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + tn + ".jpg"));
+						hc = open(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + n));
 						try {
 							if (hc.getResponseCode() != 200) {
 								throw new IOException("Bad response");
@@ -1483,17 +1483,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						fc.close();
 					}
 				}
-				display(infoAlert("Done"), viewForm);
-				break;
+				if (downloadIndicator != null) {
+					display(infoAlert("Done"), viewForm);
+					downloadIndicator = null;
+					downloadAlert = null;
+					break;
+				}
 			} catch (NullPointerException e) {
 			} catch (Throwable e) {
 				display(errorAlert(e.toString()), viewForm);
+				downloadIndicator = null;
+				downloadAlert = null;
 				break;
 			}
 			if (downloadIndicator == null) {
 				display(infoAlert("Downloading aborted"), viewForm);
+				downloadAlert = null;
 				break;
 			} else display(viewForm);
+			downloadIndicator = null;
+			downloadAlert = null;
 			break;
 		}
 		}
