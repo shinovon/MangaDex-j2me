@@ -143,6 +143,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
 	private static Hashtable mangaCoversCache = new Hashtable();
+	private static Object coverParseLock = new Object();
+	private static boolean coversParsed;
 	
 	private static String version;
 	
@@ -1059,13 +1061,41 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					// подождать перед тем как начать грузить обложки, может сверху что-то не допарсилось и они друг другу будут мешать
 					Thread.sleep(200);
 					while (coversToLoad.size() > 0) {
-						int i = 0;
 						Object[] o = null;
+						
+						// получить ссылки на обложки
+						synchronized (coverParseLock) {
+							if (!coversParsed) {
+								coversParsed = true;
+								try {
+									int l = coversToLoad.size();
+									int j = 0;
+									StringBuffer sb = new StringBuffer("cover?");
+									for (int i = 0; i < l; i++) {
+										String id = (String) ((Object[]) coversToLoad.elementAt(i))[0];
+										if (!mangaCoversCache.containsKey(id)) continue;
+										String cover = (String) mangaCoversCache.get(id);
+										if (cover.indexOf('.') != -1) continue;
+										sb.append("&ids[").append(j++).append("]=").append(cover);
+									}
+									
+									if (j > 0) {
+										JSONArray data = api(sb.toString()).getArray("data");
+										l = data.size();
+										for (int i = 0; i < l; i++) {
+											JSONObject c = data.getObject(i);
+											mangaCoversCache.put(c.getArray("relationships").getObject(0).get("id"),
+													c.getObject("attributes").get("fileName"));
+										}
+									}
+								} catch (Exception e) {}
+							}
+						}
 						
 						try {
 							synchronized (coverLoadLock) {
-								o = (Object[]) coversToLoad.elementAt(i);
-								coversToLoad.removeElementAt(i);
+								o = (Object[]) coversToLoad.elementAt(0);
+								coversToLoad.removeElementAt(0);
 							}
 						} catch (Exception e) {
 							continue;
@@ -1289,6 +1319,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// засунуть имагитем в очередь на скачивание обложки
 	private static void scheduleCover(ImageItem img, String mangaId) {
 		if (coverLoading == 3) return; // выключены
+		coversParsed = false;
 		synchronized (coverLoadLock) {
 			coversToLoad.addElement(new Object[] { mangaId, img });
 			coverLoadLock.notifyAll();
@@ -1301,6 +1332,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			id = (String) mangaCoversCache.get(id);
 			manga = false;
 		}
+		if (id.indexOf('.') != -1) return id;
+		
 		JSONStream j = apiStream("cover?" + (manga ? "manga" : "ids") + "[]=" + id);
 //		String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
 		try {
@@ -1312,7 +1345,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j.nextTrim() == '{' &&
 					j.jumpToKey("fileName")))
 				throw new Exception("corrupt");
-			return j.nextString();
+			mangaCoversCache.put(id, id = j.nextString());
+			return id;
 		} finally {
 			j.close();
 		}
