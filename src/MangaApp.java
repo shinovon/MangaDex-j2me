@@ -127,6 +127,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup itemsLimitChoice;
 	private static ChoiceGroup chaptersLimitChoice;
 	private static ChoiceGroup chaptersOrderChoice;
+	private static TextField downloadPathField;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -211,6 +212,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listLimit = j.getInt("listLimit", listLimit);
 			chaptersLimit = j.getInt("chaptersLimit", chaptersLimit);
 			chaptersOrderDef = j.getBoolean("chaptersOrder", chaptersOrderDef);
+			downloadPath = j.getString("downloadPath", downloadPath);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -268,6 +270,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.addCommand(aboutCmd);
 		f.setCommandListener(this);
 		
+		if (coverLoading != 3)
 		try {
 			f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
 		} catch (Exception ignored) {}
@@ -443,6 +446,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listLimit = (itemsLimitChoice.getSelectedIndex() + 1) * 8;
 			chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
 			chaptersOrderDef = chaptersOrderChoice.isSelected(1);
+			downloadPath = downloadPathField.getString();
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -461,6 +465,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("listLimit", listLimit);
 				j.put("chaptersLimit", chaptersLimit);
 				j.put("chaptersOrder", chaptersOrderDef);
+				j.put("downloadPath", downloadPath);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -508,6 +513,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}, null);
 				contentFilterChoice.setSelectedFlags(contentFilter);
 				f.append(contentFilterChoice);
+				
+				downloadPathField = new TextField("Download path", downloadPath, 200, TextField.NON_PREDICTIVE);
+				f.append(downloadPathField);
+				
+				// TODO фм
 				
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
 				f.append(proxyField);
@@ -1476,7 +1486,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				display(infoAlert("Done"), viewForm);
 				break;
 			} catch (NullPointerException e) {
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				display(errorAlert(e.toString()), viewForm);
 				break;
 			}
