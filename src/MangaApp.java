@@ -169,6 +169,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean coversParsed;
 	
 	private static String version;
+	private static String platform;
+	
+	private static Image coverPlaceholder;
 	
 	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
@@ -181,8 +184,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean chaptersOrderDef = false;
 	private static String downloadPath = "E:/MangaDex";
 	private static int coverSize = 10;
-	
-	private static Image coverPlaceholder;
 
 	public MangaApp() {}
 
@@ -202,6 +203,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			int i = TimeZone.getDefault().getRawOffset() / 60000;
 			timezone = (i < 0 ? '-' : '+') + n(Math.abs(i / 60)) + ':' + n(Math.abs(i % 60));
 		} catch (Exception e) {}
+		
+		// определения дефолтного пути куда будет скачиваться манга
+		String p = platform = System.getProperty("microedition.platform");
+		if (p != null && p.indexOf("platform=S60") != -1) { // 9.3 и выше
+			downloadPath = "E:/MangaDex";
+		} else if ((p = System.getProperty("java.vendor")) != null && p.indexOf("Android") != -1) { // ж2ме лодырь
+			downloadPath = "C:/MangaDex";
+		} else if (System.getProperty("kemulator.version") != null) { // ннмод
+			downloadPath = "root/MangaDex";
+		} else {
+			try {
+				downloadPath = System.getProperty("fileconn.dir.photos").substring(8).concat("MangaDex");
+			} catch (Exception e) {
+				downloadPath = "C:/MangaDex";
+			}
+		}
 		
 		// загрузка настроек
 		try {
@@ -335,8 +352,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		start(RUN_COVERS);
 		
 		// второй тред обложек если симбиан
-		String p = System.getProperty("microedition.platform");
-		if (coverLoading != 1 && ((p != null && p.indexOf("platform=S60") != -1) || coverLoading == 2)) {
+		if (coverLoading != 1 && ((platform != null && platform.indexOf("platform=S60") != -1) || coverLoading == 2)) {
 			start(RUN_COVERS);
 		}
 	}
