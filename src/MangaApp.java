@@ -1485,10 +1485,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			OutputStream out;
 			String n, tn, folder = null;
 			try {
+				// создание папок
 				try {
 					fc = (FileConnection) Connector.open(folder = "file:///".concat(downloadPath).concat("/"));
 					fc.mkdir();
-				} catch (Exception e) {
+				} catch (IOException e) {
 				} finally {
 					if(fc != null) fc.close();
 				}
@@ -1496,15 +1497,30 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				try {
 					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
 					fc.mkdir();
-				} catch (Exception e) {
+				} catch (IOException e) {
 				} finally {
 					if(fc != null) fc.close();
 				}
 				
 				try {
-					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(viewForm.getTitle(), chapterId)).concat("/"));
+					String s = viewForm.getTitle();
+					if (s != null) {
+						int i;
+						if ((i = s.indexOf("Vol. ")) != -1) {
+							if (s.indexOf(' ', i + 5) - i - 5 < 2) {
+								s = s.substring(0, i + 5).concat("0").concat(s.substring(i + 5));
+							}
+						}
+						if ((i = s.indexOf("Ch. ")) != -1) {
+							int j;
+							if ((j = s.indexOf(' ', i + 4) - i - 4) < 3) {
+								s = s.substring(0, i + 4).concat(j < 2 ? "00" : "0").concat(s.substring(i + 4));
+							}
+						}
+					}
+					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(s, chapterId)).concat("/"));
 					fc.mkdir();
-				} catch (Exception e) {
+				} catch (IOException e) {
 				} finally {
 					if(fc != null) fc.close();
 				}
