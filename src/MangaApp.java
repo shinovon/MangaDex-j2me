@@ -344,22 +344,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			if (c == backCmd) {
 				// возвращение из манги
-				Form f;
-				display(f = (tempListForm != null ? tempListForm : listForm != null ? listForm : mainForm));
+				display(tempListForm != null ? tempListForm : listForm != null ? listForm : mainForm);
 				mangaForm = null;
 				relatedManga.removeAllElements();
 				
-				if (coverLoading == 3 || f == mainForm) return;
-				try {
-					// докачивание обложек
-					int l = f.size();
-					for (int i = 0; i < l; i++) {
-						Item item =f.get(i);
-						if (!(item instanceof ImageItem)) continue;
-						if (((ImageItem) item).getImage() != null) continue;
-						scheduleCover((ImageItem) item, ((ImageItem) item).getAltText());
-					}
-				} catch (Exception e) {}
+				if (coverLoading == 3) return;
 				return;
 			}
 		}
@@ -380,6 +369,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (d == chaptersForm) {
 			if (c == toggleOrderCmd) {
 				// переключить порядок сортировки глав
+				if (running) return;
+				
 				chaptersOffset = 0;
 				chaptersOrder = !chaptersOrder;
 				start(RUN_CHAPTERS);
@@ -396,6 +387,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (d == tempListForm && c == backCmd) {
 			// возвращение из времменого списка манги
 			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
+			coversToLoad.removeAllElements();
 			listMode = prevListMode;
 			tempListForm = null;
 			return;
@@ -1225,6 +1217,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						.append("&limit=").append(chaptersLimit)
 						;
 				
+				if (contentFilter != null) {
+					int j = 0;
+					for (int i = 0; i < MANGA_RATINGS.length; i++) {
+						if (!contentFilter[i]) continue;
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
+					}
+				}
+				
 				// пагинация
 				if (chaptersOffset > 0) {
 					sb.append("&offset=").append(chaptersOffset);
@@ -1494,6 +1494,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		display.setCurrent(d);
+		if (d == listForm || d == tempListForm) {
+			try {
+				// докачивание обложек
+				int l = ((Form) d).size();
+				for (int i = 0; i < l; i++) {
+					Item item = ((Form) d).get(i);
+					if (!(item instanceof ImageItem)) continue;
+					if (((ImageItem) item).getImage() != null) continue;
+					scheduleCover((ImageItem) item, ((ImageItem) item).getAltText());
+				}
+			} catch (Exception e) {}
+		}
 	}
 
 	private static Alert errorAlert(String text) {
