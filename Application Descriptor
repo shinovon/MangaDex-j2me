@@ -1,8 +1,12 @@
+MIDlet-Version: 0.3.0
 MIDlet-Vendor: nnproject
-MIDlet-Version: 0.2.9
+MIDlet-Info-URL: http://nnp.nnchan.ru
 Nokia-UI-Enhancement: PopUpTextBox
+MIDlet-Icon: /d.png
 MicroEdition-Configuration: CLDC-1.1
-MIDlet-1: MangaApp,,MangaApp
 MIDlet-Name: MangaDex
+MIDlet-1: MangaDex,/d.png,MangaApp
 MicroEdition-Profile: MIDP-2.0
 MIDlet-Jar-URL: MangaDex.jar
+Nokia-Scalable-Icon: /d.svg
+Nokia-Scalable-Icon-MIDlet-1: /d.svg

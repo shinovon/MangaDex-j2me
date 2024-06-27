@@ -36,7 +36,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
-	
+
+//	private static final Font largeboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_LARGE);
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
 	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
 	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
@@ -190,17 +191,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chaptersLimit = j.getInt("chaptersLimit", chaptersLimit);
 		} catch (Exception e) {}
 		
-//		try {
-//			RecordStore r = RecordStore.openRecordStore(BOOKMARKS_INDEX_RECORDNAME, false);
-//			if (r.getNumRecords() > 0) {
-//				DataInputStream in = new DataInputStream(new ByteArrayInputStream(r.getRecord(1)));
-//				bookmarksTotalPages = in.readInt();
-//				bookmarksPage = in.readInt();
-//				in.close();
-//			}
-//			r.closeRecordStore();
-//		} catch (Exception e) {}
-		
 		// загрузка локализации
 		(L = new String[60])[0] = "MangaDex";
 		try {
@@ -253,7 +243,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.addCommand(aboutCmd);
 		f.setCommandListener(this);
 		
+		try {
+			f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
+		} catch (Exception ignored) {}
+		
 		StringItem s;
+		
+		s = new StringItem(null, "MangaDex");
+		s.setFont(largefont);
+		s.setLayout(Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
+		f.append(s);
 		
 		searchField = new TextField("", "", 200, TextField.NON_PREDICTIVE);
 		f.append(searchField);
