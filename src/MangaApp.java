@@ -539,15 +539,31 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			
+			try {
+				f.append(new ImageItem(null, Image.createImage("/d.png"), Item.LAYOUT_LEFT, null));
+			} catch (Exception ignored) {}
+			
 			StringItem s;
-			s = new StringItem(null, "unnamed mangadex j2me reader v" + version);
+			s = new StringItem(null, "MahoDex v" + version);
 			s.setFont(largefont);
+			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT);
+			f.append(s);
+			
+			s = new StringItem(null, "Unofficial MangaDex reader client for J2ME");
+			s.setFont(Font.getDefaultFont());
 			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			f.append(s);
 
 			s = new StringItem("Developer", "shinovon");
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			s.setFont(Font.getDefaultFont());
+			f.append(s);
+
+			s = new StringItem("GitHub", "github.com/shinovon");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+			f.append(s);
+
+			s = new StringItem("Web", "nnp.nnchan.ru");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 			f.append(s);
 
 			s = new StringItem("Chat", "t.me/nnmidletschat");
