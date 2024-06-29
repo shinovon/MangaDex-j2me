@@ -1491,12 +1491,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					JSONObject c = data.getObject(i);
 					JSONObject a = c.getObject("attributes");
 					JSONArray relationships = c.getArray("relationships");
-					JSONObject user = null;
-					JSONObject scan = null;
+					JSONObject user = null, scan = null;
 					
 					int l2 = relationships.size();
 					for (int k = 0; k < l2; k++) {
-						JSONObject r = relationships.getObject(i);
+						JSONObject r = relationships.getObject(k);
 						String type = r.getString("type");
 						if ("user".equals(type)) {
 							user = r;
@@ -1529,6 +1528,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						f.append(s);
 						b = true;
 					}
+					
+					if (chapter == null) chapter = "0";
 					
 					// группировка по главам
 					if (i == 0 || !chapter.equals(lastChapter) || b) {
@@ -1628,16 +1629,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				chapterPages = chapterFilenames.size();
 				
+				int n = chapterPage - 1;
 				if (viewMode == 1) {
-					view = new ViewCommon(chapterPage, false);
+					view = new ViewCommon(n, false);
 				} else if(viewMode == 2) {
-					view = new ViewHWA(chapterPage);
+					view = new ViewHWA(n);
 				} else {
 					String vram = System.getProperty("com.nokia.gpu.memory.total");
 					if (vram != null && !vram.equals("0")) {
-						view = new ViewHWA(chapterPage);
+						view = new ViewHWA(n);
 					} else {
-						view = new ViewCommon(chapterPage, false);
+						view = new ViewCommon(n, false);
 					}
 				}
 				

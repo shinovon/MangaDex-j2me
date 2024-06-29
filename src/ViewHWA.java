@@ -181,7 +181,7 @@ public class ViewHWA extends ViewCommon {
 
 	protected void setupM3G(Graphics3D g3d) {
 		Camera cam = new Camera();
-		cam.setParallel(ih / zoom, getWidth() / (float) getHeight(), 0.1f, 900f);
+		cam.setParallel(Math.max(iw, ih) / zoom, getWidth() / (float) getHeight(), 0.1f, 900f);
 		Transform t = new Transform();
 		t.postTranslate(x, y, 100);
 		t.postRotate(180, 0, 0, -1);
