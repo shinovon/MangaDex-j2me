@@ -1196,7 +1196,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 					
-					s = new StringItem(null, author.getObject("attributes").getString("name"));
+					s = new StringItem(null, author.getObject("attributes").getNullableString("name"));
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
@@ -1208,7 +1208,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 					
-					s = new StringItem(null, artist.getObject("attributes").getString("name"));
+					s = new StringItem(null, artist.getObject("attributes").getNullableString("name"));
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
@@ -1220,7 +1220,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 					
-					s = new StringItem(null, creator.getObject("attributes").getString("name"));
+					s = new StringItem(null, creator.getObject("attributes").getNullableString("name"));
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
