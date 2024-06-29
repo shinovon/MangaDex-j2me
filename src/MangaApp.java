@@ -1014,6 +1014,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray data = j.getArray("data");
 				int l = data.size();
 				
+				// команды пагинации
 				if (!temp) {
 					listTotal = j.getInt("total");
 					if (listTotal > 0)
