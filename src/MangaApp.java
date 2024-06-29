@@ -1443,6 +1443,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				StringBuffer sb = new StringBuffer("chapter?manga=").append(id)
 						.append("&order[chapter]=").append(chaptersOrder ? "asc" : "desc")
 						.append("&limit=").append(chaptersLimit)
+						.append("&includes[0]=scanlation_group&includes[1]=user")
 						;
 				
 				if (contentFilter != null) {
@@ -1489,6 +1490,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				for (int i = 0; i < l; i++) {
 					JSONObject c = data.getObject(i);
 					JSONObject a = c.getObject("attributes");
+					JSONArray relationships = c.getArray("relationships");
+					JSONObject user = null;
+					JSONObject scan = null;
+					
+					int l2 = relationships.size();
+					for (int k = 0; k < l2; k++) {
+						JSONObject r = relationships.getObject(i);
+						String type = r.getString("type");
+						if ("user".equals(type)) {
+							user = r;
+						} else if("scanlation_group".equals(type)) {
+							scan = r;
+						}
+					}
+					
 					
 					String volume = a.getString("volume");
 					String chapter = a.getString("chapter");
@@ -1528,11 +1544,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					boolean ext = a.has("externalUrl") && !a.isNull("externalUrl");
 
 					// текст ссылки на главу: язык, название, время загрузки
-					// TODO автор, картинка языка
 					sb.setLength(0);
 					sb.append("• ").append(lang).append(" / ")
 					.append(title != null ? title : "Ch. ".concat(chapter)).append(" / ")
-					.append(localizeTime(time));
+					.append(localizeTime(time))
+					;
+					
+					if (scan != null) {
+						sb.append('\n').append(getName(scan));
+					} else if (user != null) {
+						sb.append('\n').append(getName(user));
+					}
 					
 					s = new StringItem(null, sb.toString());
 					s.setFont(smallfont);
@@ -1605,6 +1627,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				chapterPages = chapterFilenames.size();
+				
+				if (viewMode == 1) {
+					view = new ViewCommon(chapterPage, false);
+				} else if(viewMode == 2) {
+					view = new ViewHWA(chapterPage);
+				} else {
+					String vram = System.getProperty("com.nokia.gpu.memory.total");
+					if (vram != null && !vram.equals("0")) {
+						view = new ViewHWA(chapterPage);
+					} else {
+						view = new ViewCommon(chapterPage, false);
+					}
+				}
 				
 //				f.addCommand(downloadCmd);
 				display(view);
@@ -1803,6 +1838,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String getName(JSONObject j) {
 		if (j.has("attributes")) j = j.getObject("attributes");
+		if (j.has("username")) return j.getString("username");
 		if (j.has("name")) {
 			Object o = j.get("name");
 			return o instanceof JSONObject ? getTitle((JSONObject) o) : j.getString("name");
@@ -1878,6 +1914,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		display.setCurrent(d);
 		if (d == chaptersForm || d == mangaForm) {
 			view = null;
+			chapterFilenames = null;
 			return;
 		}
 		if (coverLoading == 3) return;
