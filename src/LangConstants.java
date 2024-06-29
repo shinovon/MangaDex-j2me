@@ -60,4 +60,7 @@ public interface LangConstants {
 	static final int Related = 59;
 	static final int ToggleOrder = 60;
 	static final int Download = 61;
+	static final int Author = 62;
+	static final int Artist = 63;
+	static final int Creator = 64;
 }

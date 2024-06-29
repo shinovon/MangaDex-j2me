@@ -59,7 +59,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			"shounen", "shoujo", "josei", "seinen", "none"
 	};
 	
-	private static final String[] MANGA_RATINGS = {
+	private static final String[] CONTENT_RATINGS = {
 			"safe", "suggestive", "erotica", "pornographic"
 	};
 
@@ -890,9 +890,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// фильтр содержимого из настроек, не применяется в расширенном поиске
 				if (listMode != LIST_ADVANCED_SEARCH && contentFilter != null) {
 					int j = 0;
-					for (int i = 0; i < MANGA_RATINGS.length; i++) {
+					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
 					}
 				}
 				
@@ -946,9 +946,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j = 0;
 					// возрастной рейтинг
 					advRatingChoice.getSelectedFlags(sel);
-					for (int i = 0; i < MANGA_RATINGS.length && i < advRatingChoice.size(); i++) {
+					for (int i = 0; i < CONTENT_RATINGS.length && i < advRatingChoice.size(); i++) {
 						if (!sel[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
 					}
 					
 					// сортировка
@@ -1085,9 +1085,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //			f.addCommand(saveCmd);
 			
 			try {
-				JSONObject j = api("manga/" + id).getObject("data");	
+				JSONObject j = api("manga/" + id +
+						"?includes[0]=author&includes[1]=artist&includes[2]=creator")
+						.getObject("data");	
 				JSONObject attributes = j.getObject("attributes");
 				JSONArray relationships = j.getArray("relationships");
+				
+				JSONObject author = null,
+						artist = null,
+						creator = null;
 				
 				int k = relationships.size();
 				for (int p = 0; p < k; p++) {
@@ -1097,6 +1103,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						mangaCoversCache.put(id, r.getString("id"));
 					} else if ("manga".equals(type)) {
 						relatedManga.addElement(r);
+					} else if ("author".equals(type)) {
+						author = r;
+					} else if ("artist".equals(type)) {
+						artist = r;
+					} else if ("creator".equals(type)) {
+						creator = r;
 					}
 				}
 				
@@ -1156,6 +1168,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
+				
+				// перевод рейтинга для не англ локали
+				if (!"en".equals(lang)) {
+					t = attributes.getString("contentRating");
+					for (int i = 0; i < 4; i ++) { // рейтингов всего 4
+						if (!t.equals(CONTENT_RATINGS[i])) continue;
+						t = L[Safe + i];
+					}
+					s.setText(t);
+				}
 
 				// статус, год
 				s = new StringItem(null, L[Publication]);
@@ -1167,6 +1189,42 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
+				
+				if (author != null) {
+					s = new StringItem(null, L[Author]);
+					s.setFont(medboldfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+					
+					s = new StringItem(null, author.getObject("attributes").getString("name"));
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
+				
+				if (artist != null) {
+					s = new StringItem(null, L[Artist]);
+					s.setFont(medboldfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+					
+					s = new StringItem(null, artist.getObject("attributes").getString("name"));
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
+				
+				if (creator != null) {
+					s = new StringItem(null, L[Creator]);
+					s.setFont(medboldfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+					
+					s = new StringItem(null, creator.getObject("attributes").getString("name"));
+					s.setFont(smallfont);
+					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					f.append(s);
+				}
 				
 				// описание
 				if (attributes.has("description")) {
@@ -1180,6 +1238,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 				}
+				
+				// добавить список альт тайтлов?
 				
 				// кнопки
 				s = new StringItem(null, L[Chapters], StringItem.BUTTON);
@@ -1315,9 +1375,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				if (contentFilter != null) {
 					int j = 0;
-					for (int i = 0; i < MANGA_RATINGS.length; i++) {
+					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_RATINGS[i]);
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
 					}
 				}
 				
