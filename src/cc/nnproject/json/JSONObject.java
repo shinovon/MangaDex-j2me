@@ -328,6 +328,8 @@ public class JSONObject {
 				s.append(((JSONArray) v).build());
 			} else if (v instanceof String) {
 				s.append("\"").append(escape_utf8((String) v)).append("\"");
+			} else if (v instanceof String[]) {
+				s.append(((String[]) v)[0]);
 			} else if (v == json_null) {
 				s.append((String) null);
 			} else {

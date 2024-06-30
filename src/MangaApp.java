@@ -857,7 +857,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == downloadCoverCmd) {
 			try {
-				String url = proxyUrl(COVERSURL + mangaId + '/' + getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
+				String url = proxyUrl(COVERSURL + mangaId + '/' +
+						getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
 				
 				if (platformRequest(url))
 					notifyDestroyed();
@@ -1031,7 +1032,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					advDemographicChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_DEMOGRAPHIC.length; i++) {
 						if (!sel[i]) continue;
-						sb.append("&publicationDemographic[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_DEMOGRAPHIC[i]);
+						sb.append("&publicationDemographic["
+								.concat(Integer.toString(j++)).concat("]=")).append(MANGA_DEMOGRAPHIC[i]);
 					}
 
 					j = 0;
@@ -1180,7 +1182,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONObject j = api("manga/" + id +
 						"?includes[0]=author&includes[1]=artist&includes[2]=creator")
 						.getObject("data");
-				mangaId = j.getString("id");
+				coverItem.setAltText(mangaId = id = j.getString("id"));
 				JSONObject attributes = j.getObject("attributes");
 				JSONArray relationships = j.getArray("relationships");
 				
@@ -1327,7 +1329,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 					
-					s = new StringItem(null, getTitle(attributes.getObject("description")));
+					Object d = attributes.get("description");
+					s = new StringItem(null, d instanceof JSONObject ? getTitle((JSONObject) d) : getTitle((JSONArray) d));
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
@@ -1381,7 +1384,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					synchronized (coverLoadLock) {
 						coverLoadLock.wait();
 					}
-					// подождать перед тем как начать грузить обложки, может сверху что-то не допарсилось и они друг другу будут мешать
+					// подождать перед тем как начать грузить обложки,
+					// может сверху что-то не допарсилось и они друг другу будут мешать
 					Thread.sleep(200);
 					while (coversToLoad.size() > 0) {
 						Object[] o = null;
@@ -1545,7 +1549,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						vol = true;
 					} else if ((volume == null && lastVolume != null) ||
 							(volume != null && !volume.equals(lastVolume))) {
-						s = new StringItem(null, "\n".concat(volume == null ? L[NoVolume] : L[VolumeNo].concat(" ").concat(volume)));
+						s = new StringItem(null, "\n"
+								.concat(volume == null ? L[NoVolume] : L[VolumeNo].concat(" ").concat(volume)));
 						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
@@ -1688,7 +1693,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				try {
-					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
+					fc = (FileConnection) Connector.open(folder = folder
+							.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
 					fc.mkdir();
 				} catch (IOException e) {
 				} finally {
@@ -2192,7 +2198,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return Image.createImage(b, 0, b.length);
 	}
 	
-	private static byte[] readBytes(InputStream inputStream, int initialSize, int bufferSize, int expandSize) throws IOException {
+	private static byte[] readBytes(InputStream inputStream, int initialSize, int bufferSize, int expandSize)
+			throws IOException {
 		if (initialSize <= 0) initialSize = bufferSize;
 		byte[] buf = new byte[initialSize];
 		int count = 0;
