@@ -143,6 +143,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static TextField downloadPathField;
 	private static Gauge coverSizeGauge;
 	private static ChoiceGroup viewModeChoice;
+	private static TextField chapterLangField;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -213,6 +214,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean keepBitmap;
 	static boolean invertPan;
 	static boolean files;
+	private static String chapterLangFilter = "";
 
 	public MangaApp() {}
 
@@ -271,6 +273,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			downloadPath = j.getString("downloadPath", downloadPath);
 			coverSize = j.getInt("coverSize", coverSize);
 			viewMode = j.getInt("viewMode", viewMode);
+			chapterLangFilter = j.getString("chapterLangFilter", chapterLangFilter);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -494,6 +497,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			downloadPath = downloadPathField.getString();
 			coverSize = coverSizeGauge.getValue();
 			viewMode = viewModeChoice.getSelectedIndex();
+			chapterLangFilter = chapterLangField.getString();
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -515,6 +519,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("downloadPath", downloadPath);
 				j.put("coverSize", coverSize);
 				j.put("viewMode", viewMode);
+				j.put("chapterLangFilter", chapterLangFilter);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -556,6 +561,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}, null);
 				chaptersOrderChoice.setSelectedIndex(chaptersOrderDef ? 1 : 0, true);
 				f.append(chaptersOrderChoice);
+				
+				chapterLangField = new TextField("Chapter language filter", chapterLangFilter, 200, TextField.NON_PREDICTIVE);
+				f.append(chapterLangField);
+				
+				StringItem s = new StringItem(null, "Example: en,ru");
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+				f.append(s);
 				
 				coversChoice = new ChoiceGroup(L[CoversLoading], ChoiceGroup.POPUP, new String[] {
 						L[Auto], L[SingleThread], L[MultiThread], L[Disabled]
@@ -1494,6 +1507,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						.append("&limit=").append(chaptersLimit)
 						.append("&includes[0]=scanlation_group&includes[1]=user")
 						;
+				
+				if (chapterLangFilter != null && chapterLangFilter.length() > 0) {
+					String[] s = split(chapterLangFilter, ',');
+					for (int i = 0; i < s.length; i++) {
+						sb.append("&translatedLanguage[]=").append(s[i].trim());
+					}
+				}
 				
 				if (contentFilter != null) {
 					int j = 0;
