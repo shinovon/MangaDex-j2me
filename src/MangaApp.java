@@ -1186,12 +1186,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //			f.addCommand(saveCmd);
 			
 			try {
-				JSONObject j = api("manga/" + id +
-						"?includes[0]=author&includes[1]=artist")
-						.getObject("data");
-				coverItem.setAltText(mangaId = id = j.getString("id"));
+				StringBuffer sb = new StringBuffer("manga/").append(id)
+						.append("?includes[0]=author&includes[1]=artist");
+				if ("random".equals(id) && contentFilter != null) {
+					int j = 0;
+					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
+						if (!contentFilter[i]) continue;
+						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
+					}
+				}
+				
+				JSONObject j = api(sb.toString()).getObject("data");
 				JSONObject attributes = j.getObject("attributes");
 				JSONArray relationships = j.getArray("relationships");
+				coverItem.setAltText(mangaId = id = j.getString("id"));
 				
 				JSONObject author = null,
 						artist = null;
