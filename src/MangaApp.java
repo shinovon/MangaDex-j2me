@@ -148,6 +148,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// трединг
 	private static int run;
 	private static boolean running;
+	private static int threadsCount;
 	
 	// список манги
 	private static String query;
@@ -392,6 +393,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// второй тред обложек если симбиан
 		if (coverLoading != 1 && ((platform != null && platform.indexOf("platform=S60") != -1) || coverLoading == 2)) {
 			start(RUN_COVERS);
+//			start(RUN_COVERS);
 		}
 	}
 
@@ -985,6 +987,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
+				if (coverLoading != 3) {
+					sb.append("&includes[]=cover_art");
+				}
+				
 				switch(listMode) {
 				case LIST_UPDATES: { // последние обновленные
 					f.setTitle(L[0].concat(" - ").concat(L[Updates])); 
@@ -1126,7 +1132,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					for (int p = 0; p < k; p++) {
 						JSONObject r = relationships.getObject(p);
 						if (!"cover_art".equals(r.getString("type"))) continue;
-						mangaCoversCache.put(id, r.getString("id"));
+						if (r.has("attributes")) {
+							mangaCoversCache.put(id, r.getObject("attributes").getString("fileName"));
+						} else {
+							mangaCoversCache.put(id, r.getString("id"));
+						}
 						break;
 					}
 
@@ -1370,6 +1380,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					// подождать перед тем как начать грузить обложки,
 					// может сверху что-то не допарсилось и они друг другу будут мешать
+//					while (running) Thread.sleep(100);
 					Thread.sleep(200);
 					while (coversToLoad.size() > 0) {
 						Object[] o = null;
@@ -1381,7 +1392,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 								try {
 									int l = coversToLoad.size();
 									int j = 0;
-									StringBuffer sb = new StringBuffer("cover?");
+									StringBuffer sb = new StringBuffer("cover?limit=32");
 									for (int i = 0; i < l; i++) {
 										String id = (String) ((Object[]) coversToLoad.elementAt(i))[0];
 										if (!mangaCoversCache.containsKey(id)) continue;
@@ -1778,7 +1789,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			synchronized(this) {
 				run = i;
-				(t = new Thread(this)).start();
+				(t = new Thread(this, "Run_" + i + "_" + (threadsCount++)))
+				.start();
 				wait();
 			}
 		} catch (Exception e) {}
@@ -1816,11 +1828,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			id = (String) mangaCoversCache.get(id);
 			manga = false;
 		}
-		if (id.indexOf('.') != -1) return id;
+		if (id.indexOf('.') != -1) {
+			return id;
+		}
 		
-		JSONStream j = apiStream("cover?" + (manga ? "manga" : "ids") + "[]=" + id);
-//		String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
+		JSONStream j = null;
+		HttpConnection hc = open(proxyUrl(APIURL.concat("cover?" + (manga ? "manga" : "ids") + "[]=" + id)));
 		try {
+			int r;
+			if ((r = hc.getResponseCode()) >= 400) {
+				throw new IOException("HTTP " + r);
+			}
+			j = JSONStream.getStream(hc.openInputStream());
+//			String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
 			if (!(j.nextTrim() == '{' &&
 					j.jumpToKey("data") &&
 					j.nextTrim() == '[' &&
@@ -1832,7 +1852,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			mangaCoversCache.put(id, id = j.nextString());
 			return id;
 		} finally {
-			j.close();
+			if (j != null)
+				try {
+					j.close();
+				} catch (Exception e) {}
+			try {
+				hc.close();
+			} catch (Exception e) {}
 		}
 	}
 
@@ -2156,17 +2182,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			throw new RuntimeException("API " + j.getArray("errors").getObject(0).toString());
 		}
 		return j;
-	}
-	
-	private static JSONStream apiStream(String url) throws IOException {
-		// коннекшн остается гнить незакрытым, не порядок
-		HttpConnection hc = open(proxyUrl(APIURL.concat(url)));
-		
-		int r;
-		if ((r = hc.getResponseCode()) >= 400) {
-			throw new IOException("HTTP " + r);
-		}
-		return JSONStream.getStream(hc.openInputStream());
 	}
 	
 	private static String proxyUrl(String url) {
