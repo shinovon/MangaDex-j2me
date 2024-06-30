@@ -692,6 +692,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(listForm = f);
 			start(RUN_MANGAS);
 		}
+		if (d instanceof Alert) {
+			// открытие главы по внешней ссылке
+			if (c == openCmd) {
+				try {
+					if (platformRequest(proxyUrl(chapterId)))
+						notifyDestroyed();
+				} catch (Exception e) {}
+			}
+			if (chaptersForm != null) {
+				display(chaptersForm);
+				return;
+			}
+		}
 		if (d instanceof TextBox) {
 			Form f = chaptersForm != null ? chaptersForm : listForm != null ? listForm : mainForm;
 			if (c == openCmd) {
@@ -765,13 +778,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				try {
-					// TODO диалог да/нет
-					if (platformRequest(proxyUrl(chapterId)))
-						notifyDestroyed();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				Alert a = new Alert("Warning", "This chapter links to external source, open it?", null, AlertType.WARNING);
+				a.addCommand(openCmd);
+				a.addCommand(backCmd);
+				a.setCommandListener(this);
 				return;
 			}
 			
