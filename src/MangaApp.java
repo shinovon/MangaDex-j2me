@@ -91,12 +91,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command chaptersCmd;
 	private static Command tagItemCmd;
 	private static Command saveCmd;
-	private static Command coverItemCmd;
+	private static Command showCoverCmd;
 	private static Command chapterCmd;
 	private static Command chapterPageItemCmd;
 	private static Command relatedCmd;
 	private static Command downloadCmd;
 	private static Command openFromPageCmd;
+	private static Command downloadCoverCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -293,12 +294,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
 		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
-		coverItemCmd = new Command(L[ShowCover], Command.ITEM, 1);
+		showCoverCmd = new Command(L[ShowCover], Command.ITEM, 1);
 		chapterCmd = new Command(L[Chapter], Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
 		downloadCmd = new Command(L[Download], Command.ITEM, 3);
 		openFromPageCmd = new Command("Open from page...", Command.ITEM, 4);
+		downloadCoverCmd = new Command("Download cover", Command.ITEM, 2);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -831,19 +833,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				e.printStackTrace();
 			}
 		}
-		if (c == coverItemCmd) {
-			// TODO просмотр обложки
-//			try {
-//				// TODO пока что рескейл в 512px, потом настройка будет
-//				String url = proxyUrl(COVERSURL + mangaId + '/' + getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
-//				
-//				if (platformRequest(url))
-//					notifyDestroyed();
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
+		if (c == showCoverCmd) {
 			if (running) return;
-//			view =
+			if (viewMode == 1) {
+				view = new ViewCommon(-2, false);
+			} else if(viewMode == 2) {
+				view = new ViewHWA(-2);
+			} else {
+				String vram = System.getProperty("com.nokia.gpu.memory.total");
+				if (vram != null && !vram.equals("0")) {
+					view = new ViewHWA(-2);
+				} else {
+					view = new ViewCommon(-2, false);
+				}
+			}
+			display(view);
+			return;
+		}
+		if (c == downloadCoverCmd) {
+			try {
+				String url = proxyUrl(COVERSURL + mangaId + '/' + getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
+				
+				if (platformRequest(url))
+					notifyDestroyed();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			return;
 		}
 		if (c == nPageCmd) {
@@ -1146,8 +1161,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			// обложка
 			ImageItem coverItem = new ImageItem("", thumb, Item.LAYOUT_LEFT, id);
-			coverItem.addCommand(coverItemCmd);
-			coverItem.setDefaultCommand(coverItemCmd);
+			coverItem.addCommand(showCoverCmd);
+			coverItem.addCommand(downloadCoverCmd);
+			coverItem.setDefaultCommand(showCoverCmd);
 			coverItem.setItemCommandListener(this);
 			coverItem.setLayout(Item.LAYOUT_NEWLINE_AFTER);
 			f.append(coverItem);
@@ -1505,13 +1521,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					
 					
-					String volume = a.getString("volume");
-					String chapter = a.getString("chapter");
-					String title = a.getString("title");
-					String time = a.getString("publishAt");
-					String lang = a.getString("translatedLanguage");
+					String volume = a.getString("volume"),
+							chapter = a.getString("chapter"),
+							title = a.getString("title"),
+							time = a.getString("publishAt"),
+							lang = a.getString("translatedLanguage");
 					
-					boolean b = false;
+					boolean vol = false;
 					
 					// группировка по томам
 					if (i == 0 && (lastVolume == null && volume == null)) {
@@ -1519,22 +1535,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
-						b = true;
+						vol = true;
 					} else if ((volume == null && lastVolume != null) ||
 							(volume != null && !volume.equals(lastVolume))) {
 						s = new StringItem(null, "\n".concat(volume == null ? L[NoVolume] : L[VolumeNo].concat(" ").concat(volume)));
 						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
-						b = true;
+						vol = true;
 					}
 					
 					if (chapter == null) chapter = "0";
 					
 					// группировка по главам
-					if (i == 0 || !chapter.equals(lastChapter) || b) {
+					if (i == 0 || !chapter.equals(lastChapter) || vol) {
 			
-						s = new StringItem(null, (b ? "" : "\n").concat(L[ChapterNo]).concat(" ")
+						s = new StringItem(null, (vol ? "" : "\n").concat(L[ChapterNo]).concat(" ")
 								.concat(chapter).concat(chapter.equals(mangaLastChapter) ? L[END] : ""));
 						s.setFont(smallboldfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);

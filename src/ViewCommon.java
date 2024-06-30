@@ -549,6 +549,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		}
 
 		if (k == KEY_NUM7 || k == -10 || k == 8) {
+			if (cover) return;
 			TextBox tb = new TextBox("Go to page", "", 7, 2);
 			tb.addCommand(MangaApp.goCmd);
 			tb.addCommand(MangaApp.cancelCmd);
@@ -865,18 +866,23 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 		// captions
 		for (int i = 3; i < 7; i++) {
+			if (cover && i != 6) continue;
 			fillGrad(g, getWidth() * (i - 3) / 4, getHeight() - 50, getWidth() / 4, 51, 0,
 					touchHoldPos == (i + 1) ? 0x357EDE : 0x222222);
 			g.setGrayScale(255);
 			g.drawString(i == 4 ? ((page + 1) + "/" + MangaApp.chapterPages) : touchCaps[i], getWidth() * (1 + (i - 3) * 2) / 8,
 					getHeight() - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
-		// hor lines
 		g.setGrayScale(255);
-		g.drawLine(0, getHeight() - 50, getWidth(), getHeight() - 50);
-		// vert lines between btns
-		g.drawLine(getWidth() / 4, getHeight() - 50, getWidth() / 4, getHeight());
-		g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth() * 2 / 4, getHeight());
+		if (!cover) {
+			// hor lines
+			g.drawLine(0, getHeight() - 50, getWidth(), getHeight() - 50);
+			// vert lines between btns
+			g.drawLine(getWidth() / 4, getHeight() - 50, getWidth() / 4, getHeight());
+			g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth() * 2 / 4, getHeight());
+		} else {
+			g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth(), getHeight() - 50);
+		}
 		g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth() * 3 / 4, getHeight());
 
 		if (hwa) {
