@@ -453,27 +453,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			tempListForm = null;
 			return;
 		}
-//		if (d == viewForm) {
-//			if (c == downloadCmd) {
-//				// скачать главу
-//				if (running) return;
-//
-//				Alert a = new Alert(mangaForm.getTitle(), "Initializing", null, null);
-//				a.setIndicator(downloadIndicator = new Gauge(null, false, 100, 0));
-//				a.setTimeout(Alert.FOREVER);
-//				a.addCommand(cancelCmd);
-//				a.setCommandListener(this);
-//				
-//				display(downloadAlert = a, d);
-//				start(RUN_DOWNLOAD_CHAPTER);
-//				return;
-//			}
-//			if (c == backCmd) {
-//				display(chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : mainForm);
-//				viewForm = null;
-//				return;
-//			}
-//		}
 		if (d == downloadAlert) {
 			if (c == cancelCmd) {
 				downloadIndicator = null;
@@ -780,11 +759,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 			
-//			Form f = new Form("");
-//			f.addCommand(backCmd);
-//			f.setCommandListener(this);
-//			f.setTicker(new Ticker(L[Loading]));
-//			viewForm = f
 			chapterPage = 1;
 			
 			start(RUN_CHAPTER);
@@ -1667,6 +1641,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			int l = chapterFilenames.size();
 			Form f = chaptersForm;
 			
+			downloadIndicator.setMaxValue(l + 2);
+			
 			FileConnection fc = null;
 			HttpConnection hc;
 			InputStream in;
@@ -1708,6 +1684,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				for (int i = 0; i < l && downloadIndicator != null; i++) {
 					if (downloadAlert != null)
 						downloadAlert.setString("Preparing (" + (i+1) + "/" + (l) + ")");
+					downloadIndicator.setValue(i * 2 + 1);
 					n = (String) chapterFilenames.elementAt(i);
 					tn = Integer.toString(i + 1);
 					while (tn.length() < 3) tn = "0".concat(tn);
@@ -1722,6 +1699,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							in = hc.openDataInputStream();
 							if (downloadAlert != null)
 								downloadAlert.setString("Downloading (" + (i+1) + "/" + (l) + ")");
+							downloadIndicator.setValue(i * 2 + 2);
 							try {
 								out = fc.openDataOutputStream();
 								try {
