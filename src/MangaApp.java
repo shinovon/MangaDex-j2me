@@ -305,8 +305,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
 		downloadCmd = new Command(L[Download], Command.ITEM, 3);
-		openFromPageCmd = new Command("Open from page...", Command.ITEM, 4);
-		downloadCoverCmd = new Command("Download cover", Command.ITEM, 2);
+		openFromPageCmd = new Command(L[OpenFromPage], Command.ITEM, 4);
+		downloadCoverCmd = new Command(L[DownloadCover], Command.ITEM, 2);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -862,9 +862,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				if (platformRequest(url))
 					notifyDestroyed();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			} catch (Exception e) {}
 			return;
 		}
 		if (c == nPageCmd) {
@@ -905,6 +903,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			g = new ChoiceGroup(L[Rating], ChoiceGroup.MULTIPLE, new String[] {
 					L[Safe], L[Suggestive], L[Erotica], L[Pornographic]
 			}, null);
+			// удалить отфильтрованных рейтинги
 			if (!contentFilter[3]) g.delete(3);
 			if (!contentFilter[2]) g.delete(2);
 			if (!contentFilter[1]) g.delete(1);

@@ -62,7 +62,7 @@ public interface LangConstants {
 	static final int Download = 61;
 	static final int Author = 62;
 	static final int Artist = 63;
-	static final int Creator = 64;
+	static final int DownloadCover = 64;
 	static final int CoversSize = 65;
 	static final int DownloadPath = 66;
 	static final int ViewMode = 67;
@@ -91,4 +91,5 @@ public interface LangConstants {
 	static final int Descending = 90;
 	static final int Ascending = 91;
 	static final int Random = 92;
+	static final int OpenFromPage = 93;
 }
