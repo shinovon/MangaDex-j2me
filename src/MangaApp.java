@@ -1707,11 +1707,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				try {
+					int i;
 					String v = chapterVolume;
-					if (v.length() < 2) v = "0".concat(v);
+					while (v.substring(0, (i = v.indexOf('.')) != -1 ? i : v.length()).length() < 2)
+						v = "0".concat(v);
 					
 					String c = chapterNum;
-					while (c.length() < 3) c = "0".concat(c);
+					while (c.substring(0, (i = c.indexOf('.')) != -1 ? i : c.length()).length() < 3)
+						c = "0".concat(c);
 					
 					String s = "Vol. " + v + " Ch. " + c + " " + chapterLang;
 					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(s, chapterId)).concat("/"));
@@ -1997,7 +2000,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return alt;
 		StringBuffer t = new StringBuffer();
 		int l = s.length();
-		for (int i = 0; (i < l && i < 32); i++) {
+		for (int i = 0; (i < l && i < 36); i++) {
 			char c = s.charAt(i);
 			if (c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'
 					|| c == '_' || c == '!') {
