@@ -37,9 +37,7 @@ public class JSONArray {
 		elements = new Object[size];
 	}
 
-	/**
-	 * @deprecated Doesn't adapt nested elements
-	 */
+
 	public JSONArray(Vector vector) {
 		elements = new Object[count = vector.size()];
 		vector.copyInto(elements);

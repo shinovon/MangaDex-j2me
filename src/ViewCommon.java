@@ -42,7 +42,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	private boolean firstDraw = true;
 	
-	boolean cover; // TODO
+	boolean cover;
 	boolean infinite; // TODO
 
 

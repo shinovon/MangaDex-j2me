@@ -83,6 +83,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //	private static Command bookmarksCmd;
 	private static Command advSearchCmd;
 	private static Command recentCmd;
+	private static Command randomCmd;
 	
 	private static Command advSubmitCmd;
 	
@@ -118,7 +119,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //	private static Form bookmarksForm;
 //	private static Form viewForm;
 	private static Form tempListForm;
-	private static ViewCommon view;
 	
 	private static TextField searchField;
 
@@ -140,6 +140,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup chaptersOrderChoice;
 	private static TextField downloadPathField;
 	private static Gauge coverSizeGauge;
+	private static ChoiceGroup viewModeChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -148,17 +149,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int run;
 	private static boolean running;
 	
+	// список манги
 	private static String query;
 	private static int listOffset = 0;
 	private static int listTotal;
 	private static int listMode;
 	private static int prevListMode;
 	
+	// манга
 	private static String mangaId;
 	private static ImageItem mangaItem;
 	private static String mangaLastChapter;
 	private static Vector relatedManga = new Vector();
 
+	// список глав
 	private static String chapterId;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
@@ -170,11 +174,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterHash;
 	private static Vector chapterFilenames;
 	static int chapterPages;
-	static boolean files;
 	private static int chapterPage;
 	private static String chapterVolume;
 	private static String chapterNum;
 	private static String chapterLang;
+	private static ViewCommon view; // канва
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
@@ -202,6 +206,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static int cachingPolicy;
 	static boolean keepBitmap;
 	static boolean invertPan;
+	static boolean files;
 
 	public MangaApp() {}
 
@@ -259,10 +264,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chaptersOrderDef = j.getBoolean("chaptersOrder", chaptersOrderDef);
 			downloadPath = j.getString("downloadPath", downloadPath);
 			coverSize = j.getInt("coverSize", coverSize);
+			viewMode = j.getInt("viewMode", viewMode);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
-		(L = new String[70])[0] = "MangaDex";
+		(L = new String[100])[0] = "MangaDex";
 		try {
 			loadLocale(lang);
 		} catch (Exception e) {
@@ -294,7 +300,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
 //		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
 		showCoverCmd = new Command(L[ShowCover], Command.ITEM, 1);
-		chapterCmd = new Command("Open", Command.ITEM, 1);
+		chapterCmd = new Command(L[Open], Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
 		downloadCmd = new Command(L[Download], Command.ITEM, 3);
@@ -309,7 +315,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 		goCmd = new Command(L[Go], Command.OK, 1);
 		cancelCmd = new Command(L[Cancel], Command.CANCEL, 2);
-		openCmd = new Command("Open", Command.OK, 1);
+		openCmd = new Command(L[Open], Command.OK, 1);
 		
 		// главная форма
 		
@@ -326,7 +332,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		StringItem s;
 		
-		s = new StringItem(null, "MangaDex");
+		s = new StringItem(null, L[0]);
 		s.setFont(largefont);
 		s.setLayout(Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
 		f.append(s);
@@ -360,6 +366,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(advSearchCmd);
 		s.setDefaultCommand(advSearchCmd);
+		s.setItemCommandListener(this);
+		f.append(s);
+		
+		s = new StringItem(null, L[Random], StringItem.BUTTON);
+		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+		s.addCommand(randomCmd);
+		s.setDefaultCommand(randomCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
 		
@@ -471,6 +484,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chaptersOrderDef = chaptersOrderChoice.isSelected(1);
 			downloadPath = downloadPathField.getString();
 			coverSize = coverSizeGauge.getValue();
+			viewMode = viewModeChoice.getSelectedIndex();
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -491,6 +505,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("chaptersOrder", chaptersOrderDef);
 				j.put("downloadPath", downloadPath);
 				j.put("coverSize", coverSize);
+				j.put("viewMode", viewMode);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -529,8 +544,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chaptersLimitChoice.setSelectedIndex(Math.max(0, Math.min((chaptersLimit / 8) - 1, 4)), true);
 				f.append(chaptersLimitChoice);
 				
-				chaptersOrderChoice = new ChoiceGroup("Chapters order", ChoiceGroup.POPUP, new String[] {
-						"Descending", "Ascending"
+				chaptersOrderChoice = new ChoiceGroup(L[ChaptersOrder], ChoiceGroup.POPUP, new String[] {
+						L[Descending], L[Ascending]
 				}, null);
 				chaptersOrderChoice.setSelectedIndex(chaptersOrderDef ? 1 : 0, true);
 				f.append(chaptersOrderChoice);
@@ -541,7 +556,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				coversChoice.setSelectedIndex(coverLoading, true);
 				f.append(coversChoice);
 				
-				coverSizeGauge = new Gauge("Covers size", true, 25, coverSize);
+				coverSizeGauge = new Gauge(L[CoversSize], true, 25, coverSize);
 				f.append(coverSizeGauge);
 				
 				contentFilterChoice = new ChoiceGroup(L[ContentFilter], ChoiceGroup.MULTIPLE, new String[] {
@@ -550,10 +565,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				contentFilterChoice.setSelectedFlags(contentFilter);
 				f.append(contentFilterChoice);
 				
-				downloadPathField = new TextField("Download path", downloadPath, 200, TextField.NON_PREDICTIVE);
+				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.NON_PREDICTIVE);
 				f.append(downloadPathField);
 				
 				// TODO фм
+				
+				viewModeChoice = new ChoiceGroup(L[ViewMode], ChoiceGroup.POPUP, new String[] {
+						L[Auto], "SWR", "HWA"
+				}, null);
+				viewModeChoice.setSelectedIndex(viewMode, true);
+				f.append(viewModeChoice);
 				
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
 				f.append(proxyField);
@@ -647,7 +668,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				a = (listOffset / listLimit) + 1;
 				b = listTotal / listLimit + (listTotal % listLimit != 0 ? 1 : 0);
 			}
-			TextBox t = new TextBox("Page number (" + a + '/' + b + ")", "", 10, TextField.NUMERIC);
+			TextBox t = new TextBox(L[PageNumber].concat(" (") + a + '/' + b + ")", "", 10, TextField.NUMERIC);
 			t.addCommand(goCmd);
 			t.addCommand(cancelCmd);
 			t.setCommandListener(this);
@@ -701,14 +722,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public void commandAction(Command c, Item item) {
-		if (c == mangaItemCmd) {
+		if (c == mangaItemCmd || c == randomCmd) {
 			// открыть мангу
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
 			
-			String id = (mangaItem = (ImageItem) item).getAltText();
+			String id = c == randomCmd ? "random" : (mangaItem = (ImageItem) item).getAltText();
 			
-			Form f = new Form("Manga " + id);
+			Form f = new Form(/*"Manga " + */id);
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			f.setTicker(new Ticker(L[Loading]));
@@ -791,7 +812,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 			
-			TextBox t = new TextBox("Page number", "", 3, TextField.NUMERIC);
+			TextBox t = new TextBox(L[PageNumber], "", 3, TextField.NUMERIC);
 			t.addCommand(openCmd);
 			t.addCommand(cancelCmd);
 			t.setCommandListener(this);
@@ -864,8 +885,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}, null);
 			f.append(advStatusChoice = g);
 			
-			g = new ChoiceGroup("Magazine demographic", ChoiceGroup.MULTIPLE, new String[] {
-					"Shounen", "Shoujo", "Josei", "Seinen", "None" // XXX не переведено
+			g = new ChoiceGroup(L[MagazineDemographic], ChoiceGroup.MULTIPLE, new String[] {
+					"Shounen", "Shoujo", "Josei", "Seinen", "None"
 			}, null);
 			f.append(advDemographicChoice = g);
 			
@@ -1147,7 +1168,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			try {
 				JSONObject j = api("manga/" + id +
 						"?includes[0]=author&includes[1]=artist&includes[2]=creator")
-						.getObject("data");	
+						.getObject("data");
+				mangaId = j.getString("id");
 				JSONObject attributes = j.getObject("attributes");
 				JSONArray relationships = j.getArray("relationships");
 				
@@ -1677,7 +1699,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				for (int i = 0; i < l && downloadIndicator != null; i++) {
 					if (downloadAlert != null)
-						downloadAlert.setString("Preparing (" + (i+1) + "/" + (l) + ")");
+						downloadAlert.setString(L[Preparing] + " (" + (i+1) + "/" + (l) + ")");
 					downloadIndicator.setValue(i * 2 + 1);
 					n = (String) chapterFilenames.elementAt(i);
 					tn = Integer.toString(i + 1);
@@ -1692,7 +1714,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							}
 							in = hc.openDataInputStream();
 							if (downloadAlert != null)
-								downloadAlert.setString("Downloading (" + (i+1) + "/" + (l) + ")");
+								downloadAlert.setString(L[Downloading] + " (" + (i+1) + "/" + (l) + ")");
 							downloadIndicator.setValue(i * 2 + 2);
 							try {
 								out = fc.openDataOutputStream();
@@ -1717,7 +1739,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				if (downloadIndicator != null) {
-					display(infoAlert("Done \n".concat(folder)), f);
+					display(infoAlert(L[Done].concat(" \n").concat(folder)), f);
 					downloadIndicator = null;
 					downloadAlert = null;
 					break;
@@ -1730,7 +1752,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				break;
 			}
 			if (downloadIndicator == null) {
-				display(infoAlert("Downloading aborted"), f);
+				display(infoAlert(L[LoadingAborted]), f);
 				downloadAlert = null;
 				break;
 			} else display(f);
@@ -2117,17 +2139,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public static byte[] getCover() throws Exception {
-		String filename = getCover((String) mangaCoversCache.get(mangaId), false);
-		return get(proxyUrl(COVERSURL + mangaId + '/' + filename + ".512.jpg"));
+		return get(proxyUrl(COVERSURL + mangaId + '/' +
+				getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg"));
 	}
 	
 	// http
 	
 	private static JSONObject api(String url) throws IOException {
 		JSONObject j = JSONObject.parseObject(getUtf(proxyUrl(APIURL.concat(url))));
-		System.out.println(j);
+//		System.out.println(j);
 		// хендлить ошибки апи
-		if ("error".equals(j.get("result", ""))) {
+		if ("error".equals(j.get("result", null))) {
 			throw new RuntimeException("API " + j.getArray("errors").getObject(0).toString());
 		}
 		return j;
@@ -2295,34 +2317,49 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		long t = c.getTime().getTime();
 		long d = now - t;
 		
+		boolean ru = "ru".equals(lang);
 		d /= 1000L;
 		
 		if (d < 60) {
-			if (d == 1) return Integer.toString((int) d).concat(" second ago");
-			return Integer.toString((int) d).concat(" seconds ago");
+			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+				return Integer.toString((int) d).concat(L[SecondAgo]);
+			if (ru && (d % 10 > 4 || d % 10 < 2))
+				return Integer.toString((int) d).concat(L[SecondsAgo2]);
+			return Integer.toString((int) d).concat(L[SecondsAgo]);
 		}
 		
 		if (d < 60 * 60) {
 			d /= 60L;
-			if (d == 1) return Integer.toString((int) d).concat(" minute ago");
-			return Integer.toString((int) d).concat(" minutes ago");
+			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+				return Integer.toString((int) d).concat(L[MinuteAgo]);
+			if (ru && (d % 10 > 4 || d % 10 < 2))
+				return Integer.toString((int) d).concat(L[MinutesAgo2]);
+			return Integer.toString((int) d).concat(L[MinutesAgo]);
 		}
 		
 		if (d < 24 * 60 * 60) {
 			d /= 60 * 60L;
-			if (d == 1) return Integer.toString((int) d).concat(" hour ago");
-			return Integer.toString((int) d).concat(" hours ago");
+			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+				return Integer.toString((int) d).concat(L[HourAgo]);
+			if (ru && (d % 10 > 4 || d % 10 < 2))
+				return Integer.toString((int) d).concat(L[HoursAgo2]);
+			return Integer.toString((int) d).concat(L[HoursAgo]);
 		}
 		
 		if (d < 365 * 24 * 60 * 60) {
 			d /= 24 * 60 * 60L;
-			if (d == 1) return Integer.toString((int) d).concat(" day ago");
-			return Integer.toString((int) d).concat(" days ago");
+			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+				return Integer.toString((int) d).concat(L[DayAgo]);
+			if (ru && (d % 10 > 4 || d % 10 < 2))
+				return Integer.toString((int) d).concat(L[DaysAgo2]);
+			return Integer.toString((int) d).concat(L[DaysAgo]);
 		}
 
 		d /= 365 * 24 * 60 * 60L;
-		if (d == 1) return Integer.toString((int) d).concat(" year ago");
-		return Integer.toString((int) d).concat(" years ago");
+		if (d == 1) return Integer.toString((int) d).concat(L[YearAgo]);
+		if (ru && (d % 10 > 4 || d % 10 < 2))
+			return Integer.toString((int) d).concat(L[YearsAgo2]);
+		return Integer.toString((int) d).concat(L[YearsAgo]);
 	}
 	
 	static Calendar getLocalizedCalendar(String date) {

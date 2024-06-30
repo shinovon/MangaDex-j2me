@@ -40,9 +40,6 @@ public class JSONObject {
 		table = new Hashtable();
 	}
 
-	/**
-	 * @deprecated Doesn't adapt nested elements
-	 */
 	public JSONObject(Hashtable table) {
 		this.table = table;
 	}
