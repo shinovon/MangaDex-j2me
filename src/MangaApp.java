@@ -533,15 +533,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				langChoice.setSelectedIndex("ru".equals(lang) ? 1 : 0, true);
 				f.append(langChoice);
 				
-				itemsLimitChoice = new ChoiceGroup(L[ItemsPerPage], ChoiceGroup.POPUP, new String[] {
-						"8", "16", "24", "32", "40"
-				}, null);
+				String[] n = new String[] { "8", "16", "24", "32", "40" };
+				
+				itemsLimitChoice = new ChoiceGroup(L[ItemsPerPage], ChoiceGroup.POPUP, n, null);
 				itemsLimitChoice.setSelectedIndex(Math.max(0, Math.min((listLimit / 8) - 1, 4)), true);
 				f.append(itemsLimitChoice);
 				
-				chaptersLimitChoice = new ChoiceGroup(L[ChaptersPerPage], ChoiceGroup.POPUP, new String[] {
-						"8", "16", "24", "32", "40"
-				}, null);
+				chaptersLimitChoice = new ChoiceGroup(L[ChaptersPerPage], ChoiceGroup.POPUP, n, null);
 				chaptersLimitChoice.setSelectedIndex(Math.max(0, Math.min((chaptersLimit / 8) - 1, 4)), true);
 				f.append(chaptersLimitChoice);
 				
@@ -1794,10 +1792,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.setTicker(new Ticker(L[Loading]));
 		
 		if (f == listForm) {
-			listOffset = Math.max(0, Math.min((page - 1) * listLimit, listTotal)); 
+			listOffset = Math.max(0, Math.min(Math.min(page - 1, listTotal / listLimit) * listLimit, listTotal)); 
 			start(RUN_MANGAS);
 		} else if (f == chaptersForm) {
-			chaptersOffset = Math.max(0, Math.min((page - 1) * chaptersLimit, chaptersTotal));
+			chaptersOffset = Math.max(0, Math.min(Math.min(page - 1, chaptersTotal / chaptersLimit) * chaptersLimit, chaptersTotal));
 			start(RUN_CHAPTERS);
 		}
 	}
