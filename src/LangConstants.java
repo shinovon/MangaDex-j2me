@@ -92,4 +92,5 @@ public interface LangConstants {
 	static final int Ascending = 91;
 	static final int Random = 92;
 	static final int OpenFromPage = 93;
+	static final int ShowLink = 94;
 }

@@ -99,6 +99,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command downloadCmd;
 	private static Command openFromPageCmd;
 	private static Command downloadCoverCmd;
+	private static Command showLinkCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -316,6 +317,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		downloadCmd = new Command(L[Download], Command.ITEM, 3);
 		openFromPageCmd = new Command(L[OpenFromPage], Command.ITEM, 4);
 		downloadCoverCmd = new Command(L[DownloadCover], Command.ITEM, 2);
+		showLinkCmd = new Command(L[ShowLink], Command.SCREEN, 5);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -421,6 +423,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chaptersOrder = chaptersOrderDef;
 				display(chaptersForm = f);
 				start(RUN_CHAPTERS);
+				return;
+			}
+			if (c == showLinkCmd) {
+				TextBox t = new TextBox("", "https://mangadex.org/title/".concat(mangaId), 200, TextField.URL);
+				t.addCommand(backCmd);
+				t.setCommandListener(this);
+				display(t);
 				return;
 			}
 			if (c == backCmd) {
@@ -738,7 +747,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		if (d instanceof TextBox) {
-			Form f = chaptersForm != null ? chaptersForm : listForm != null ? listForm : mainForm;
+			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm;
 			if (c == openCmd) {
 				// открыть главу с конкретной страницы
 				int n = Integer.parseInt(((TextBox) d).getString());
@@ -755,6 +764,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				gotoPage(f, ((TextBox) d).getString());
 			}
 			display(f);
+			return;
 		}
 		if (c == backCmd) {
 			display(mainForm);
@@ -776,6 +786,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			Form f = new Form(/*"Manga " + */id);
 			f.addCommand(backCmd);
+			f.addCommand(showLinkCmd);
 			f.setCommandListener(this);
 			f.setTicker(new Ticker(L[Loading]));
 			
