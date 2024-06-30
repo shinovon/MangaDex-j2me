@@ -813,6 +813,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == openFromPageCmd) {
 			// открыть диалог страницы
+			if (running) return;
+			if ((chapterId = (String) chapterItems.get(item)) == null)
+				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
 				display(infoAlert("External link!"), chaptersForm); // TODO нормальный текст
@@ -824,6 +827,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			t.addCommand(cancelCmd);
 			t.setCommandListener(this);
 			display(t);
+			return;
 		}
 		if (c == chapterPageItemCmd) {
 			try {
