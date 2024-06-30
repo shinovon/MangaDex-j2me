@@ -640,20 +640,19 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 
 	protected final void changePage(int delta) {
-		// TODO chapters navigation
 		if (cover) return;
 		if (delta < 0) {
 			if (page > 0) {
 				page--;
 				checkCacheAfterPageSwitch();
 				reload();
-			}
+			} else MangaApp.changeChapter(delta);
 		} else if (delta > 0) {
 			if (page < MangaApp.chapterPages - 1) {
 				page++;
 				checkCacheAfterPageSwitch();
 				reload();
-			}
+			} else MangaApp.changeChapter(delta);
 		}
 	}
 

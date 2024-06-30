@@ -35,6 +35,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //	private static final int RUN_BOOKMARKS = 6;
 	private static final int RUN_DOWNLOAD_CHAPTER = 7;
 	static final int RUN_PRELOADER = 8;
+	private static final int RUN_CHANGE_CHAPTER = 9;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -108,6 +109,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static Command goCmd;
 	static Command cancelCmd;
 	private static Command openCmd;
+	private static Command okCmd;
 	
 	// ui
 	private static Form mainForm;
@@ -180,6 +182,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterNum;
 	private static String chapterLang;
 	private static String chapterGroup;
+	private static int chapterDir;
+	private static String chapterNext;
 	private static ViewCommon view; // канва
 	
 	private static Object coverLoadLock = new Object();
@@ -319,6 +323,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		goCmd = new Command(L[Go], Command.OK, 1);
 		cancelCmd = new Command(L[Cancel], Command.CANCEL, 2);
 		openCmd = new Command(L[Open], Command.OK, 1);
+		okCmd = new Command(L[Open], Command.OK, 1);
 		
 		// главная форма
 		
@@ -695,12 +700,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 		}
 		if (d instanceof Alert) {
+			if (c == okCmd) {
+				// согласние на переключение диалога
+				display(loadingAlert(), view);
+				chapterId = chapterNext;
+				chapterNext = null;
+				start(RUN_CHAPTER);
+				return;
+			}
 			// открытие главы по внешней ссылке
 			if (c == openCmd) {
 				try {
 					if (platformRequest(proxyUrl(chapterId)))
 						notifyDestroyed();
 				} catch (Exception e) {}
+			}
+			if (view != null) {
+				display(view);
+				return;
 			}
 			if (chaptersForm != null) {
 				display(chaptersForm);
@@ -799,7 +816,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				display(infoAlert("Can't download, external link!"), chaptersForm); // TODO нормальный текст
+				display(errorAlert("Can't download, external link!"), chaptersForm); // TODO нормальный текст
 				return;
 			}
 
@@ -820,7 +837,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				display(infoAlert("External link!"), chaptersForm); // TODO нормальный текст
+				display(errorAlert("External link!"), chaptersForm); // TODO нормальный текст
 				return;
 			}
 			
@@ -1463,7 +1480,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		case RUN_CHAPTERS: { // главы манги
-			// TODO переделать в List?
 			String id = mangaId;
 			Form f = chaptersForm;
 			f.deleteAll();
@@ -1618,9 +1634,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (mangaId == null || id == null) break;
 			
 			Form f = chaptersForm != null ? chaptersForm : mainForm;
-			Alert a = new Alert("", L[Loading], null, null);
-			a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
-			display(a, f);
+			display(loadingAlert(), f);
 			try {
 				// колво и номер страницы
 				JSONObject j;
@@ -1801,6 +1815,67 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				view.preload();
 			} catch (Exception ignored) {}
 			return;
+		}
+		case RUN_CHANGE_CHAPTER: {
+			
+			// TODO
+			// по параму задать order
+			// сначала искать совпадения по языку и по группе 
+			// затем просто по языку
+			// если нет то пробовать искать en
+			// если нет и англ то первый попавшийся
+			//
+			// если ничего нет то отобразить алерт
+			//
+			// показывать диалог если сменился язык, при разрывах в номерах главы
+			//
+			// если все нормально пересоздать вью
+			
+			// в апи нет парамы offset_from, придется перебирать все главы
+			// потом
+			
+//			String manga = mangaId;
+//			String currentChapter = chapterId;
+//			String currentChapterNum = chapterNum;
+//			JSONArray data;
+//			int l;
+//			boolean found;
+//			try {
+//				s: {
+//					StringBuffer sb = new StringBuffer("chapter?manga=").append(manga)
+//							.append("&limit=30")
+//							.append("&order[chapter]=").append(chapterDir == 1 ? "asc" : "desc")
+//							;
+//					int ol = sb.length();
+//	
+//					
+//					sb.append("translatedLanguage[]=").append(chapterLang);
+//					
+//					if (chapterGroup != null) {
+//						sb.append("groups[]=").append(chapterGroup);
+//					}
+//					
+//					data = api(sb.toString()).getArray("data");
+//					l = data.size();
+//					
+//					for (int i = 0; i < l; i++) {
+//						JSONObject j = data.getObject(i);
+//					}
+//					
+//					
+//					if (chapterGroup != null) {
+//						sb.setLength(ol);
+//						sb.append("translatedLanguage[]=").append(chapterLang);
+//
+//					}
+//	
+//					sb.setLength(ol);
+//				}
+			display(view);
+//			} catch (Exception e) {
+//				display(errorAlert(e.toString()), view);
+//			}
+			break;
 		}
 		}
 		running = false;
@@ -2004,6 +2079,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return a;
 	}
 	
+	private static Alert loadingAlert() {
+		Alert a = new Alert("", L[Loading], null, null);
+		a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
+		return a;
+	}
+	
 	private static String safeFileName(String s, String alt) {
 		if (s == null || s.trim().length() == 0)
 			return alt;
@@ -2026,7 +2107,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// view
 
 	static void changeChapter(int d) {
-		// TODO chapter navigation
+//		if (running) return;
+//		chapterDir = d;
+//		display(loadingAlert(), view);
+//		
+//		midlet.start(RUN_CHANGE_CHAPTER);
 	}
 
 	/**
