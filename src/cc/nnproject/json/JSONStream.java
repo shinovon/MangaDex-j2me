@@ -41,6 +41,7 @@ public class JSONStream extends Reader {
 	
 	private void init(InputStream in) throws IOException {
 		reader = new InputStreamReader(in, "UTF-8");
+        iBuf = new char[BUF_SIZE];
 	}
 	
 	// Static functions
@@ -623,28 +624,6 @@ public class JSONStream extends Reader {
     /** Current read position in the buffer.
         Value must be between zero and iBuf.length. */
     private int iBufPos = 0;
-
-    /**
-     * @see java.io.BufferedReader#Constructor(java.io.Reader)
-     */
-    private JSONStream(Reader aIn)
-    {
-        this(aIn, BUF_SIZE);
-    }
-
-    /**
-     * @see java.io.BufferedReader#Constructor(java.io.Reader, int)
-     */
-    private JSONStream(Reader aIn, int aSize)
-    {
-        if (aSize <= 0)
-        {
-            throw new IllegalArgumentException(
-                "BufferedReader: Invalid buffer size");
-        }
-        iBuf = new char[aSize];
-        reader = aIn;
-    }
 
     /**
      * @see java.io.BufferedReader#close()
