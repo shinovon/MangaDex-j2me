@@ -295,7 +295,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
 		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
 		showCoverCmd = new Command(L[ShowCover], Command.ITEM, 1);
-		chapterCmd = new Command(L[Chapter], Command.ITEM, 1);
+		chapterCmd = new Command("Open", Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
 		downloadCmd = new Command(L[Download], Command.ITEM, 3);
@@ -1602,7 +1602,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			String id = chapterId;
 			if (mangaId == null || id == null) break;
 			
-//			Form f = viewForm;
+			Form f = chaptersForm != null ? chaptersForm : mainForm;
+			Alert a = new Alert("", L[Loading], null, null);
+			a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
+			display(a, f);
 			try {
 				// колво и номер страницы
 				JSONObject j;
@@ -1612,11 +1615,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterVolume = j.getString("volume");
 					chapterNum = j.getString("chapter");
 					chapterLang = j.getString("translatedLanguage");
-//					f.setTitle(
-//							(j.isNull("volume") ? "" : "Vol. ".concat(j.getString("volume")).concat(" "))
-//							.concat("Ch. ").concat(j.getString("chapter")).concat(" ")
-//							.concat(j.getString("translatedLanguage"))
-//							);
 				} catch (Exception e) {}
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
@@ -1632,19 +1630,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (j.has("dataSaver")) data = j.getArray("dataSaver");
 				else data = j.getArray("data");
 				
-				// здесь должен быть просмотр, но пока тут простая форма с ссылками на страницы
 				int l = data.size();
-				StringItem s;
 				for (int i = 0; i < l; i++) {
 					String n = data.getString(i);
 					chapterFilenames.addElement(n);
-					
-					s = new StringItem("Page " + (i +1), n);
-					s.setLayout(Item.LAYOUT_NEWLINE_AFTER);
-					s.addCommand(chapterPageItemCmd);
-					s.setDefaultCommand(chapterPageItemCmd);
-					s.setItemCommandListener(this);
-//					f.append(s); 
 				}
 				
 				chapterPages = chapterFilenames.size();
@@ -1663,11 +1652,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-//				f.addCommand(downloadCmd);
 				display(view);
 			} catch (Exception e) {
 				e.printStackTrace();
-				display(errorAlert(e.toString()), chaptersForm);
+				display(errorAlert(e.toString()), f);
 			}
 			break;
 		}
