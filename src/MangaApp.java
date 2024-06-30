@@ -9,9 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Hashtable;
-import java.util.TimeZone;
 import java.util.Vector;
 
 import javax.microedition.io.Connector;
@@ -201,7 +199,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
-	private static String timezone;
 	private static int coverLoading = 0; // 0 - auto, 1 - single, 2 - multi thread, 3 - disabled
 	private static boolean[] contentFilter = {true, true, true, false};
 	private static String lang = "en";
@@ -232,12 +229,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		version = getAppProperty("MIDlet-Version");
 		display = Display.getDisplay(this);
 		
-		try {
-			// определение таймзоны системы
-			int i = TimeZone.getDefault().getRawOffset() / 60000;
-			timezone = (i < 0 ? '-' : '+') + n(Math.abs(i / 60)) + ':' + n(Math.abs(i % 60));
-		} catch (Exception e) {}
-		
 		// определения дефолтного пути куда будет скачиваться манга
 		String p = platform = System.getProperty("microedition.platform");
 		if (p != null && p.indexOf("platform=S60") != -1) { // 9.3 и выше
@@ -262,7 +253,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			r.closeRecordStore();
 			
 			proxyUrl = j.getString("proxy", proxyUrl);
-			timezone = j.getString("timezone", timezone);
 			coverLoading = j.getInt("coverLoading", coverLoading);
 			lang = j.getString("lang", lang);
 			for (int i = 0; i < 4; i++) {
@@ -2472,9 +2462,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// date utils
 	
 	static String localizeTime(String date) {
-		Calendar c = getLocalizedCalendar(date);
 		long now = System.currentTimeMillis();
-		long t = c.getTime().getTime();
+		Calendar c = parseDate(date);
+		long t = c.getTime().getTime() + c.getTimeZone().getRawOffset() - parseTimeZone(date);
 		long d = now - t;
 		
 		boolean ru = "ru".equals(lang);
@@ -2520,12 +2510,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (ru && (d % 10 > 4 || d % 10 < 2))
 			return Integer.toString((int) d).concat(L[YearsAgo2]);
 		return Integer.toString((int) d).concat(L[YearsAgo]);
-	}
-	
-	static Calendar getLocalizedCalendar(String date) {
-		Calendar c = parseDate(date);
-		c.setTime(new Date(c.getTime().getTime() - parseTimeZone(date) + parseTimeZone(timezone)));
-		return c;
 	}
 	
 	// парсер даты ISO 8601 без учета часового пояса
