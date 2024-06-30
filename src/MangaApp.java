@@ -181,8 +181,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterVolume;
 	private static String chapterNum;
 	private static String chapterLang;
-	private static String chapterGroup;
-	private static int chapterDir;
+//	private static String chapterGroup;
+//	private static int chapterDir;
 	private static String chapterNext;
 	private static ViewCommon view; // канва
 	
@@ -1647,13 +1647,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterNum = att.getString("chapter");
 					chapterLang = att.getString("translatedLanguage");
 					
-					JSONArray relations = j.getArray("relationships");
-					int l = relations.size();
-					for (int i = 0; i < l; i++) {
-						JSONObject r = relations.getObject(i);
-						if (!"scanlation_group".equals(j.getString("type"))) continue;
-						chapterGroup = r.getString("id");
-					}
+//					JSONArray relations = j.getArray("relationships");
+//					int l = relations.size();
+//					for (int i = 0; i < l; i++) {
+//						JSONObject r = relations.getObject(i);
+//						if (!"scanlation_group".equals(j.getString("type"))) continue;
+//						chapterGroup = r.getString("id");
+//					}
 				} catch (Exception e) {}
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
