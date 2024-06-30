@@ -179,6 +179,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterVolume;
 	private static String chapterNum;
 	private static String chapterLang;
+	private static String chapterGroup;
 	private static ViewCommon view; // канва
 	
 	private static Object coverLoadLock = new Object();
@@ -711,7 +712,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (c == openCmd) {
 				// открыть главу с конкретной страницы
 				int n = Integer.parseInt(((TextBox) d).getString());
-				if (n < 1) { // TODO limit
+				if (n < 1) {
 					display(f);
 					return;
 				}
@@ -1625,10 +1626,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONObject j;
 				
 				try {
-					j = api("chapter?ids[]=" + id).getArray("data").getObject(0).getObject("attributes");
-					chapterVolume = j.getString("volume");
-					chapterNum = j.getString("chapter");
-					chapterLang = j.getString("translatedLanguage");
+					j = api("chapter?ids[]=" + id).getArray("data").getObject(0);
+					
+					JSONObject att = j.getObject("attributes");
+					chapterVolume = att.getString("volume");
+					chapterNum = att.getString("chapter");
+					chapterLang = att.getString("translatedLanguage");
+					
+					JSONArray relations = j.getArray("relationships");
+					int l = relations.size();
+					for (int i = 0; i < l; i++) {
+						JSONObject r = relations.getObject(i);
+						if (!"scanlation_group".equals(j.getString("type"))) continue;
+						chapterGroup = r.getString("id");
+					}
 				} catch (Exception e) {}
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
@@ -1650,9 +1661,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterFilenames.addElement(n);
 				}
 				
-				chapterPages = chapterFilenames.size();
-				
-				int n = chapterPage - 1;
+				int n = Math.min(chapterPage, chapterPages = chapterFilenames.size()) - 1;
 				if (viewMode == 1) {
 					view = new ViewCommon(n, false);
 				} else if(viewMode == 2) {
@@ -2016,6 +2025,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	// view
 
+	static void changeChapter(int d) {
+		// TODO chapter navigation
+	}
 
 	/**
 	 * Caches an image.
