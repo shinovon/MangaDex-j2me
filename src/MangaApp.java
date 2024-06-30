@@ -292,6 +292,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //		bookmarksCmd = new Command(L[Bookmarks], Command.ITEM, 1);
 		advSearchCmd = new Command(L[AdvSearch], Command.ITEM, 1);
 		recentCmd = new Command(L[Recent], Command.ITEM, 1);
+		randomCmd = new Command(L[Random], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
 		
@@ -1452,6 +1453,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		case RUN_CHAPTERS: { // главы манги
+			// TODO переделать в List?
 			String id = mangaId;
 			Form f = chaptersForm;
 			f.deleteAll();
@@ -1577,6 +1579,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					} else if (user != null) {
 						sb.append('\n').append(getName(user));
 					}
+					sb.append('\n');
 					
 					s = new StringItem(null, sb.toString());
 					s.setFont(smallfont);
