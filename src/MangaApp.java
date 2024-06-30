@@ -21,7 +21,6 @@ import javax.microedition.lcdui.*;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.rms.RecordStore;
 
-import cc.nnproject.json.JSON;
 import cc.nnproject.json.JSONArray;
 import cc.nnproject.json.JSONObject;
 import cc.nnproject.json.JSONStream;
@@ -33,7 +32,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER = 5;
-	private static final int RUN_BOOKMARKS = 6;
+//	private static final int RUN_BOOKMARKS = 6;
 	private static final int RUN_DOWNLOAD_CHAPTER = 7;
 	static final int RUN_PRELOADER = 8;
 	
@@ -81,7 +80,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Command searchCmd;
 	private static Command updatesCmd;
-	private static Command bookmarksCmd;
+//	private static Command bookmarksCmd;
 	private static Command advSearchCmd;
 	private static Command recentCmd;
 	
@@ -90,7 +89,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command mangaItemCmd;
 	private static Command chaptersCmd;
 	private static Command tagItemCmd;
-	private static Command saveCmd;
+//	private static Command saveCmd;
 	private static Command showCoverCmd;
 	private static Command chapterCmd;
 	private static Command chapterPageItemCmd;
@@ -116,7 +115,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static Form chaptersForm;
 	private static Form searchForm;
 	private static Form settingsForm;
-	private static Form bookmarksForm;
+//	private static Form bookmarksForm;
 //	private static Form viewForm;
 	private static Form tempListForm;
 	private static ViewCommon view;
@@ -245,7 +244,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// загрузка настроек
 		try {
 			RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, false);
-			JSONObject j = JSON.getObject(new String(r.getRecord(1), "UTF-8"));
+			JSONObject j = JSONObject.parseObject(new String(r.getRecord(1), "UTF-8"));
 			r.closeRecordStore();
 			
 			proxyUrl = j.getString("proxy", proxyUrl);
@@ -284,7 +283,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		searchCmd = new Command(L[Search], Command.ITEM, 1);
 		updatesCmd = new Command(L[Updates], Command.ITEM, 1);
-		bookmarksCmd = new Command(L[Bookmarks], Command.ITEM, 1);
+//		bookmarksCmd = new Command(L[Bookmarks], Command.ITEM, 1);
 		advSearchCmd = new Command(L[AdvSearch], Command.ITEM, 1);
 		recentCmd = new Command(L[Recent], Command.ITEM, 1);
 		
@@ -293,7 +292,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		mangaItemCmd = new Command(L[Open], Command.ITEM, 1);
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
-		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
+//		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
 		showCoverCmd = new Command(L[ShowCover], Command.ITEM, 1);
 		chapterCmd = new Command("Open", Command.ITEM, 1);
 		chapterPageItemCmd = new Command(L[ViewPage], Command.ITEM, 1);
@@ -399,10 +398,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				start(RUN_CHAPTERS);
 				return;
 			}
-			if (c == saveCmd) {
-				// TODO сохранение закладки или скачивание
-				return;
-			}
 			if (c == backCmd) {
 				// возвращение из манги
 				display(tempListForm != null ? tempListForm : listForm != null ? listForm : mainForm);
@@ -459,12 +454,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
-		if (d == bookmarksForm && c == backCmd) {
-			// возвращение из закладок
-			display(mainForm);
-			bookmarksForm = null;
-			return;
-		}
+//		if (d == bookmarksForm && c == backCmd) {
+//			// возвращение из закладок
+//			display(mainForm);
+//			bookmarksForm = null;
+//			return;
+//		}
 		if (d == settingsForm && c == backCmd) {
 			// сохранить настройки
 			proxyUrl = proxyField.getString();
@@ -910,15 +905,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 			return;
 		}
-		if (c == bookmarksCmd) {
-			Form f = new Form(L[Bookmarks]);
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			
-			display(bookmarksForm = f);
-			start(RUN_BOOKMARKS);
-			return;
-		}
+//		if (c == bookmarksCmd) {
+//			Form f = new Form(L[Bookmarks]);
+//			f.addCommand(backCmd);
+//			f.setCommandListener(this);
+//			
+//			display(bookmarksForm = f);
+//			start(RUN_BOOKMARKS);
+//			return;
+//		}
 		commandAction(c, display.getCurrent());
 	}
 	
@@ -1633,10 +1628,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			break;
 		}
-		case RUN_BOOKMARKS: { // загрузить список закладок
-			// TODO
-			break;
-		}
+//		case RUN_BOOKMARKS: { // загрузить список закладок
+//			break;
+//		}
 		case RUN_DOWNLOAD_CHAPTER: { // скачать главу
 			int l = chapterFilenames.size();
 			Form f = chaptersForm;
@@ -2130,7 +2124,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// http
 	
 	private static JSONObject api(String url) throws IOException {
-		JSONObject j = JSON.getObject(getUtf(proxyUrl(APIURL.concat(url))));
+		JSONObject j = JSONObject.parseObject(getUtf(proxyUrl(APIURL.concat(url))));
 		System.out.println(j);
 		// хендлить ошибки апи
 		if ("error".equals(j.get("result", ""))) {
