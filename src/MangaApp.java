@@ -1291,6 +1291,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				// автор
+				t = null;
 				if (author != null && (t = getName(author)) != null) {
 					s = new StringItem(null, L[Author]);
 					s.setFont(medboldfont);
@@ -1304,13 +1305,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				// художник
-				if (artist != null && (t = getName(artist)) != null) {
+				String a;
+				if (artist != null && (a = getName(artist)) != null && !a.equals(t)) {
 					s = new StringItem(null, L[Artist]);
 					s.setFont(medboldfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
 					
-					s = new StringItem(null, t);
+					s = new StringItem(null, a);
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
