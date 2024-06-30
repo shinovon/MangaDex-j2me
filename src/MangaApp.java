@@ -1180,15 +1180,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			try {
 				JSONObject j = api("manga/" + id +
-						"?includes[0]=author&includes[1]=artist&includes[2]=creator")
+						"?includes[0]=author&includes[1]=artist")
 						.getObject("data");
 				coverItem.setAltText(mangaId = id = j.getString("id"));
 				JSONObject attributes = j.getObject("attributes");
 				JSONArray relationships = j.getArray("relationships");
 				
 				JSONObject author = null,
-						artist = null,
-						creator = null;
+						artist = null;
 				
 				int k = relationships.size();
 				for (int p = 0; p < k; p++) {
@@ -1202,8 +1201,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						author = r;
 					} else if ("artist".equals(type)) {
 						artist = r;
-					} else if ("creator".equals(type)) {
-						creator = r;
 					}
 				}
 				
@@ -1286,6 +1283,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
+				// автор
 				if (author != null && (t = getName(author)) != null) {
 					s = new StringItem(null, L[Author]);
 					s.setFont(medboldfont);
@@ -1298,20 +1296,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s);
 				}
 				
+				// художник
 				if (artist != null && (t = getName(artist)) != null) {
 					s = new StringItem(null, L[Artist]);
-					s.setFont(medboldfont);
-					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
-					f.append(s);
-					
-					s = new StringItem(null, t);
-					s.setFont(smallfont);
-					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
-					f.append(s);
-				}
-				
-				if (creator != null && (t = getName(creator)) != null) {
-					s = new StringItem(null, L[Creator]);
 					s.setFont(medboldfont);
 					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					f.append(s);
