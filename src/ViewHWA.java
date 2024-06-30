@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2021 Fyodor Ryzhov
+ * Copyright (c) 2024 Arman Jussupgaliyev
+ */
 import java.util.Vector;
 
 import javax.microedition.lcdui.*;
