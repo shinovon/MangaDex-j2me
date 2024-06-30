@@ -881,7 +881,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			g.drawLine(getWidth() / 4, getHeight() - 50, getWidth() / 4, getHeight());
 			g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth() * 2 / 4, getHeight());
 		} else {
-			g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth(), getHeight() - 50);
+			g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth(), getHeight() - 50);
 		}
 		g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth() * 3 / 4, getHeight());
 
