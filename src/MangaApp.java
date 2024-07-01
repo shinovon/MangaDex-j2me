@@ -225,6 +225,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean chapterFileCache;
 	private static String chapterLangFilter = "";
 	private static boolean keepListCovers = true;
+	private static boolean symbian;
 
 	public MangaApp() {}
 
@@ -243,7 +244,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// определения дефолтного пути куда будет скачиваться манга
 		String p = platform = System.getProperty("microedition.platform");
-		if (p != null && p.indexOf("platform=S60") != -1) { // 9.3 и выше
+		if (symbian = p != null && p.indexOf("platform=S60") != -1) { // 9.3 и выше
 			downloadPath = "E:/MangaDex";
 		} else if ((p = System.getProperty("java.vendor")) != null && p.indexOf("Android") != -1) { // ж2ме лодырь
 			downloadPath = "C:/MangaDex";
@@ -1856,7 +1857,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 								out = fc.openDataOutputStream();
 								try {
 									int r;
-									byte[] buf = new byte[64 * 1024];
+									byte[] buf = new byte[symbian ? 64 * 1024 : 16 * 1024];
 									while ((r = in.read(buf)) != -1) {
 										out.write(buf, 0, r);
 									}
