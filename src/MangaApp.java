@@ -1717,44 +1717,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = chaptersForm != null ? chaptersForm : mainForm;
 			display(loadingAlert(), f);
 			try {
-				// колво и номер страницы
-				JSONObject j;
-				
-				try {
-					j = api("chapter?ids[]=" + id).getArray("data").getObject(0);
-					
-					JSONObject att = j.getObject("attributes");
-					chapterVolume = att.getString("volume");
-					chapterNum = att.getString("chapter");
-					chapterLang = att.getString("translatedLanguage");
-					
-					JSONArray relations = j.getArray("relationships");
-					int l = relations.size();
-					for (int i = 0; i < l; i++) {
-						JSONObject r = relations.getObject(i);
-						if (!"scanlation_group".equals(j.getString("type"))) continue;
-						chapterGroup = r.getString("id");
-					}
-				} catch (Exception e) {}
-				
-				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
-				j = api("at-home/server/" + id);
-				chapterBaseUrl = j.getString("baseUrl");
-				chapterFilenames = new Vector();
-				
-				j = j.getObject("chapter");
-				chapterHash = j.getString("hash");
-				
-				JSONArray data;
-				// жпег, если нет то пнг
-				if (j.has("dataSaver")) data = j.getArray("dataSaver");
-				else data = j.getArray("data");
-				
-				int l = data.size();
-				for (int i = 0; i < l; i++) {
-					String n = data.getString(i);
-					chapterFilenames.addElement(n);
-				}
+				loadChapterInfo(id);
 				
 				int n = chapterPage;
 				chapterPages = chapterFilenames.size();
@@ -1787,8 +1750,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //			break;
 //		}
 		case RUN_DOWNLOAD_CHAPTER: { // скачать главу
-			int l = chapterFilenames.size();
 			Form f = chaptersForm;
+			
+			if (chapterFilenames == null) {
+				downloadAlert.setString("Fetching");
+				try {
+					loadChapterInfo(chapterId);
+				} catch (Exception e) {
+					display(errorAlert(e.toString()), f);
+					downloadIndicator = null;
+					downloadAlert = null;
+					break;
+				}
+			}
+			
+			int l = chapterFilenames.size();
 			
 			downloadIndicator.setMaxValue(l + 2);
 			
@@ -1806,7 +1782,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} finally {
 					if(fc != null) fc.close();
 				}
-				Thread.sleep(100);
 				
 				try {
 					fc = (FileConnection) Connector.open(folder = folder
@@ -1816,7 +1791,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} finally {
 					if(fc != null) fc.close();
 				}
-				Thread.sleep(100);
 				
 				try {
 					int i;
@@ -1847,6 +1821,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					fc = (FileConnection) Connector.open(folder + tn + ".jpg");
 					try {
 						if (!fc.exists()) fc.create();
+						Thread.sleep(100);
 						hc = open(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + n));
 						try {
 							if (hc.getResponseCode() != 200) {
@@ -1857,14 +1832,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 								downloadAlert.setString(L[Downloading] + " (" + (i+1) + "/" + (l) + ")");
 							downloadIndicator.setValue(i * 2 + 2);
 							try {
-								out = fc.openOutputStream();
+								out = fc.openDataOutputStream();
 								try {
 									int r;
-									byte[] buf = new byte[symbian ? 64 * 1024 : 16 * 1024];
+									byte[] buf = new byte[symbian ? 64 * 1024 : 32 * 1024];
 									while ((r = in.read(buf)) != -1) {
 										out.write(buf, 0, r);
+										out.flush();
 									}
-									out.flush();
 								} finally {
 									out.close();
 								}
@@ -2004,6 +1979,46 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		}
 		running = false;
+	}
+
+	private void loadChapterInfo(String id) throws IOException {
+		JSONObject j;
+		
+		try {
+			j = api("chapter?ids[]=" + id).getArray("data").getObject(0);
+			
+			JSONObject att = j.getObject("attributes");
+			chapterVolume = att.getString("volume");
+			chapterNum = att.getString("chapter");
+			chapterLang = att.getString("translatedLanguage");
+			
+			JSONArray relations = j.getArray("relationships");
+			int l = relations.size();
+			for (int i = 0; i < l; i++) {
+				JSONObject r = relations.getObject(i);
+				if (!"scanlation_group".equals(j.getString("type"))) continue;
+				chapterGroup = r.getString("id");
+			}
+		} catch (Exception e) {}
+		
+		// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
+		j = api("at-home/server/" + id);
+		chapterBaseUrl = j.getString("baseUrl");
+		chapterFilenames = new Vector();
+		
+		j = j.getObject("chapter");
+		chapterHash = j.getString("hash");
+		
+		JSONArray data;
+		// жпег, если нет то пнг
+		if (j.has("dataSaver")) data = j.getArray("dataSaver");
+		else data = j.getArray("data");
+		
+		int l = data.size();
+		for (int i = 0; i < l; i++) {
+			String n = data.getString(i);
+			chapterFilenames.addElement(n);
+		}
 	}
 
 	Thread start(int i) {
