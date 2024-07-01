@@ -2002,128 +2002,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		running = false;
 	}
-	
-
-	private int lastA, curChA, curChB;
-	
-	// 1 - perfect match, 2 - big gap, 3 - different language, 4 - both
-	private int searchNextChapter(String url, int type) throws IOException {
-		JSONObject volumes = api(url).getObject("volumes");
-		
-		boolean dir = chapterDir == 1;
-		String curCh = chapterNum;
-		if(!dir && curCh == null)
-			return 0;
-		if (curCh == null)
-			curCh = "none";
-		
-		String curVolume = chapterVolume;
-		if (curVolume == null)
-			curVolume = "none";
-
-		String lastCh;
-		JSONObject vol = volumes.getObject(curVolume);
-		if ((lastCh = getNextChapter(vol, curCh, dir)) == null) {
-			if (dir) {
-				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
-				if ((vol = volumes.getNullableObject(Integer.toString(n))) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-				} else if ((vol = volumes.getNullableObject("none")) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-					n = 0;
-				}
-				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-					n = 0;
-				}
-			} else {
-				int n;
-				if (chapterVolume == null) {
-					Enumeration keys = volumes.keys();
-					n = -1;
-					while (keys.hasMoreElements()) {
-						int t = Integer.parseInt((String) keys.nextElement());
-						if (t > n) n = t;
-					}
-					if (n != -1)
-						vol = volumes.getNullableObject(Integer.toString(n));
-				} else {
-					n = Integer.parseInt(curVolume) - 1;
-					vol = volumes.getNullableObject(n < 1 ? "none" : Integer.toString(n));
-				}
-				if (vol != null) {
-					lastCh = getNextChapter(vol, curCh, false);
-				}
-				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
-					lastCh = getNextChapter(vol, curCh, false);
-					n = 0;
-				}
-			}
-		}
-		if (lastCh != null) {
-			chapterNextNum = lastCh;
-			if (Math.abs(lastA - curChA) > 1)
-				return type == 3 ? 4 : 2;
-			return type == 3 ? 3 : 1;
-		}
-		return 0;
-	}
-
-	private String getNextChapter(JSONObject vol, String curCh, boolean dir) {
-		vol = vol.getObject("chapters");
-		Enumeration keys = vol.keys();
-
-		String lastCh = null;
-		String lastChId = null;
-		int curChA = this.curChA,
-				lastA = curChA,
-				lastB = curChB;
-		while (keys.hasMoreElements()) {
-			String ch = (String) keys.nextElement();
-			if (ch.equals(curCh)) continue;
-			String id = vol.getObject(ch).getString("id");
-			int chA, chB = 0;
-			if ("none".equals(ch)) {
-				ch = "0";
-				chA = 0;
-			} else {
-				chA = ch.indexOf('.');
-				if (chA == -1) {
-					chA = Integer.parseInt(ch);
-				} else {
-					chB = Integer.parseInt(ch.substring(chA + 1));
-					chA = Integer.parseInt(ch.substring(0, chA));
-				}
-			}
-			
-			if (dir) {
-				if ((chA == curChA && chB > curChB && (lastA != chA || chB > lastB)) ||
-						(chA == lastA && chA != curChA && chB < lastB) ||
-						(chA > curChA && (lastCh == null || (chA < lastA && lastA != curChA)))
-						) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
-					continue;
-				}
-			} else {
-				if ((chA == curChA && chB < curChB && (lastA != chA || chB < lastB)) ||
-						(chA < curChA && (lastCh == null || (chA > lastA && lastA != curChA))) ||
-						(chA == lastA && chA != curChA && chB > lastB)
-						) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
-					continue;
-				}
-			}
-		}
-		this.lastA = lastA;
-		chapterNextId = lastChId;
-		return lastCh;
-	}
 
 	Thread start(int i) {
 		Thread t = null;
@@ -2363,6 +2241,127 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	// view
+
+	private int lastA, curChA, curChB;
+	
+	// 1 - perfect match, 2 - big gap, 3 - different language, 4 - both
+	private int searchNextChapter(String url, int type) throws IOException {
+		JSONObject volumes = api(url).getObject("volumes");
+		
+		boolean dir = chapterDir == 1;
+		String curCh = chapterNum;
+		if(!dir && curCh == null)
+			return 0;
+		if (curCh == null)
+			curCh = "none";
+		
+		String curVolume = chapterVolume;
+		if (curVolume == null)
+			curVolume = "none";
+
+		String lastCh;
+		JSONObject vol = volumes.getObject(curVolume);
+		if ((lastCh = getNextChapter(vol, curCh, dir)) == null) {
+			if (dir) {
+				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
+				if ((vol = volumes.getNullableObject(Integer.toString(n))) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+				} else if ((vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+					n = 0;
+				}
+				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+					n = 0;
+				}
+			} else {
+				int n;
+				if (chapterVolume == null) {
+					Enumeration keys = volumes.keys();
+					n = -1;
+					while (keys.hasMoreElements()) {
+						int t = Integer.parseInt((String) keys.nextElement());
+						if (t > n) n = t;
+					}
+					if (n != -1)
+						vol = volumes.getNullableObject(Integer.toString(n));
+				} else {
+					n = Integer.parseInt(curVolume) - 1;
+					vol = volumes.getNullableObject(n < 1 ? "none" : Integer.toString(n));
+				}
+				if (vol != null) {
+					lastCh = getNextChapter(vol, curCh, false);
+				}
+				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, false);
+					n = 0;
+				}
+			}
+		}
+		if (lastCh != null) {
+			chapterNextNum = lastCh;
+			if (Math.abs(lastA - curChA) > 1)
+				return type == 3 ? 4 : 2;
+			return type == 3 ? 3 : 1;
+		}
+		return 0;
+	}
+
+	private String getNextChapter(JSONObject vol, String curCh, boolean dir) {
+		vol = vol.getObject("chapters");
+		Enumeration keys = vol.keys();
+
+		String lastCh = null;
+		String lastChId = null;
+		int curChA = this.curChA,
+				lastA = curChA,
+				lastB = curChB;
+		while (keys.hasMoreElements()) {
+			String ch = (String) keys.nextElement();
+			if (ch.equals(curCh)) continue;
+			String id = vol.getObject(ch).getString("id");
+			int chA, chB = 0;
+			if ("none".equals(ch)) {
+				ch = "0";
+				chA = 0;
+			} else {
+				chA = ch.indexOf('.');
+				if (chA == -1) {
+					chA = Integer.parseInt(ch);
+				} else {
+					chB = Integer.parseInt(ch.substring(chA + 1));
+					chA = Integer.parseInt(ch.substring(0, chA));
+				}
+			}
+			
+			if (dir) {
+				if ((chA == curChA && chB > curChB && (lastA != chA || chB > lastB)) ||
+						(chA == lastA && chA != curChA && chB < lastB) ||
+						(chA > curChA && (lastCh == null || (chA < lastA && lastA != curChA)))
+						) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+					continue;
+				}
+			} else {
+				if ((chA == curChA && chB < curChB && (lastA != chA || chB < lastB)) ||
+						(chA < curChA && (lastCh == null || (chA > lastA && lastA != curChA))) ||
+						(chA == lastA && chA != curChA && chB > lastB)
+						) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+					continue;
+				}
+			}
+		}
+		this.lastA = lastA;
+		chapterNextId = lastChId;
+		return lastCh;
+	}
 
 	static void changeChapter(int d) {
 		if (running) return;
@@ -2742,7 +2741,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		if (d < 365 * 24 * 60 * 60) {
 			d /= 30 * 24 * 60 * 60L;
-			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+			if (d == 1)
 				return Integer.toString((int) d).concat(L[MonthAgo]);
 			if (ru && (d % 10 > 4 || d % 10 < 2))
 				return Integer.toString((int) d).concat(L[MonthsAgo2]);
