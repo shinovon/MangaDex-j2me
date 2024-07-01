@@ -410,7 +410,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// второй тред обложек если симбиан
 		if (coverLoading != 1 && ((platform != null && platform.indexOf("platform=S60") != -1) || coverLoading == 2)) {
 			start(RUN_COVERS);
-//			start(RUN_COVERS);
+			start(RUN_COVERS);
 		}
 	}
 
@@ -621,6 +621,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.NON_PREDICTIVE);
 				f.append(downloadPathField);
 				
+				// прокси
+				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
+				f.append(proxyField);
+				
 				// TODO фм
 				
 				// режим просмотра
@@ -651,10 +655,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				keepBitmapChoice = new ChoiceGroup("Keep original pages (faster resize)", ChoiceGroup.POPUP, on_off, null);
 				keepBitmapChoice.setSelectedIndex(keepBitmap ? 0 : 1, true);
 				f.append(keepBitmapChoice);
-				
-				// прокси
-				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
-				f.append(proxyField);
 				
 				settingsForm = f;
 			}
@@ -1940,7 +1940,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //					if ((found = searchNextChapter(sb.toString(), 3)) > 0)
 //						break s;
 				}
-				
+				System.out.println(chapterNum + " -> " + chapterNextNum);
 				if (found == 0) {
 //					display(errorAlert("Next chapter not found!"), view);
 					start(RUN_DISPOSE_VIEW);
@@ -1962,6 +1962,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					start(RUN_DISPOSE_VIEW);
 					chapterId = chapterNextId;
+					if (chapterDir == -1) chapterPage = -1;
 					MangaApp.run = RUN_CHAPTER_VIEW;
 					run();
 					return;
@@ -2096,32 +2097,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			
 			if (dir) {
-				if (chA == curChA && chB > lastB) {
+				if ((chA == curChA && chB > curChB && (lastA != chA || chB > lastB)) ||
+						(chA == lastA && chA != curChA && chB < lastB) ||
+						(chA > curChA && (lastCh == null || (chA < lastA && lastA != curChA)))
+						) {
 					lastA = chA;
 					lastB = chB;
 					lastCh = ch;
 					lastChId = id;
 					continue;
-				}
-				if(chA > curChA && (lastCh == null || chA < lastA)) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
 				}
 			} else {
-				if (chA == curChA && chB < lastB) {
+				if ((chA == curChA && chB < curChB && (lastA != chA || chB < lastB)) ||
+						(chA < curChA && (lastCh == null || (chA > lastA && lastA != curChA))) ||
+						(chA == lastA && chA != curChA && chB > lastB)
+						) {
 					lastA = chA;
 					lastB = chB;
 					lastCh = ch;
 					lastChId = id;
 					continue;
-				}
-				if(chA < curChA && (lastCh == null || chA > lastA)) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
 				}
 			}
 		}
