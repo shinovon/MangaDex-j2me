@@ -1766,7 +1766,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			int l = chapterFilenames.size();
 			
-			downloadIndicator.setMaxValue(l + 2);
+			downloadIndicator.setMaxValue(l * 2 + 2);
 			
 			FileConnection fc = null;
 			HttpConnection hc;
