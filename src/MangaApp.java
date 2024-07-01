@@ -524,7 +524,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {}
 			try {
 				JSONObject j = new JSONObject();
-				j.put("proxyUrl", proxyUrl);
+				j.put("proxy", proxyUrl);
 //				j.put("timezone", timezone);
 				j.put("coverLoading", coverLoading);
 				j.put("lang", lang);
