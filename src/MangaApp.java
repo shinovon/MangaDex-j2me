@@ -1794,15 +1794,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 				int i;
 				String v = chapterVolume;
-				while (v.substring(0, (i = v.indexOf('.')) != -1 ? i : v.length()).length() < 2)
-					v = "0".concat(v);
+				if (v != null) {
+					while (v.substring(0, (i = v.indexOf('.')) != -1 ? i : v.length()).length() < 2)
+						v = "0".concat(v);
+				}
 				
 				String c = chapterNum;
-				while (c.substring(0, (i = c.indexOf('.')) != -1 ? i : c.length()).length() < 3)
-					c = "0".concat(c);
+				if (c != null) {
+					while (c.substring(0, (i = c.indexOf('.')) != -1 ? i : c.length()).length() < 3)
+						c = "0".concat(c);
+				}
 				
 				fc = (FileConnection) Connector.open(folder = folder
-						.concat("Vol. " + v + " Ch. " + c + " " + chapterLang + "/"));
+						.concat((v != null ? "Vol. " + v : "") + (c != null ? "Ch. " + c : "Oneshot") + " " + chapterLang + "/"));
 				try {
 					fc.mkdir();
 				} catch (IOException e) {
