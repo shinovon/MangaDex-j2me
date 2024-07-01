@@ -1806,6 +1806,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} finally {
 					if(fc != null) fc.close();
 				}
+				Thread.sleep(100);
 				
 				try {
 					fc = (FileConnection) Connector.open(folder = folder
@@ -1815,6 +1816,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} finally {
 					if(fc != null) fc.close();
 				}
+				Thread.sleep(100);
 				
 				try {
 					int i;
@@ -1833,6 +1835,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} finally {
 					if(fc != null) fc.close();
 				}
+				Thread.sleep(100);
 				
 				for (int i = 0; i < l && downloadIndicator != null; i++) {
 					if (downloadAlert != null)
@@ -1849,12 +1852,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							if (hc.getResponseCode() != 200) {
 								throw new IOException("Bad response");
 							}
-							in = hc.openDataInputStream();
+							in = hc.openInputStream();
 							if (downloadAlert != null)
 								downloadAlert.setString(L[Downloading] + " (" + (i+1) + "/" + (l) + ")");
 							downloadIndicator.setValue(i * 2 + 2);
 							try {
-								out = fc.openDataOutputStream();
+								out = fc.openOutputStream();
 								try {
 									int r;
 									byte[] buf = new byte[symbian ? 64 * 1024 : 16 * 1024];
