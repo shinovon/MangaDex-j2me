@@ -1940,7 +1940,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //					if ((found = searchNextChapter(sb.toString(), 3)) > 0)
 //						break s;
 				}
-				System.out.println(chapterNum + " -> " + chapterNextNum);
 				if (found == 0) {
 //					display(errorAlert("Next chapter not found!"), view);
 					start(RUN_DISPOSE_VIEW);
@@ -2168,9 +2167,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (!keepListCovers && p != null && (p == listForm || p == tempListForm)) {
 			try {
 				// докачивание обложек
-				int l = ((Form) d).size();
+				int l = ((Form) p).size();
 				for (int i = 0; i < l; i++) {
-					Item item = ((Form) d).get(i);
+					Item item = ((Form) p).get(i);
 					if (!(item instanceof ImageItem)) continue;
 					((ImageItem) item).setImage(coverPlaceholder);
 				}
