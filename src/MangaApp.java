@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -108,7 +109,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static Command goCmd;
 	static Command cancelCmd;
 	private static Command openCmd;
-	private static Command okCmd;
+	private static Command continueCmd;
 	
 	// ui
 	private static Form mainForm;
@@ -181,9 +182,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterVolume;
 	private static String chapterNum;
 	private static String chapterLang;
-//	private static String chapterGroup;
-//	private static int chapterDir;
-	private static String chapterNext;
+	private static String chapterGroup;
+	private static int chapterDir;
+	private static String chapterNextNum;
+	private static String chapterNextId;
 	private static ViewCommon view; // канва
 	
 	private static Object coverLoadLock = new Object();
@@ -318,7 +320,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		goCmd = new Command(L[Go], Command.OK, 1);
 		cancelCmd = new Command(L[Cancel], Command.CANCEL, 2);
 		openCmd = new Command(L[Open], Command.OK, 1);
-		okCmd = new Command(L[Open], Command.OK, 1);
+		continueCmd = new Command("Continue", Command.OK, 1);
 		
 		// главная форма
 		
@@ -712,11 +714,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGAS);
 		}
 		if (d instanceof Alert) {
-			if (c == okCmd) {
+			if (c == continueCmd) {
 				// согласние на переключение диалога
 				display(loadingAlert(), view);
-				chapterId = chapterNext;
-				chapterNext = null;
+				if (chapterDir == -1) chapterPage = -1;
+				chapterId = chapterNextId;
+				chapterNextId = null;
 				start(RUN_CHAPTER);
 				return;
 			}
@@ -1668,13 +1671,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterNum = att.getString("chapter");
 					chapterLang = att.getString("translatedLanguage");
 					
-//					JSONArray relations = j.getArray("relationships");
-//					int l = relations.size();
-//					for (int i = 0; i < l; i++) {
-//						JSONObject r = relations.getObject(i);
-//						if (!"scanlation_group".equals(j.getString("type"))) continue;
-//						chapterGroup = r.getString("id");
-//					}
+					JSONArray relations = j.getArray("relationships");
+					int l = relations.size();
+					for (int i = 0; i < l; i++) {
+						JSONObject r = relations.getObject(i);
+						if (!"scanlation_group".equals(j.getString("type"))) continue;
+						chapterGroup = r.getString("id");
+					}
 				} catch (Exception e) {}
 				
 				// получение ссылок на страницы https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
@@ -1696,7 +1699,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterFilenames.addElement(n);
 				}
 				
-				int n = Math.min(chapterPage, chapterPages = chapterFilenames.size()) - 1;
+				int n = chapterPage;
+				chapterPages = chapterFilenames.size();
+				if (n == -1) { // последняя страницы
+					n = chapterPages - 1;
+				} else {
+					n = Math.min(n, chapterPages) - 1;
+				}
 				if (viewMode == 1) {
 					view = new ViewCommon(n, false);
 				} else if(viewMode == 2) {
@@ -1838,68 +1847,203 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		case RUN_CHANGE_CHAPTER: {
-			
-			// TODO
-			// по параму задать order
-			// сначала искать совпадения по языку и по группе 
-			// затем просто по языку
-			// если нет то пробовать искать en
-			// если нет и англ то первый попавшийся
-			//
-			// если ничего нет то отобразить алерт
-			//
-			// показывать диалог если сменился язык, при разрывах в номерах главы
-			//
-			// если все нормально пересоздать вью
-			
-			// в апи нет парамы offset_from, придется перебирать все главы
-			// потом
-			
-//			String manga = mangaId;
-//			String currentChapter = chapterId;
-//			String currentChapterNum = chapterNum;
-//			JSONArray data;
-//			int l;
-//			boolean found;
-//			try {
-//				s: {
-//					StringBuffer sb = new StringBuffer("chapter?manga=").append(manga)
-//							.append("&limit=30")
-//							.append("&order[chapter]=").append(chapterDir == 1 ? "asc" : "desc")
-//							;
-//					int ol = sb.length();
-//	
-//					
-//					sb.append("translatedLanguage[]=").append(chapterLang);
-//					
-//					if (chapterGroup != null) {
-//						sb.append("groups[]=").append(chapterGroup);
-//					}
-//					
-//					data = api(sb.toString()).getArray("data");
-//					l = data.size();
-//					
-//					for (int i = 0; i < l; i++) {
-//						JSONObject j = data.getObject(i);
-//					}
-//					
-//					
-//					if (chapterGroup != null) {
-//						sb.setLength(ol);
-//						sb.append("translatedLanguage[]=").append(chapterLang);
-//
-//					}
-//	
+			int found = 0;
+			try {
+				String curCh = chapterNum;
+				if (curCh == null)
+					curCh = "0";
+				curChA = curCh.indexOf('.');
+				curChB = 0;
+				if (curChA == -1) {
+					curChA = Integer.parseInt(curCh);
+				} else {
+					curChB = Integer.parseInt(curCh.substring(curChA + 1));
+					curChA = Integer.parseInt(curCh.substring(0, curChA));
+				}
+				
+				s: {
+					StringBuffer sb = new StringBuffer("manga/").append(mangaId)
+							.append("/aggregate?");
+					int ol = sb.length();
+
+					sb.append("translatedLanguage[]=").append(chapterLang);
+					if (chapterGroup != null)
+						sb.append("&groups[]=").append(chapterGroup);
+
+					if ((found = searchNextChapter(sb.toString(), 1)) > 0)
+						break s;
+					
+					if (chapterGroup != null) {
+						sb.setLength(ol);
+						sb.append("translatedLanguage[]=").append(chapterLang);
+						if ((found = searchNextChapter(sb.toString(), 2)) > 0)
+							break s;
+					}
+
 //					sb.setLength(ol);
-//				}
-			display(view);
-//			} catch (Exception e) {
-//				display(errorAlert(e.toString()), view);
-//			}
+//					if ((found = searchNextChapter(sb.toString(), 3)) > 0)
+//						break s;
+				}
+				
+				if (found == 0) {
+//					display(errorAlert("Next chapter not found!"), view);
+					view = null;
+					chapterFilenames = null;
+					display(chaptersForm != null ? chaptersForm : mangaForm);
+				} else if (found > 1) {
+					Alert a;
+//					if (found == 2 || found == 4) {
+						a = new Alert("Chapter Gap", "There is a gap between the following chapters: \n" +
+						chapterNum + " -> " + chapterNextNum + " \nContinue?", null, AlertType.WARNING);
+//					} else {
+//						a = new Alert("", "Language change, continue?", null, AlertType.WARNING);
+//					}
+					a.addCommand(cancelCmd);
+					a.addCommand(continueCmd);
+					a.setCommandListener(this);
+					display(a, view);
+				} else {
+					chapterId = chapterNextId;
+					MangaApp.run = RUN_CHAPTER;
+					run();
+					return;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				display(errorAlert(e.toString()), view);
+			}
 			break;
 		}
 		}
 		running = false;
+	}
+	
+
+	private int lastA, curChA, curChB;
+	
+	// 1 - perfect match, 2 - big gap, 3 - different language, 4 - both
+	private int searchNextChapter(String url, int type) throws IOException {
+		JSONObject volumes = api(url).getObject("volumes");
+		
+		boolean dir = chapterDir == 1;
+		String curCh = chapterNum;
+		if(!dir && curCh == null)
+			return 0;
+		if (curCh == null)
+			curCh = "none";
+		
+		String curVolume = chapterVolume;
+		if (curVolume == null)
+			curVolume = "none";
+
+		String lastCh;
+		JSONObject vol = volumes.getObject(curVolume);
+		if ((lastCh = getNextChapter(vol, curCh, dir)) == null) {
+			if (dir) {
+				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
+				if ((vol = volumes.getNullableObject(Integer.toString(n))) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+				} else if ((vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+					n = 0;
+				}
+				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, true);
+					n = 0;
+				}
+			} else {
+				int n;
+				if (chapterVolume == null) {
+					Enumeration keys = volumes.keys();
+					n = -1;
+					while (keys.hasMoreElements()) {
+						int t = Integer.parseInt((String) keys.nextElement());
+						if (t > n) n = t;
+					}
+					if (n != -1)
+						vol = volumes.getNullableObject(Integer.toString(n));
+				} else {
+					n = Integer.parseInt(curVolume) - 1;
+					vol = volumes.getNullableObject(n < 1 ? "none" : Integer.toString(n));
+				}
+				if (vol != null) {
+					lastCh = getNextChapter(vol, curCh, false);
+				}
+				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+					lastCh = getNextChapter(vol, curCh, false);
+					n = 0;
+				}
+			}
+		}
+		if (lastCh != null) {
+			chapterNextNum = lastCh;
+			if (Math.abs(lastA - curChA) > 1)
+				return type == 3 ? 4 : 2;
+			return type == 3 ? 3 : 1;
+		}
+		return 0;
+	}
+
+	private String getNextChapter(JSONObject vol, String curCh, boolean dir) {
+		vol = vol.getObject("chapters");
+		Enumeration keys = vol.keys();
+
+		String lastCh = null;
+		String lastChId = null;
+		int curChA = this.curChA,
+				lastA = curChA,
+				lastB = curChB;
+		while (keys.hasMoreElements()) {
+			String ch = (String) keys.nextElement();
+			if (ch.equals(curCh)) continue;
+			String id = vol.getObject(ch).getString("id");
+			int chA, chB = 0;
+			if ("none".equals(ch)) {
+				ch = "0";
+				chA = 0;
+			} else {
+				chA = ch.indexOf('.');
+				if (chA == -1) {
+					chA = Integer.parseInt(ch);
+				} else {
+					chB = Integer.parseInt(ch.substring(chA + 1));
+					chA = Integer.parseInt(ch.substring(0, chA));
+				}
+			}
+			
+			if (dir) {
+				if (chA == curChA && chB > lastB) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+					continue;
+				}
+				if(chA > curChA && (lastCh == null || chA < lastA)) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+				}
+			} else {
+				if (chA == curChA && chB < lastB) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+					continue;
+				}
+				if(chA < curChA && (lastCh == null || chA > lastA)) {
+					lastA = chA;
+					lastB = chB;
+					lastCh = ch;
+					lastChId = id;
+				}
+			}
+		}
+		this.lastA = lastA;
+		chapterNextId = lastChId;
+		return lastCh;
 	}
 
 	Thread start(int i) {
@@ -2103,6 +2247,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Alert loadingAlert() {
 		Alert a = new Alert("", L[Loading], null, null);
 		a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
+		a.setTimeout(30000);
 		return a;
 	}
 	
@@ -2128,11 +2273,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// view
 
 	static void changeChapter(int d) {
-//		if (running) return;
-//		chapterDir = d;
-//		display(loadingAlert(), view);
-//		
-//		midlet.start(RUN_CHANGE_CHAPTER);
+		if (running) return;
+		chapterDir = d;
+		display(loadingAlert(), view);
+		
+		midlet.start(RUN_CHANGE_CHAPTER);
 	}
 
 	/**
