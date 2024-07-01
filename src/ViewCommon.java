@@ -92,7 +92,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				return null;
 			}
 		}
-		if (MangaApp.files && !forceCacheIgnore) {
+		if (MangaApp.chapterFileCache && !forceCacheIgnore) {
 			byte[] a = MangaApp.readCachedPage(n);
 			if (a != null) return a;
 			try {
@@ -157,7 +157,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	 */
 	protected synchronized final void emergencyCacheClear() {
 		try {
-			if (MangaApp.files) {
+			if (MangaApp.chapterFileCache) {
 				cache = null;
 				return;
 			}
@@ -185,7 +185,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	 * @return Aproximatry count of pages that is safe to load.
 	 */
 	protected final int canStorePages() {
-		if (MangaApp.files) {
+		if (MangaApp.chapterFileCache) {
 			return 999;
 		}
 		int f = (int) Runtime.getRuntime().freeMemory();
@@ -203,7 +203,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 
 	protected synchronized final void checkCacheAfterPageSwitch() {
-		if (MangaApp.files) {
+		if (MangaApp.chapterFileCache) {
 			cache = null;
 			return;
 		}
@@ -283,7 +283,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	public final void preload() throws InterruptedException {
 		Thread.sleep(1000);
-		if (MangaApp.files) {
+		if (MangaApp.chapterFileCache) {
 			for (int i = 0; i < MangaApp.chapterPages; i++) {
 				try {
 					getImage(i, false);
@@ -387,7 +387,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				e.printStackTrace();
 				orig = null;
 				System.out.println("Failed to decode an image in preparing. Size=" + l + "bytes");
-				if (MangaApp.files) {
+				if (MangaApp.chapterFileCache) {
 					showBrokenNotify();
 					try {
 						orig = Image.createImage(data = getImage(page, true), 0, data.length);
@@ -427,7 +427,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					e.printStackTrace();
 					System.out.println("Failed to decode an image in resizing. Size=" + l + "bytes");
 					origImg = null;
-					if (MangaApp.files) {
+					if (MangaApp.chapterFileCache) {
 						showBrokenNotify();
 						try {
 							byte[] b = getImage(page, true);
@@ -834,7 +834,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		// if (preloadProgress == 101) {
 		if (MangaApp.cachingPolicy == 2) {
 			prefetch = (preloadProgress > 0 && preloadProgress < 100)
-					? ((MangaApp.files ? "downloading " : "caching ") + preloadProgress + "%")
+					? ((MangaApp.chapterFileCache ? "downloading " : "caching ") + preloadProgress + "%")
 					: null;
 		}
 
