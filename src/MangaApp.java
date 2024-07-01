@@ -1717,7 +1717,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = chaptersForm != null ? chaptersForm : mainForm;
 			display(loadingAlert(), f);
 			try {
-				loadChapterInfo(id);
+				loadChapterInfo(id, true);
 				
 				int n = chapterPage;
 				chapterPages = chapterFilenames.size();
@@ -1755,7 +1755,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (chapterFilenames == null) {
 				downloadAlert.setString("Fetching");
 				try {
-					loadChapterInfo(chapterId);
+					loadChapterInfo(chapterId, false);
 				} catch (Exception e) {
 					display(errorAlert(e.toString()), f);
 					downloadIndicator = null;
@@ -1991,9 +1991,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		running = false;
 	}
 
-	private void loadChapterInfo(String id) throws IOException {
+	private void loadChapterInfo(String id, boolean b) throws IOException {
 		JSONObject j;
 		
+		if (b)
 		try {
 			j = api("chapter?ids[]=" + id).getArray("data").getObject(0);
 			
