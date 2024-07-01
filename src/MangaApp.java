@@ -528,7 +528,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				j.put("timezone", timezone);
 				j.put("coverLoading", coverLoading);
 				j.put("lang", lang);
-				if(contentFilter != null) {
+				if (contentFilter != null) {
 					for (int i = 0; i < 4; i++) {
 						j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
 					}
@@ -934,7 +934,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (running) return;
 			if (viewMode == 1) {
 				view = new ViewCommon(-2, false);
-			} else if(viewMode == 2) {
+			} else if (viewMode == 2) {
 				view = new ViewHWA(-2);
 			} else {
 				String vram = System.getProperty("com.nokia.gpu.memory.total");
@@ -1629,7 +1629,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						String type = r.getString("type");
 						if ("user".equals(type)) {
 							user = r;
-						} else if("scanlation_group".equals(type)) {
+						} else if ("scanlation_group".equals(type)) {
 							scan = r;
 						}
 					}
@@ -1728,7 +1728,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				if (viewMode == 1) {
 					view = new ViewCommon(n, false);
-				} else if(viewMode == 2) {
+				} else if (viewMode == 2) {
 					view = new ViewHWA(n);
 				} else {
 					String vram = System.getProperty("com.nokia.gpu.memory.total");
@@ -1775,50 +1775,51 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			String n, tn, folder = null;
 			try {
 				// создание папок
+				fc = (FileConnection) Connector.open(folder = "file:///".concat(downloadPath).concat("/"));
 				try {
-					fc = (FileConnection) Connector.open(folder = "file:///".concat(downloadPath).concat("/"));
 					fc.mkdir();
 				} catch (IOException e) {
 				} finally {
-					if(fc != null) fc.close();
+					fc.close();
+				}
+
+				fc = (FileConnection) Connector.open(folder = folder
+						.concat(safeFileName(mangaForm.getTitle(), mangaId).concat("/")));
+				try {
+					fc.mkdir();
+				} catch (IOException e) {
+				} finally {
+					fc.close();
+				}
+
+				int i;
+				String v = chapterVolume;
+				while (v.substring(0, (i = v.indexOf('.')) != -1 ? i : v.length()).length() < 2)
+					v = "0".concat(v);
+				
+				String c = chapterNum;
+				while (c.substring(0, (i = c.indexOf('.')) != -1 ? i : c.length()).length() < 3)
+					c = "0".concat(c);
+				
+				fc = (FileConnection) Connector.open(folder = folder
+						.concat("Vol. " + v + " Ch. " + c + " " + chapterLang + "/"));
+				try {
+					fc.mkdir();
+				} catch (IOException e) {
+				} finally {
+					fc.close();
 				}
 				
-				try {
-					fc = (FileConnection) Connector.open(folder = folder
-							.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
-					fc.mkdir();
-				} catch (IOException e) {
-				} finally {
-					if(fc != null) fc.close();
-				}
-				
-				try {
-					int i;
-					String v = chapterVolume;
-					while (v.substring(0, (i = v.indexOf('.')) != -1 ? i : v.length()).length() < 2)
-						v = "0".concat(v);
-					
-					String c = chapterNum;
-					while (c.substring(0, (i = c.indexOf('.')) != -1 ? i : c.length()).length() < 3)
-						c = "0".concat(c);
-					
-					String s = "Vol. " + v + " Ch. " + c + " " + chapterLang;
-					fc = (FileConnection) Connector.open(folder = folder.concat(safeFileName(s, chapterId)).concat("/"));
-					fc.mkdir();
-				} catch (IOException e) {
-				} finally {
-					if(fc != null) fc.close();
-				}
 				Thread.sleep(100);
 				
-				for (int i = 0; i < l && downloadIndicator != null; i++) {
+				for (i = 0; i < l && downloadIndicator != null; i++) {
 					if (downloadAlert != null)
 						downloadAlert.setString(L[Preparing] + " (" + (i+1) + "/" + (l) + ")");
 					downloadIndicator.setValue(i * 2 + 1);
 					n = (String) chapterFilenames.elementAt(i);
-					tn = Integer.toString(i + 1);
-					while (tn.length() < 3) tn = "0".concat(tn);
-					fc = (FileConnection) Connector.open(folder + tn + ".jpg");
+					tn = Integer.toString(i + 1).concat(".jpg");
+					while (tn.length() < 7) tn = "0".concat(tn);
+					fc = (FileConnection) Connector.open(folder.concat(tn));
 					try {
 						if (!fc.exists()) fc.create();
 						Thread.sleep(100);
@@ -1826,6 +1827,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						try {
 							if (hc.getResponseCode() != 200) {
 								throw new IOException("Bad response");
+							}
+							long fl = hc.getLength();
+							if (fl > 0) {
+								long al = fc.availableSize();
+								if (al < (fl * 2) || al < 1024 * 1024) {
+									fc.delete();
+									throw new Exception("Out of memory space");
+								}
 							}
 							in = hc.openInputStream();
 							if (downloadAlert != null)
@@ -1861,6 +1870,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} catch (NullPointerException e) {
 			} catch (Throwable e) {
+				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
 				downloadIndicator = null;
 				downloadAlert = null;
@@ -2252,7 +2262,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 
-		s = s.toString().trim();
+		s = t.toString().trim();
 		if (s.length() == 0)
 			return alt;
 		return s;
@@ -2268,7 +2278,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		boolean dir = chapterDir == 1;
 		String curCh = chapterNum;
-		if(!dir && curCh == null)
+		if (!dir && curCh == null)
 			return 0;
 		if (curCh == null)
 			curCh = "none";
@@ -2515,7 +2525,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
-			if(fc != null)
+			if (fc != null)
 				try {
 					fc.close();
 				} catch (IOException e) {}
@@ -2525,7 +2535,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
-			if(fc != null)
+			if (fc != null)
 				try {
 					fc.close();
 				} catch (IOException e) {}
@@ -2535,7 +2545,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
-			if(fc != null)
+			if (fc != null)
 				try {
 					fc.close();
 				} catch (IOException e) {}
