@@ -83,14 +83,17 @@ public interface LangConstants {
 	static final int DayAgo = 82;
 	static final int DaysAgo = 83;
 	static final int DaysAgo2 = 84;
-	static final int YearAgo = 85;
-	static final int YearsAgo = 86;
-	static final int YearsAgo2 = 87;
-	static final int MagazineDemographic = 88;
-	static final int ChaptersOrder = 89;
-	static final int Descending = 90;
-	static final int Ascending = 91;
-	static final int Random = 92;
-	static final int OpenFromPage = 93;
-	static final int ShowLink = 94;
+	static final int MonthAgo = 85;
+	static final int MonthsAgo = 86;
+	static final int MonthsAgo2 = 87;
+	static final int YearAgo = 88;
+	static final int YearsAgo = 89;
+	static final int YearsAgo2 = 90;
+	static final int MagazineDemographic = 91;
+	static final int ChaptersOrder = 92;
+	static final int Descending = 93;
+	static final int Ascending = 94;
+	static final int Random = 95;
+	static final int OpenFromPage = 96;
+	static final int ShowLink = 97;
 }

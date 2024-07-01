@@ -833,7 +833,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				display(errorAlert("Can't download, external link!"), chaptersForm); // TODO нормальный текст
+				display(errorAlert("Can't download, external link!"), chaptersForm);
 				return;
 			}
 
@@ -854,7 +854,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				display(errorAlert("External link!"), chaptersForm); // TODO нормальный текст
+				display(errorAlert("External link!"), chaptersForm);
 				return;
 			}
 			
@@ -2641,7 +2641,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return Integer.toString((int) d).concat(L[HoursAgo]);
 		}
 		
-		if (d < 365 * 24 * 60 * 60) {
+		if (d < 30 * 24 * 60 * 60) {
 			d /= 24 * 60 * 60L;
 			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
 				return Integer.toString((int) d).concat(L[DayAgo]);
@@ -2649,6 +2649,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return Integer.toString((int) d).concat(L[DaysAgo2]);
 			return Integer.toString((int) d).concat(L[DaysAgo]);
 		}
+		
+		if (d < 365 * 24 * 60 * 60) {
+			d /= 30 * 24 * 60 * 60L;
+			if (d == 1 || (ru && d % 10 == 1 && d % 100 != 11))
+				return Integer.toString((int) d).concat(L[MonthAgo]);
+			if (ru && (d % 10 > 4 || d % 10 < 2))
+				return Integer.toString((int) d).concat(L[MonthsAgo2]);
+			return Integer.toString((int) d).concat(L[MonthsAgo]);
+		}
+
 
 		d /= 365 * 24 * 60 * 60L;
 		if (d == 1) return Integer.toString((int) d).concat(L[YearAgo]);
