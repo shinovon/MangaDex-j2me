@@ -966,6 +966,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
+		if (d == authForm) {
+			if (c == backCmd) {
+				loginField = passwordField = clientField = clientSecretField = null;
+				authForm = null;
+				display(mainForm);
+				return;
+			}
+			if (c == authSubmitCmd) {
+				if (running) return;
+				start(RUN_AUTH);
+				return;
+			}
+		}
 		if (c == authCmd) {
 			Form f = new Form("");
 			f.addCommand(backCmd);
@@ -993,11 +1006,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(s);
 			
 			display(authForm = f);
-			return;
-		}
-		if (c == authSubmitCmd) {
-			if (running) return;
-			start(RUN_AUTH);
 			return;
 		}
 		if (c == backCmd) {
@@ -2241,10 +2249,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					a.setString(L[Authorizing]);
 					display(a, f);
 					
-					System.out.println(p.toString());
-					
 					byte[] data = p.toString().getBytes();
-							
+					
 					HttpConnection h = (HttpConnection) open(proxyUrl(AUTHURL));
 					try {
 						h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -2255,8 +2261,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						out.close();
 						InputStream in = h.openInputStream();
 						try {
-							JSONObject j = JSONObject.parseObject(new String(readBytes(in, 0, 128, 128)));
-							System.out.println(j);
+							JSONObject j = JSONObject.parseObject(new String(readBytes(in, 0, 2048, 2048)));
 							if (j.has("access_token")) {
 								accessToken = j.getString("access_token");
 								accessTokenTime = System.currentTimeMillis();
