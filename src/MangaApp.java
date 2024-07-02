@@ -153,6 +153,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup chapterCacheChoice;
 	private static ChoiceGroup cachingPolicyChoice;
 	private static ChoiceGroup keepBitmapChoice;
+	private static ChoiceGroup jpegChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -225,6 +226,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean chapterFileCache;
 	private static String chapterLangFilter = "";
 	private static boolean keepListCovers = true;
+	private static boolean dataSaver = true;
 	private static boolean symbian;
 
 	public MangaApp() {}
@@ -282,6 +284,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			cachingPolicy = j.getInt("cachingPolicy", cachingPolicy);
 			keepBitmap = j.getBoolean("keepBitmap", keepBitmap);
 			keepListCovers = j.getBoolean("keepListCovers", keepListCovers);
+			dataSaver = j.getBoolean("dataSaver", dataSaver);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -518,6 +521,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			cachingPolicy = cachingPolicyChoice.getSelectedIndex();
 			chapterFileCache = chapterCacheChoice.isSelected(0);
 			keepBitmap = keepBitmapChoice.isSelected(0);
+			dataSaver = jpegChoice.isSelected(0);
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -544,6 +548,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("cachingPolicy", cachingPolicy);
 				j.put("keepBitmap", keepBitmap);
 				j.put("keepListCovers", keepListCovers);
+				j.put("dataSaver", dataSaver);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -627,6 +632,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(proxyField);
 				
 				// TODO фм
+				
+				jpegChoice = new ChoiceGroup("Image quality", ChoiceGroup.POPUP, new String[] {
+						"JPEG", "PNG"
+				}, null);
+				jpegChoice.setSelectedIndex(dataSaver ? 0 : 1, true);
+				f.append(jpegChoice);
 				
 				// режим просмотра
 				viewModeChoice = new ChoiceGroup(L[ViewMode], ChoiceGroup.POPUP, new String[] {
@@ -2025,7 +2036,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		JSONArray data;
 		// жпег, если нет то пнг
-		if (j.has("dataSaver")) data = j.getArray("dataSaver");
+		if (dataSaver && j.has("dataSaver")) data = j.getArray("dataSaver");
 		else data = j.getArray("data");
 		
 		int l = data.size();
@@ -2563,7 +2574,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public static byte[] getPage(int n) throws IOException {
-		return get(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + chapterFilenames.elementAt(n)));
+		return get(proxyUrl(chapterBaseUrl + (dataSaver ? "/data-saver/" : "/data/") +
+				chapterHash + '/' + chapterFilenames.elementAt(n)));
 	}
 
 	public static byte[] getCover() throws Exception {
