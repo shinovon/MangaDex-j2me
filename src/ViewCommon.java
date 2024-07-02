@@ -16,6 +16,7 @@ import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 import javax.microedition.lcdui.TextBox;
 
+// from njtai
 public class ViewCommon extends Canvas implements Runnable, CommandListener, LangConstants {
 	/**
 	 * Number of page from zero.
@@ -591,13 +592,13 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				resize((int) zoom);
 			} else if (k == -1 || k == KEY_NUM2 || k == 'w') {
 				// up
-				y += getHeight() / 4;
+				y += getHeight() * panDeltaMul() / 4;
 			} else if (k == -2 || k == KEY_NUM8 || k == 's') {
-				y -= getHeight() / 4;
+				y -= getHeight() * panDeltaMul() / 4;
 			} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
-				x += getWidth() / 4;
+				x += getWidth() * panDeltaMul() / 4;
 			} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
-				x -= getWidth() / 4;
+				x -= getWidth() * panDeltaMul() / 4;
 			}
 		} else {
 			// zoom inactive

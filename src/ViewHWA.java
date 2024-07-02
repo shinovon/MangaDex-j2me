@@ -12,6 +12,7 @@ import javax.microedition.m3g.*;
  * 
  * @author Feodor0090
  */
+//from njtai
 public class ViewHWA extends ViewCommon {
 
 	/**
