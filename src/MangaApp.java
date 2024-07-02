@@ -2542,8 +2542,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterFilenames = null;
 			return;
 		}
-		if (coverLoading == 3) return;
-		if (d == listForm || d == tempListForm) {
+		if (coverLoading == 3 || p == mainForm) return;
+		if (d == listForm/*|| d == tempListForm*/) {
 			try {
 				// докачивание обложек
 				int l = ((Form) d).size();
