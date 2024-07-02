@@ -113,4 +113,6 @@ public interface LangConstants {
 	static final int Fetching = 112;
 	static final int ExternalLink = 113;
 	static final int Initializing = 114;
+	static final int Select = 115;
+	static final int SpecifyPath = 116;
 }

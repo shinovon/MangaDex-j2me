@@ -16,6 +16,7 @@ import java.util.Vector;
 import javax.microedition.io.Connector;
 import javax.microedition.io.HttpConnection;
 import javax.microedition.io.file.FileConnection;
+import javax.microedition.io.file.FileSystemRegistry;
 import javax.microedition.lcdui.*;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.rms.RecordStore;
@@ -102,6 +103,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command openFromPageCmd;
 	private static Command downloadCoverCmd;
 	private static Command showLinkCmd;
+	private static Command pathCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -112,6 +114,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static Command cancelCmd;
 	private static Command openCmd;
 	private static Command continueCmd;
+	
+	private static Command dirOpenCmd;
+	private static Command dirSelectCmd;
 	
 	// ui
 	private static Form mainForm;
@@ -204,6 +209,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String version;
 	
 	private static Image coverPlaceholder;
+	
+	// файлы
+	private static List fileList;
+	private static String curDir;
+	private static Vector rootsList;
 	
 	// настройки
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
@@ -326,6 +336,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		openFromPageCmd = new Command(L[OpenFromPage], Command.ITEM, 4);
 		downloadCoverCmd = new Command(L[DownloadCover], Command.ITEM, 2);
 		showLinkCmd = new Command(L[ShowLink], Command.SCREEN, 5);
+		pathCmd = new Command(L[SpecifyPath], Command.ITEM, 1);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -336,6 +347,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		cancelCmd = new Command(L[Cancel], Command.CANCEL, 2);
 		openCmd = new Command(L[Open], Command.OK, 1);
 		continueCmd = new Command(L[Continue], Command.OK, 1);
+		
+		dirOpenCmd = new Command(L[Open], Command.ITEM, 1);
+		dirSelectCmd = new Command(L[Select], Command.SCREEN, 2);
 		
 		// главная форма
 		
@@ -626,14 +640,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(contentFilterChoice);
 				
 				// путь скачивания
-				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.NON_PREDICTIVE);
+				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.URL);
+				downloadPathField.addCommand(pathCmd);
+				downloadPathField.setItemCommandListener(this);
 				f.append(downloadPathField);
+				
+				s = new StringItem("", "...", StringItem.BUTTON);
+				s.addCommand(pathCmd);
+				s.setDefaultCommand(pathCmd);
+				s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+				f.append(s);
 				
 				// прокси
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
 				f.append(proxyField);
-				
-				// TODO фм
 				
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
 						"JPEG", "PNG"
@@ -827,6 +847,67 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				gotoPage(f, ((TextBox) d).getString());
 			}
 			display(f);
+			return;
+		}
+		// фм
+		if (d == fileList) {
+			if (c == backCmd) {
+				if (curDir == null) {
+					fileList = null;
+					display(settingsForm);
+				} else {
+					if (curDir.indexOf("/") == -1) {
+						fileList = new List("", List.IMPLICIT);
+						fileList.addCommand(backCmd);
+						fileList.setTitle("");
+						fileList.addCommand(List.SELECT_COMMAND);
+						fileList.setSelectCommand(List.SELECT_COMMAND);
+						fileList.setCommandListener(this);
+						for(int i = 0; i < rootsList.size(); i++) {
+							String s = (String) rootsList.elementAt(i);
+							if (s.startsWith("file:///")) s = s.substring(8);
+							if (s.endsWith("/")) s = s.substring(0, s.length() - 1);
+							fileList.append(s, null);
+						}
+						curDir = null;
+						display(fileList);
+						return;
+					}
+					String sub = curDir.substring(0, curDir.lastIndexOf('/'));
+					String fn = "";
+					if (sub.indexOf('/') != -1) {
+						fn = sub.substring(sub.lastIndexOf('/') + 1);
+					} else {
+						fn = sub;
+					}
+					curDir = sub;
+					showFileList(sub + "/", fn);
+				}
+			}
+			if (c == dirOpenCmd || c == List.SELECT_COMMAND) {
+				String fs = curDir;
+				String f = "";
+				if (fs != null) f += curDir + "/";
+				String is = fileList.getString(fileList.getSelectedIndex());
+				if ("- ".concat(L[Select]).equals(is)) {
+					fileList = null;
+					// папка скачивания выбрана
+					downloadPathField.setString(f);
+					display(settingsForm);
+					curDir = null;
+					return;
+				}
+				f += is;
+				
+				curDir = f;
+				showFileList(f + "/", is);
+				return;
+			}
+			if (c == dirSelectCmd) {
+				fileList = null;
+				curDir = null;
+				display(settingsForm);
+			}
 			return;
 		}
 		if (c == backCmd) {
@@ -1030,6 +1111,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listMode = LIST_RELATED;
 			display(tempListForm = f);
 			start(RUN_MANGAS);
+			return;
+		}
+		if (c == pathCmd) {
+			showFileList(2);
 			return;
 		}
 //		if (c == bookmarksCmd) {
@@ -2000,7 +2085,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				fc.delete();
 //			} catch (Exception ignored) {
 //			} finally {
-//				if(fc != null) try {
+//				if (fc != null) try {
 //					fc.close();
 //				} catch (Exception e) {}
 //			}
@@ -2285,6 +2370,58 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (s.length() == 0)
 			return alt;
 		return s;
+	}
+	
+	private static void showFileList(String f, String title) {
+		fileList = new List(title, List.IMPLICIT);
+		fileList.setTitle(title);
+		fileList.addCommand(backCmd);
+		fileList.addCommand(List.SELECT_COMMAND);
+		fileList.setSelectCommand(List.SELECT_COMMAND);
+		fileList.setCommandListener(midlet);
+		fileList.addCommand(dirSelectCmd);
+		fileList.append("- ".concat(L[Select]), null);
+		try {
+			FileConnection fc = (FileConnection) Connector.open("file:///" + f);
+			Enumeration list = fc.list();
+			while(list.hasMoreElements()) {
+				String s = (String) list.nextElement();
+				if(s.endsWith("/")) {
+					fileList.append(s.substring(0, s.length() - 1), null);
+				}
+			}
+			fc.close();
+		} catch (Exception e) {
+		}
+		display(fileList);
+	}
+	
+	private static void showFileList(int mode) {
+		fileList = new List("", List.IMPLICIT);
+		
+		if(rootsList == null) {
+			rootsList = new Vector();
+			try {
+				Enumeration roots = FileSystemRegistry.listRoots();
+				while(roots.hasMoreElements()) {
+					String s = (String) roots.nextElement();
+					if(s.startsWith("file:///")) s = s.substring(8);
+					rootsList.addElement(s);
+				}
+			} catch (Exception e) {}
+		}
+		
+		for(int i = 0; i < rootsList.size(); i++) {
+			String s = (String) rootsList.elementAt(i);
+			if(s.startsWith("file:///")) s = s.substring(8);
+			if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
+			fileList.append(s, null);
+		}
+		fileList.addCommand(List.SELECT_COMMAND);
+		fileList.setSelectCommand(List.SELECT_COMMAND);
+		fileList.addCommand(backCmd);
+		fileList.setCommandListener(midlet);
+		display(fileList);
 	}
 	
 	// view
@@ -2618,7 +2755,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		byte[] readBuf = new byte[bufferSize];
 		int readLen;
 		while ((readLen = inputStream.read(readBuf)) != -1) {
-			if(count + readLen > buf.length) {
+			if (count + readLen > buf.length) {
 				byte[] newbuf = new byte[count + expandSize];
 				System.arraycopy(buf, 0, newbuf, 0, count);
 				buf = newbuf;
@@ -2626,7 +2763,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			System.arraycopy(readBuf, 0, buf, count, readLen);
 			count += readLen;
 		}
-		if(buf.length == count) {
+		if (buf.length == count) {
 			return buf;
 		}
 		byte[] res = new byte[count];
@@ -2640,7 +2777,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			hc = open(url);
 			int r;
-			if((r = hc.getResponseCode()) >= 400) {
+			if ((r = hc.getResponseCode()) >= 400) {
 				throw new IOException("HTTP " + r);
 			}
 			in = hc.openInputStream();
@@ -2663,20 +2800,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			hc = open(url);
 			int i, j, k = 0;
-			if((i = hc.getResponseCode()) >= 400) {
+			if ((i = hc.getResponseCode()) >= 400) {
 				throw new IOException("HTTP " + i);
 			}
 			String r;
 			while(i >= 300) {
-				if(++k > 3) {
+				if (++k > 3) {
 					throw new IOException("Too many redirects!");
 				}
-				if((r = hc.getHeaderField("Location")).startsWith("/")) {
+				if ((r = hc.getHeaderField("Location")).startsWith("/")) {
 					r = url.substring(0, (j = url.indexOf("//") + 2)) + url.substring(j, url.indexOf("/", j)) + r;
 				}
 				hc.close();
 				hc = open(r);
-				if((i = hc.getResponseCode()) >= 400) {
+				if ((i = hc.getResponseCode()) >= 400) {
 					throw new IOException("HTTP " + i);
 				}
 			}
@@ -2684,7 +2821,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			byte[] buf = new byte[(i = (int) hc.getLength()) <= 0 ? 1024 : i];
 			i = 0;
 			while((j = in.read(buf, i, buf.length - i)) != -1) {
-				if((i += j) == buf.length) {
+				if ((i += j) == buf.length) {
 					System.arraycopy(buf, 0, buf = new byte[i + 2048], 0, i);
 				}
 			}
@@ -2805,15 +2942,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// парсер даты ISO 8601 без учета часового пояса
 	static Calendar parseDate(String date) {
 		Calendar c = Calendar.getInstance();
-		if(date.indexOf('T') != -1) {
+		if (date.indexOf('T') != -1) {
 			String[] dateSplit = split(date.substring(0, date.indexOf('T')), '-');
 			String[] timeSplit = split(date.substring(date.indexOf('T')+1), ':');
 			String second = split(timeSplit[2], '.')[0];
 			int i = second.indexOf('+');
-			if(i == -1) {
+			if (i == -1) {
 				i = second.indexOf('-');
 			}
-			if(i != -1) {
+			if (i != -1) {
 				second = second.substring(0, i);
 			}
 			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
@@ -2834,9 +2971,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// отрезать таймзону из даты
 	static String getTimeZoneStr(String date) {
 		int i = date.lastIndexOf('+');
-		if(i == -1)
+		if (i == -1)
 			i = date.lastIndexOf('-');
-		if(i == -1)
+		if (i == -1)
 			return null;
 		return date.substring(i);
 	}
@@ -2845,11 +2982,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static int parseTimeZone(String date) {
 		int i = date.lastIndexOf('+');
 		boolean m = false;
-		if(i == -1) {
+		if (i == -1) {
 			i = date.lastIndexOf('-');
 			m = true;
 		}
-		if(i == -1)
+		if (i == -1)
 			return 0;
 		date = date.substring(i + 1);
 		int offset = date.lastIndexOf(':');
@@ -2859,20 +2996,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	static String n(int n) {
-		if(n < 10) {
+		if (n < 10) {
 			return "0".concat(Integer.toString(n));
 		} else return Integer.toString(n);
 	}
 	
 	static String[] split(String str, char d) {
 		int i = str.indexOf(d);
-		if(i == -1)
+		if (i == -1)
 			return new String[] {str};
 		Vector v = new Vector();
 		v.addElement(str.substring(0, i));
 		while(i != -1) {
 			str = str.substring(i + 1);
-			if((i = str.indexOf(d)) != -1)
+			if ((i = str.indexOf(d)) != -1)
 				v.addElement(str.substring(0, i));
 			i = str.indexOf(d);
 		}
@@ -2884,7 +3021,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String replaceOnce(String str, String hay, String ned) {
 		int idx = str.indexOf(hay);
-		if(idx != -1) {
+		if (idx != -1) {
 			str = str.substring(0, idx) + ned + str.substring(idx+hay.length());
 		}
 		return str;
