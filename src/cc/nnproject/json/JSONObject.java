@@ -228,7 +228,7 @@ public class JSONObject {
 	}
 	
 	public void put(String name, String s) {
-		table.put(name, s);
+		table.put(name, s == null ? json_null : s);
 	}
 
 	public void put(String name, int i) {

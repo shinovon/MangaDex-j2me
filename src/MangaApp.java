@@ -37,17 +37,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static final int RUN_PRELOADER = 8;
 	private static final int RUN_CHANGE_CHAPTER = 9;
 //	private static final int RUN_DISPOSE_VIEW = 10;
+	private static final int RUN_AUTH = 11;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
 	private static final int LIST_SEARCH = 3;
 	private static final int LIST_ADVANCED_SEARCH = 4;
 	private static final int LIST_RELATED = 5;
+	private static final int LIST_FOLLOWED = 6;
 	
 	private static final String SETTINGS_RECORDNAME = "mangaDsets";
+	private static final String AUTH_RECORDNAME = "mangaDauth";
 	
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
+	private static final String AUTHURL = "https://auth.mangadex.org/realms/mangadex/protocol/openid-connect/token";
 
 //	private static final Font largeboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_LARGE);
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
@@ -89,8 +93,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command advSearchCmd;
 	private static Command recentCmd;
 	private static Command randomCmd;
+	private static Command authCmd;
+	private static Command libraryCmd;
 	
 	private static Command advSubmitCmd;
+	private static Command authSubmitCmd;
 	
 	private static Command mangaItemCmd;
 	private static Command chaptersCmd;
@@ -160,6 +167,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
+	
+	// логин
+	private static Form authForm;
+	private static TextField loginField;
+	private static TextField passwordField;
+	private static TextField clientField;
+	private static TextField clientSecretField;
 	
 	// трединг
 	private static int run;
@@ -236,6 +250,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean symbianJrt;
 	private static boolean useLoadingForm;
 
+	// auth
+	private static String clientId;
+	private static String clientSecret;
+	private static String accessToken;
+	private static String refreshToken;
+	private static String username;
+	private static String password;
+	private static long accessTokenTime;
+	private static long refreshTokenTime;
+	private static int runAfterAuth;
+
 	public MangaApp() {}
 
 	protected void destroyApp(boolean unconditional) {}
@@ -309,12 +334,30 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		
+		// загрузка авторизации
+		try {
+			RecordStore r = RecordStore.openRecordStore(AUTH_RECORDNAME, false);
+			JSONObject j = JSONObject.parseObject(new String(r.getRecord(1), "UTF-8"));
+			r.closeRecordStore();
+			
+			accessToken = j.getNullableString("accessToken");
+			refreshToken = j.getNullableString("refreshToken");
+			clientId = j.getNullableString("clientId");
+			clientSecret = j.getNullableString("clientSecret");
+			username = j.getNullableString("username");
+			password = j.getNullableString("password");
+			accessTokenTime = j.getLong("accessTime", 0);
+			refreshTokenTime = j.getLong("refreshTime", 0);
+//			start(RUN_AUTH);
+		} catch (Exception e) {}
+		
 		// команды
 		
 		exitCmd = new Command(L[Exit], Command.EXIT, 2);
 		backCmd = new Command(L[Back], Command.EXIT, 2);
 		settingsCmd = new Command(L[Settings], Command.SCREEN, 3);
-		aboutCmd = new Command(L[About], Command.SCREEN, 4);
+		authCmd = new Command(L[Authorization], Command.SCREEN, 4);
+		aboutCmd = new Command(L[About], Command.SCREEN, 5);
 		
 		searchCmd = new Command(L[Search], Command.ITEM, 1);
 		updatesCmd = new Command(L[Updates], Command.ITEM, 1);
@@ -322,8 +365,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		advSearchCmd = new Command(L[AdvSearch], Command.ITEM, 1);
 		recentCmd = new Command(L[Recent], Command.ITEM, 1);
 		randomCmd = new Command(L[Random], Command.ITEM, 1);
+		libraryCmd = new Command(L[Followed], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
+		authSubmitCmd = new Command("Login", Command.OK, 1);
 		
 		mangaItemCmd = new Command(L[Open], Command.ITEM, 1);
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
@@ -357,6 +402,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.addCommand(exitCmd);
 		f.addCommand(settingsCmd);
 		f.addCommand(aboutCmd);
+		f.addCommand(authCmd);
 		f.setCommandListener(this);
 		
 		if (coverLoading != 3)
@@ -381,6 +427,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(searchCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+		
+		if (refreshToken != null) {
+			s = new StringItem(null, L[Followed], StringItem.BUTTON);
+			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+			s.addCommand(libraryCmd);
+			s.setDefaultCommand(libraryCmd);
+			s.setItemCommandListener(this);
+			f.append(s);
+		}
 		
 		s = new StringItem(null, L[RecentlyAdded], StringItem.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
@@ -409,6 +464,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(randomCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+		
 		
 //		s = new StringItem(null, L[Bookmarks], StringItem.BUTTON);
 //		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
@@ -910,6 +966,40 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
+		if (c == authCmd) {
+			Form f = new Form("");
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			
+			loginField = new TextField("Login", username != null ? username : "", 100, TextField.NON_PREDICTIVE);
+			f.append(loginField);
+			
+			passwordField = new TextField("Password", password != null ? password : "", 100, TextField.NON_PREDICTIVE);
+			f.append(passwordField);
+			clientField = new TextField("Client ID", clientId != null ? clientId : "", 100, TextField.NON_PREDICTIVE);
+			f.append(clientField);
+			
+			clientSecretField = new TextField("Client secret", clientSecret != null ? clientSecret : "", 100, TextField.NON_PREDICTIVE);
+			f.append(clientSecretField);
+			
+			StringItem s = new StringItem("", "Login", StringItem.BUTTON);
+			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
+			s.addCommand(authSubmitCmd);
+			s.setDefaultCommand(authSubmitCmd);
+			s.setItemCommandListener(this);
+			f.append(s);
+			
+			s = new StringItem(null, "\nSee https://api.mangadex.org/docs/02-authentication/personal-clients/");
+			f.append(s);
+			
+			display(authForm = f);
+			return;
+		}
+		if (c == authSubmitCmd) {
+			if (running) return;
+			start(RUN_AUTH);
+			return;
+		}
 		if (c == backCmd) {
 			display(mainForm);
 			return;
@@ -939,7 +1029,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGA);
 			return;
 		}
-		if (c == searchCmd || c == updatesCmd || c == recentCmd) {
+		if (c == searchCmd || c == updatesCmd || c == recentCmd || c == libraryCmd) {
 			// открыть поиск или список последних обновленных манг
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
@@ -953,8 +1043,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listOffset = 0;
 			query = c == searchCmd ? searchField.getString().trim() : null;
 			
-			listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
 			display(listForm = f);
+			
+			if (c == libraryCmd) {
+				listMode = LIST_FOLLOWED;
+				runAfterAuth = RUN_MANGAS;
+				start(RUN_AUTH);
+				return;
+			}
+			
+			listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
 			start(RUN_MANGAS);
 			return;
 		}
@@ -1136,6 +1234,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			run = MangaApp.run;
 			notify();
 		}
+		System.out.println("run ".concat(n(run)));
 		running = run != RUN_COVERS && run != RUN_PRELOADER;
 		switch (run) {
 		case RUN_MANGAS: { // поиск и список манг
@@ -1161,7 +1260,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 
 				// фильтр содержимого из настроек, не применяется в расширенном поиске
-				if (listMode != LIST_ADVANCED_SEARCH && contentFilter != null) {
+				if (listMode != LIST_ADVANCED_SEARCH && listMode != LIST_FOLLOWED && contentFilter != null) {
 					int j = 0;
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
@@ -1284,6 +1383,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						sb.append("&ids[".concat(Integer.toString(i)).concat("]="))
 						.append(((JSONObject) relatedManga.elementAt(i)).getString("id"));
 					}
+					break;
+				}
+				case LIST_FOLLOWED: {
+					f.setTitle(L[Followed]);
+					sb.insert(0, "user/follows/");
 					break;
 				}
 				}
@@ -2091,8 +2195,116 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //			}
 //			break;
 //		}
+		case RUN_AUTH: {
+			auth: {
+				Displayable f = display.getCurrent();
+				
+				try {
+					long now = System.currentTimeMillis();
+					if (now - accessTokenTime > 900 * 1000L)
+						accessToken = null;
+					if (now - refreshTokenTime > 7776000 * 1000L)
+						refreshToken = null;
+					
+					if (clientField != null) {
+						clientId = clientField.getString();
+						clientSecret = clientSecretField.getString();
+					}
+					
+					StringBuffer p = new StringBuffer("client_id=")
+							.append(url(clientId))
+							.append("&client_secret=")
+							.append(url(clientSecret))
+							;
+					
+					if (loginField != null && loginField.getString().trim().length() > 0) {
+						// login
+						p.append("&grant_type=password&username=")
+						.append(url(loginField.getString()))
+						.append("&password=")
+						.append(url(passwordField.getString()))
+						;
+					} else if(refreshToken != null && accessToken == null) {
+						// refresh
+						p.append("&grant_type=refresh_token&refresh_token=")
+						.append(url(refreshToken))
+						;
+					} else if(accessToken == null && username != null && password != null) {
+						p.append("&grant_type=password&username=")
+						.append(url(username))
+						.append("&password=")
+						.append(url(password))
+						;
+					} else break auth;
+					
+					Alert a = loadingAlert();
+					a.setString(L[Authorizing]);
+					display(a, f);
+					
+					System.out.println(p.toString());
+					
+					byte[] data = p.toString().getBytes();
+							
+					HttpConnection h = (HttpConnection) open(proxyUrl(AUTHURL));
+					try {
+						h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+						h.setRequestProperty("Content-length", Integer.toString(data.length));
+						OutputStream out = h.openOutputStream();
+						out.write(data);
+						out.flush();
+						out.close();
+						InputStream in = h.openInputStream();
+						try {
+							JSONObject j = JSONObject.parseObject(new String(readBytes(in, 0, 128, 128)));
+							System.out.println(j);
+							if (j.has("access_token")) {
+								accessToken = j.getString("access_token");
+								accessTokenTime = System.currentTimeMillis();
+							}
+							if (j.has("refresh_token")) {
+								refreshToken = j.getString("refresh_token");
+								refreshTokenTime = System.currentTimeMillis();
+							}
+							if (j.has("error")) {
+								throw new Exception("Auth error: ".concat(j.getString("error")));
+							}
+						} finally {
+							in.close();
+						}
+					} finally {
+						h.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					display(errorAlert(e.toString()), f);
+					writeAuth();
+					break;
+				}
+				writeAuth();
+				display(f);
+			}
+			if (runAfterAuth != 0) {
+				MangaApp.run = runAfterAuth;
+				runAfterAuth = 0;
+				run();
+				return;
+			}
+			break;
+		}
 		}
 		running = false;
+	}
+
+	Thread start(int i) {
+		Thread t = null;
+		try {
+			synchronized(this) {
+				run = i;
+				(t = new Thread(this)).start();
+				wait();
+			}
+		} catch (Exception e) {}
+		return t;
 	}
 
 	private void loadChapterInfo(String id) throws IOException {
@@ -2134,17 +2346,28 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterFilenames.addElement(n);
 		}
 	}
-
-	Thread start(int i) {
-		Thread t = null;
+	
+	private void writeAuth() {
 		try {
-			synchronized(this) {
-				run = i;
-				(t = new Thread(this)).start();
-				wait();
-			}
+			RecordStore.deleteRecordStore(AUTH_RECORDNAME);
 		} catch (Exception e) {}
-		return t;
+		try {
+			JSONObject j = new JSONObject();
+			
+			j.put("accessToken", accessToken);
+			j.put("refreshToken", refreshToken);
+			j.put("clientId", clientId);
+			j.put("clientSecret", clientSecret);
+			j.put("username", username);
+			j.put("password", password);
+			j.put("accessTime", accessTokenTime);
+			j.put("refreshTime", refreshTokenTime);
+			
+			byte[] b = j.toString().getBytes("UTF-8");
+			RecordStore r = RecordStore.openRecordStore(AUTH_RECORDNAME, true);
+			r.addRecord(b, 0, b.length);
+			r.closeRecordStore();
+		} catch (Exception e) {}
 	}
 	
 	// перейти на конкретную страницу
@@ -2840,6 +3063,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		HttpConnection hc = (HttpConnection) Connector.open(url);
 		hc.setRequestMethod("GET");
 		hc.setRequestProperty("User-Agent", "j2me-client/" + version + " (https://github.com/shinovon)");
+		if (accessToken != null && url.indexOf("api.mangadex.org") != -1) {
+			hc.setRequestProperty("Authorization", "Bearer ".concat(accessToken));
+		}
 		return hc;
 	}
 	

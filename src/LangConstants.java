@@ -5,13 +5,13 @@ public interface LangConstants {
 	static final int About = 4;
 	static final int Search = 5;
 	static final int Updates = 6;
-	static final int Bookmarks = 7; // unused
+	static final int Followed = 7;
 	static final int AdvSearch = 8;
 	static final int Recent = 9;
 	static final int Open = 10;
 	static final int Chapters = 11;
 	static final int Tag = 12;
-	static final int AddToFavorite = 13; // unused
+	static final int Authorization = 13;
 	static final int ShowCover = 14;
 	static final int Chapter = 15;
 	static final int ViewPage = 16;
@@ -24,7 +24,7 @@ public interface LangConstants {
 	static final int RecentlyAdded = 23;
 	static final int LatestUpdates = 24;
 	static final int AdvancedSearch = 25;
-	static final int Favorites = 26; // unused
+	static final int Authorizing = 26;
 	static final int InterfaceLanguage = 27;
 	static final int ContentFilter = 28;
 	static final int Safe = 29;
