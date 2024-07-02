@@ -97,4 +97,17 @@ public interface LangConstants {
 	static final int OpenFromPage = 96;
 	static final int ShowLink = 97;
 	static final int Enabled = 98;
+	static final int ImageQuality = 99;
+	static final int KeepCoversInLists = 100;
+	static final int ChapterCaching = 101;
+	static final int CacheChapterToFile = 102;
+	static final int KeepOriginalPages = 103;
+	static final int Preload = 104;
+	static final int ChapterLanguageFilter = 105;
+	static final int Example = 106;
+	static final int Continue = 107;
+	static final int ChapterGap = 108;
+	static final int ThereIsGap = 109;
+	static final int Default = 110;
+	static final int BestMatch = 111;
 }
