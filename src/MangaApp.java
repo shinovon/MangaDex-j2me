@@ -53,7 +53,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	private static final String AUTHURL = "https://auth.mangadex.org/realms/mangadex/protocol/openid-connect/token";
 
-//	private static final Font largeboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_LARGE);
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
 	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
 	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
@@ -886,7 +885,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		if (d instanceof TextBox) {
-			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm;
+			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm :listForm != null ? listForm : mainForm;
 			if (c == openCmd) {
 				// открыть главу с конкретной страницы
 				int n = Integer.parseInt(((TextBox) d).getString());
@@ -987,12 +986,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			loginField = new TextField("Login", username != null ? username : "", 100, TextField.NON_PREDICTIVE);
 			f.append(loginField);
 			
-			passwordField = new TextField("Password", password != null ? password : "", 100, TextField.NON_PREDICTIVE);
+			passwordField = new TextField("Password",
+					password != null ? password : "", 100, TextField.NON_PREDICTIVE);
 			f.append(passwordField);
-			clientField = new TextField("Client ID", clientId != null ? clientId : "", 100, TextField.NON_PREDICTIVE);
+			clientField = new TextField("Client ID",
+					clientId != null ? clientId : "personal-client-", 100, TextField.NON_PREDICTIVE);
 			f.append(clientField);
 			
-			clientSecretField = new TextField("Client secret", clientSecret != null ? clientSecret : "", 100, TextField.NON_PREDICTIVE);
+			clientSecretField = new TextField("Client secret",
+					clientSecret != null ? clientSecret : "", 100, TextField.NON_PREDICTIVE);
 			f.append(clientSecretField);
 			
 			StringItem s = new StringItem("", "Login", StringItem.BUTTON);
@@ -1122,12 +1124,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(t);
 			return;
 		}
-//		if (c == chapterPageItemCmd) {
-//			try {
-//				if (platformRequest(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + ((StringItem) item).getText())))
-//					notifyDestroyed();
-//			} catch (Exception e) {}
-//		}
 		if (c == showCoverCmd) {
 			if (running) return;
 			if (viewMode == 1) {
@@ -2385,7 +2381,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listOffset = Math.max(0, Math.min(Math.min(page - 1, listTotal / listLimit) * listLimit, listTotal)); 
 			start(RUN_MANGAS);
 		} else if (f == chaptersForm) {
-			chaptersOffset = Math.max(0, Math.min(Math.min(page - 1, chaptersTotal / chaptersLimit) * chaptersLimit, chaptersTotal));
+			chaptersOffset = Math.max(0,
+					Math.min(Math.min(page - 1, chaptersTotal / chaptersLimit) * chaptersLimit, chaptersTotal));
 			start(RUN_CHAPTERS);
 		}
 	}
