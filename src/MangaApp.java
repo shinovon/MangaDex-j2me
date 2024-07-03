@@ -1394,7 +1394,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					if (tagsFilter != null && tagsFilter.length() > 0) {
 						tagsParam(clearTag(tagsFilter), tags(null), sb, false);
-						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
 					}
 				}
 				
@@ -1637,7 +1636,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 					if (tagsFilter != null && tagsFilter.length() > 0) {
 						tagsParam(clearTag(tagsFilter), tags(null), sb, false);
-						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
 					}
 				}
 				
@@ -2569,7 +2567,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			n = s[i].trim();
 			for (int k = 0; k < tags.length; k++) {
 				if (!tags[k][1].equalsIgnoreCase(n)) continue;
-				sb.append(inc ? "&includedTags[]=" : "&excludedTags[]=").append(n);
+				sb.append(inc ? "&includedTags[]=" : "&excludedTags[]=").append(tags[k][0]);
 				break;
 			}
 		}
