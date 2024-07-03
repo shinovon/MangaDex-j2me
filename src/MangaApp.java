@@ -75,6 +75,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final String[] LANGUAGES = {
 			"en", "ru"
 	};
+	
+	private static String[][] tags;
 
 	static String[] L;
 
@@ -147,6 +149,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup advDemographicChoice;
 	private static ChoiceGroup advRatingChoice;
 	private static ChoiceGroup advSortChoice;
+	private static TextField advIncludeField;
+	private static ChoiceGroup advInclusionChoice;
+	private static TextField advExcludeField;
+	private static ChoiceGroup advExclusionChoice;
 	
 	// элементы настроек
 	private static TextField proxyField;
@@ -166,6 +172,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup keepBitmapChoice;
 	private static ChoiceGroup jpegChoice;
 	private static ChoiceGroup onlineChoice;
+	private static TextField tagsFilterField;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -254,6 +261,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean symbianJrt;
 	private static boolean useLoadingForm;
 	static boolean onlineResize = true;
+	private static String tagsFilter = "";
 
 	// auth
 	private static String clientId;
@@ -331,6 +339,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			keepListCovers = j.getBoolean("keepListCovers", keepListCovers);
 			dataSaver = j.getBoolean("dataSaver", dataSaver);
 			onlineResize = j.getBoolean("onlineResize", onlineResize);
+			tagsFilter = j.getString("tagsFilter", tagsFilter);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -436,6 +445,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 		// поиск
 		searchField = new TextField("", "", 200, TextField.NON_PREDICTIVE);
+		searchField.addCommand(searchCmd);
+		searchField.setItemCommandListener(this);
 		f.append(searchField);
 		
 		s = new StringItem(null, L[Search], StringItem.BUTTON);
@@ -606,6 +617,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			keepBitmap = keepBitmapChoice.isSelected(0);
 			dataSaver = jpegChoice.isSelected(0);
 			onlineResize = onlineChoice.isSelected(0);
+			tagsFilter = tagsFilterField.getString();
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -633,6 +645,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("keepListCovers", keepListCovers);
 				j.put("dataSaver", dataSaver);
 				j.put("onlineResize", onlineResize);
+				j.put("tagsFilter", tagsFilter);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -707,6 +720,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				contentFilterChoice.setSelectedFlags(contentFilter);
 				f.append(contentFilterChoice);
 				
+				tagsFilterField = new TextField("Exclude tags", tagsFilter, 100, TextField.NON_PREDICTIVE);
+				f.append(tagsFilterField);
+				
 				// путь скачивания
 				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.URL);
 				downloadPathField.addCommand(pathCmd);
@@ -730,7 +746,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				jpegChoice.setSelectedIndex(dataSaver ? 0 : 1, true);
 				f.append(jpegChoice);
 				
-				onlineChoice = new ChoiceGroup("Server-side resize", ChoiceGroup.POPUP, on_off, null);
+				onlineChoice = new ChoiceGroup("Server-side resizing", ChoiceGroup.POPUP, on_off, null);
 				onlineChoice.setSelectedIndex(onlineResize ? 0 : 1, true);
 				f.append(onlineChoice);
 				
@@ -1181,6 +1197,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setCommandListener(this);
 			
 			TextField t;
+			ChoiceGroup g;
+			StringItem s;
 			
 			t = new TextField(L[Title], "", 200, TextField.ANY);
 			f.append(advTitleField = t);
@@ -1188,7 +1206,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			t = new TextField(L[Year], "", 4, TextField.NUMERIC);
 			f.append(advYearField = t);
 			
-			ChoiceGroup g;
 			
 			g = new ChoiceGroup(L[Status], ChoiceGroup.MULTIPLE, new String[] {
 					L[Ongoing], L[Completed], L[Hiatus], L[Cancelled]
@@ -1209,6 +1226,90 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (!contentFilter[1]) g.delete(1);
 			f.append(advRatingChoice = g);
 			
+			s = new StringItem(null, "\nTags");
+			s.setFont(smallfont);
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+			f.append(s);
+			
+			// теги
+			String[] and_or = new String[] { "And", "Or" };
+			
+			t = new TextField("Include tags", "", 200, TextField.NON_PREDICTIVE);
+			f.append(advIncludeField = t);
+			
+			g = new ChoiceGroup("Inclusion mode", ChoiceGroup.POPUP, and_or, null);
+			f.append(advInclusionChoice = g);
+			
+			t = new TextField("Exclude tags", "", 200, TextField.NON_PREDICTIVE);
+			f.append(advExcludeField = t);
+			
+			g = new ChoiceGroup("Exclusion mode", ChoiceGroup.POPUP, and_or, null);
+			g.setSelectedIndex(1, true);
+			f.append(advExclusionChoice = g);
+			
+			s = new StringItem(null, "\nTags list:");
+			s.setFont(smallfont);
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+			f.append(s);
+			
+			String[][] tags;
+			StringBuffer sb = new StringBuffer();
+			try {
+				// Format
+				tags = tags("format");
+				for (int i = 0; i < tags.length; i++) {
+					sb.append(tags[i][1]).append("; ");
+				}
+				sb.setLength(sb.length() - 2);
+				
+				s = new StringItem("Format", sb.toString());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+				
+				// Genre
+				sb.setLength(0);
+				tags = tags("genre");
+				for (int i = 0; i < tags.length; i++) {
+					sb.append(tags[i][1]).append(", ");
+				}
+				sb.setLength(sb.length() - 2);
+				
+				s = new StringItem("Genre", sb.toString());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+
+				// Theme
+				sb.setLength(0);
+				tags = tags("theme");
+				for (int i = 0; i < tags.length; i++) {
+					sb.append(tags[i][1]).append(", ");
+				}
+				sb.setLength(sb.length() - 2);
+				
+				s = new StringItem("Theme", sb.toString());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+
+				// Content
+				sb.setLength(0);
+				tags = tags("content");
+				for (int i = 0; i < tags.length; i++) {
+					sb.append(tags[i][1]).append(", ");
+				}
+				sb.setLength(sb.length() - 2);
+				
+				s = new StringItem("Content", sb.toString());
+				s.setFont(smallfont);
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+				f.append(s);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			// сортир
 			g = new ChoiceGroup(L[SortBy], ChoiceGroup.EXCLUSIVE, new String[] {
 					L[Default], L[BestMatch], // relevance
 					"Latest Upload", "Oldest Upload", // latestUploadedChapter
@@ -1219,8 +1320,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					"Year Ascending", "Year Descending" // year
 			}, null);
 			f.append(advSortChoice = g);
-			
-			// поиска по автору и по тегам видимо не будет, в запросе надо пихать их иды
 			
 			display(searchForm = f);
 			return;
@@ -1286,11 +1385,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 
 				// фильтр содержимого из настроек, не применяется в расширенном поиске
-				if (listMode != LIST_ADVANCED_SEARCH && listMode != LIST_FOLLOWED && contentFilter != null) {
-					int j = 0;
+				if (listMode != LIST_ADVANCED_SEARCH && listMode != LIST_FOLLOWED) {
+					if (contentFilter != null)
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
+						sb.append("&contentRating[]=").append(CONTENT_RATINGS[i]);
+					}
+					
+					if (tagsFilter != null && tagsFilter.length() > 0) {
+						tagsParam(clearTag(tagsFilter), tags(null), sb, false);
+						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
 					}
 				}
 				
@@ -1399,6 +1503,25 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						sb.append("&order[year]=desc");
 						break;
 					}
+
+					// фильтр по тегам
+					String[][] tags = null;
+					String inc = clearTag(advIncludeField.getString().trim());
+					String exc = clearTag(advExcludeField.getString().trim());
+					
+					if (inc.length() > 0 || exc.length() > 0) {
+						tags = tags(null);
+					}
+					
+					if (inc.length() > 0) {
+						tagsParam(inc, tags, sb, true);
+						sb.append("&includedTagsMode=").append(advInclusionChoice.isSelected(0) ? "and" : "or");
+					}
+					
+					if (inc.length() > 0) {
+						tagsParam(inc, tags, sb, false);
+						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
+					}
 					
 					break;
 				}
@@ -1504,12 +1627,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			try {
 				StringBuffer sb = new StringBuffer("manga/").append(id)
 						.append("?includes[0]=author&includes[1]=artist");
-				// туду фильтр тегов в рандоме
-				if ("random".equals(id) && contentFilter != null) {
-					int j = 0;
+				// фильтровать рандом
+				if ("random".equals(id)) {
+					if (contentFilter != null)
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
+						sb.append("&contentRating[]=").append(CONTENT_RATINGS[i]);
+					}
+					
+					if (tagsFilter != null && tagsFilter.length() > 0) {
+						String[] s = split(tagsFilter, ',');
+						for (int i = 0; i < s.length; i++) {
+							sb.append("&excludedTags[]=").append(s[i].trim());
+						}
 					}
 				}
 				
@@ -2434,6 +2564,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			r.closeRecordStore();
 		} catch (Exception e) {}
 	}
+
+	private void tagsParam(String c, String[][] tags, StringBuffer sb, boolean inc) {
+		String[] s = split(c, ',');
+		String n;
+		for (int i = 0; i < s.length; i++) {
+			n = s[i].trim();
+			for (int k = 0; k < tags.length; k++) {
+				if (!tags[k][1].equalsIgnoreCase(n)) continue;
+				sb.append(inc ? "&includedTags[]=" : "&excludedTags[]=").append(n);
+				break;
+			}
+		}
+	}
 	
 	// перейти на конкретную страницу
 	private void gotoPage(Form f, String t) {
@@ -2642,25 +2785,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return a;
 	}
 	
-	private static String safeFileName(String s, String alt) {
-		if (s == null || s.trim().length() == 0)
-			return alt;
-		StringBuffer t = new StringBuffer();
-		int l = s.length();
-		for (int i = 0; (i < l && i < 36); i++) {
-			char c = s.charAt(i);
-			if (c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'
-					|| c == '_' || c == '!') {
-				t.append(c);
-			}
-		}
-
-		s = t.toString().trim();
-		if (s.length() == 0)
-			return alt;
-		return s;
-	}
-	
 	private static void showFileList(String f, String title) {
 		fileList = new List(title, List.IMPLICIT);
 		fileList.setTitle(title);
@@ -2711,6 +2835,67 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		fileList.addCommand(backCmd);
 		fileList.setCommandListener(midlet);
 		display(fileList);
+	}
+	
+	// возвращает массив массивов из [ид,название]
+	private String[][] tags(String group) throws IOException {
+		JSONStream s = JSONStream.getStream(getClass().getResourceAsStream("tags"));
+		try {
+			if (group == null) {
+				// все сразу
+				if (tags != null)
+					return tags;
+				
+				JSONObject j = s.nextObject();
+				JSONArray f = j.getArray("format"),
+						g = j.getArray("genre"),
+						t = j.getArray("theme"),
+						m = j.getArray("content");
+				String[][] res = new String[f.size() + g.size() + t.size() + m.size()][2];
+				int k = 0;
+				int l = f.size();
+				for (int i = 0; i < l; i++) {
+					JSONArray b = f.getArray(i);
+					res[k][0] = b.getString(0);
+					res[k++][1] = clearTag(b.getString(1));
+				}
+				l = g.size();
+				for (int i = 0; i < l; i++) {
+					JSONArray b = g.getArray(i);
+					res[k][0] = b.getString(0);
+					res[k++][1] = clearTag(b.getString(1));
+				}
+				l = t.size();
+				for (int i = 0; i < l; i++) {
+					JSONArray b = t.getArray(i);
+					res[k][0] = b.getString(0);
+					res[k++][1] = clearTag(b.getString(1));
+				}
+				l = m.size();
+				for (int i = 0; i < l; i++) {
+					JSONArray b = m.getArray(i);
+					res[k][0] = b.getString(0);
+					res[k++][1] = clearTag(b.getString(1));
+				}
+				return tags = res;
+			}
+			s.expectNextTrim('{');
+			if (!s.jumpToKey(group))
+				return null;
+			JSONArray a = s.nextArray();
+			int l = a.size();
+			String[][] res = new String[l][2];
+			for (int i = 0; i < l; i++) {
+				JSONArray b = a.getArray(i);
+				res[i][0] = b.getString(0);
+				res[i][1] = b.getString(1);
+			}
+			return res;
+		} catch (Exception e) {
+		} finally {
+			s.close();
+		}
+		return null;
 	}
 	
 	// view
@@ -3319,6 +3504,39 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			str = str.substring(0, idx) + ned + str.substring(idx+hay.length());
 		}
 		return str;
+	}
+	
+	private static String safeFileName(String s, String alt) {
+		if (s == null || s.trim().length() == 0)
+			return alt;
+		StringBuffer t = new StringBuffer();
+		int l = s.length();
+		for (int i = 0; (i < l && i < 36); i++) {
+			char c = s.charAt(i);
+			if (c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'
+					|| c == '_' || c == '!') {
+				t.append(c);
+			}
+		}
+
+		s = t.toString().trim();
+		if (s.length() == 0)
+			return alt;
+		return s;
+	}
+
+	
+	private static String clearTag(String s) {
+		StringBuffer t = new StringBuffer();
+		int l = s.length();
+		for (int i = 0; i < l; i++) {
+			char c = s.charAt(i);
+			if (c != ' ' && c != '\'' && c != '-') {
+				t.append(c);
+			}
+		}
+
+		return t.toString().toLowerCase().trim();
 	}
 	
 	// image utils
