@@ -2732,9 +2732,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (curVolume == null)
 			curVolume = "none";
 
-		String lastCh;
-		JSONObject vol = volumes.getObject(curVolume);
-		if ((lastCh = getNextChapter(vol, curCh, dir)) == null) {
+		String lastCh = null;
+		JSONObject vol = volumes.getNullableObject(curVolume);
+		if (vol == null || (lastCh = getNextChapter(vol, curCh, dir)) == null) {
 			if (dir) {
 				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
 				if ((vol = volumes.getNullableObject(Integer.toString(n))) != null) {
