@@ -895,7 +895,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		for (int i = 3; i < 7; i++) {
 			if (cover && i != 6) continue;
 			fillGrad(g, getWidth() * (i - 3) / 4, getHeight() - 50, getWidth() / 4, 51, 0,
-					touchHoldPos == (i + 1) ? 0x357EDE : 0x222222);
+					touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222);
 			g.setGrayScale(255);
 			g.drawString(i == 4 ? ((page + 1) + "/" + MangaApp.chapterPages) : touchCaps[i], getWidth() * (1 + (i - 3) * 2) / 8,
 					getHeight() - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
@@ -917,7 +917,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			return;
 		}
 		for (int i = 0; i < 3; i++) {
-			fillGrad(g, getWidth() * i / 3, 0, getWidth() / 3 + 1, 50, touchHoldPos == (i + 1) ? 0x357EDE : 0x222222,
+			fillGrad(g, getWidth() * i / 3, 0, getWidth() / 3 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222,
 					0);
 			g.setGrayScale(255);
 			g.drawString(touchCaps[i], getWidth() * (1 + i * 2) / 6, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
