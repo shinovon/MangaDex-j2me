@@ -1232,7 +1232,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(advRatingChoice = g);
 			
 			s = new StringItem(null, "\nTags");
-			s.setFont(smallfont);
+			s.setFont(smallboldfont);
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 			f.append(s);
 			
