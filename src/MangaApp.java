@@ -2270,9 +2270,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					if (loginField != null && loginField.getString().trim().length() > 0) {
 						// первый логин или перелогин
 						p.append("&grant_type=password&username=")
-						.append(url(loginField.getString()))
+						.append(url(username = loginField.getString()))
 						.append("&password=")
-						.append(url(passwordField.getString()))
+						.append(url(password = passwordField.getString()))
 						;
 					} else if(refreshToken != null && accessToken == null) {
 						// refresh
@@ -2296,6 +2296,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					HttpConnection h = (HttpConnection) open(proxyUrl(AUTHURL));
 					try {
+						h.setRequestMethod("POST");
 						h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 						h.setRequestProperty("Content-length", Integer.toString(data.length));
 						OutputStream out = h.openOutputStream();
