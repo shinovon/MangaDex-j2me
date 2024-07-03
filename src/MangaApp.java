@@ -368,7 +368,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		advSearchCmd = new Command(L[AdvSearch], Command.ITEM, 1);
 		recentCmd = new Command(L[Recent], Command.ITEM, 1);
 		randomCmd = new Command(L[Random], Command.ITEM, 1);
-		libraryCmd = new Command(L[Followed], Command.ITEM, 1);
+		libraryCmd = new Command(L[Library], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
 		authSubmitCmd = new Command("Login", Command.OK, 1);
@@ -434,7 +434,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.append(s);
 		
 		if (refreshToken != null) {
-			s = new StringItem(null, L[Followed], StringItem.BUTTON);
+			s = new StringItem(null, L[Library], StringItem.BUTTON);
 			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			s.addCommand(libraryCmd);
 			s.setDefaultCommand(libraryCmd);
@@ -469,14 +469,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(randomCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
-		
-		
-//		s = new StringItem(null, L[Bookmarks], StringItem.BUTTON);
-//		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
-//		s.addCommand(bookmarksCmd);
-//		s.setDefaultCommand(bookmarksCmd);
-//		s.setItemCommandListener(this);
-//		f.append(s);
 		
 		display.setCurrent(mainForm = f);
 		
@@ -709,6 +701,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s = new StringItem("", "...", StringItem.BUTTON);
 				s.addCommand(pathCmd);
 				s.setDefaultCommand(pathCmd);
+				s.setItemCommandListener(this);
 				s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 				f.append(s);
 				
@@ -954,22 +947,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			}
 			if (c == dirOpenCmd || c == List.SELECT_COMMAND) {
-				String fs = curDir;
-				String f = "";
-				if (fs != null) f += curDir + "/";
+				String f = curDir != null ? curDir.concat("/") : "";
 				String is = fileList.getString(fileList.getSelectedIndex());
 				if ("- ".concat(L[Select]).equals(is)) {
 					fileList = null;
 					// папка скачивания выбрана
-					downloadPathField.setString(f);
+					downloadPathField.setString(f.substring(0, f.length() - 1));
 					display(settingsForm);
 					curDir = null;
 					return;
 				}
-				f += is;
 				
-				curDir = f;
-				showFileList(f + "/", is);
+				showFileList((curDir = f.concat(is)).concat("/"), is);
 				return;
 			}
 			if (c == dirSelectCmd) {
@@ -1404,7 +1393,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					break;
 				}
 				case LIST_FOLLOWED: {
-					f.setTitle(L[Followed]);
+					f.setTitle(L[Library]);
 					sb.insert(0, "user/follows/");
 					break;
 				}
@@ -1990,6 +1979,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //		}
 		case RUN_DOWNLOAD_CHAPTER: { // скачать главу
 			Form f = chaptersForm;
+			
+			if (downloadPath == null || downloadPath.trim().length() == 0) {
+				display(errorAlert("No download path set!"), f);
+				break;
+			}
 			
 			if (chapterFilenames == null) {
 				downloadAlert.setString(L[Fetching]);

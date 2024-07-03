@@ -5,7 +5,7 @@ public interface LangConstants {
 	static final int About = 4;
 	static final int Search = 5;
 	static final int Updates = 6;
-	static final int Followed = 7;
+	static final int Library = 7;
 	static final int AdvSearch = 8;
 	static final int Recent = 9;
 	static final int Open = 10;
