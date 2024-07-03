@@ -1634,12 +1634,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						if (!contentFilter[i]) continue;
 						sb.append("&contentRating[]=").append(CONTENT_RATINGS[i]);
 					}
-					
+
 					if (tagsFilter != null && tagsFilter.length() > 0) {
-						String[] s = split(tagsFilter, ',');
-						for (int i = 0; i < s.length; i++) {
-							sb.append("&excludedTags[]=").append(s[i].trim());
-						}
+						tagsParam(clearTag(tagsFilter), tags(null), sb, false);
+						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
 					}
 				}
 				
@@ -1953,10 +1951,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// фильтр по рейтингу
 				if (contentFilter != null) {
-					int j = 0;
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
+						sb.append("&contentRating[]=").append(CONTENT_RATINGS[i]);
 					}
 				}
 				
