@@ -1074,6 +1074,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			mangaId = id;
 			display(mangaForm = f);
+			if (accessToken != null) {
+				runAfterAuth = RUN_MANGA;
+				start(RUN_MANGA);
+				return;
+			}
 			start(RUN_MANGA);
 			return;
 		}
@@ -1433,28 +1438,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						sb.append("&year=").append(t);
 					
 					boolean[] sel = new boolean[5];
-					int j = 0;
 					// статус
 					advStatusChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_STATUSES.length; i++) {
 						if (!sel[i]) continue;
-						sb.append("&status[".concat(Integer.toString(j++)).concat("]=")).append(MANGA_STATUSES[i]);
+						sb.append("&status[]=").append(MANGA_STATUSES[i]);
 					}
-					j = 0;
 					// демография какая-то
 					advDemographicChoice.getSelectedFlags(sel);
 					for (int i = 0; i < MANGA_DEMOGRAPHIC.length; i++) {
 						if (!sel[i]) continue;
-						sb.append("&publicationDemographic["
-								.concat(Integer.toString(j++)).concat("]=")).append(MANGA_DEMOGRAPHIC[i]);
+						sb.append("&publicationDemographic[]=").append(MANGA_DEMOGRAPHIC[i]);
 					}
 
-					j = 0;
 					// возрастной рейтинг
 					advRatingChoice.getSelectedFlags(sel);
 					for (int i = 0; i < CONTENT_RATINGS.length && i < advRatingChoice.size(); i++) {
 						if (!sel[i]) continue;
-						sb.append("&contentRating[".concat(Integer.toString(j++)).concat("]=")).append(CONTENT_RATINGS[i]);
+						sb.append("&contentRating[]=").append(CONTENT_RATINGS[i]);
 					}
 					
 					// сортировка
@@ -1528,8 +1529,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.setTitle(L[Related]);
 					int l = relatedManga.size();
 					for (int i = 0; i < l; i++) {
-						sb.append("&ids[".concat(Integer.toString(i)).concat("]="))
-						.append(((JSONObject) relatedManga.elementAt(i)).getString("id"));
+						sb.append("&ids[]=").append(((JSONObject) relatedManga.elementAt(i)).getString("id"));
 					}
 					break;
 				}
@@ -1872,7 +1872,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 										if (!mangaCoversCache.containsKey(id)) continue;
 										String cover = (String) mangaCoversCache.get(id);
 										if (cover.indexOf('.') != -1) continue;
-										sb.append("&ids[").append(j++).append("]=").append(cover);
+										sb.append("&ids[]=").append(cover);
 									}
 									
 									if (j > 0) {
