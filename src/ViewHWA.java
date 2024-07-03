@@ -88,7 +88,8 @@ public class ViewHWA extends ViewCommon {
 		p = null;
 	}
 
-	protected void prepare(byte[] d) throws InterruptedException {
+	protected void prepare() throws InterruptedException {
+		byte[] d = getImage(page, false);
 		reset();
 		Image i = Image.createImage(d, 0, d.length);
 		d = null;
@@ -161,7 +162,7 @@ public class ViewHWA extends ViewCommon {
 					drawTouchControls(g, f);
 				}
 			}
-			paintHUD(g, f, !hasPointerEvents() && !cover, !touchCtrlShown || !hasPointerEvents());
+			paintHUD(g, f, !hasPointerEvents(), !cover && (!touchCtrlShown || !hasPointerEvents()));
 		} catch (Exception e) {
 			e.printStackTrace();
 

@@ -87,7 +87,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			Thread.sleep(500);
 		if (cover) {
 			try {
-				return MangaApp.getCover();
+				return MangaApp.getCover(null);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return null;
@@ -97,7 +97,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			byte[] a = MangaApp.readCachedPage(n);
 			if (a != null) return a;
 			try {
-				a = MangaApp.getPage(n);
+				a = MangaApp.getPage(n, "");
 				if (a == null) {
 					error = true;
 					repaint();
@@ -134,7 +134,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					Thread.sleep(ct - lastTime);
 				lastTime = ct;
 				try {
-					byte[] b = MangaApp.getPage(n);
+					byte[] b = MangaApp.getPage(n, "");
 					if (b == null) {
 						error = true;
 						repaint();
@@ -151,6 +151,24 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			return null;
 		}
 
+	}
+	
+	private final byte[] getResizedImage(int n, int size) {
+		String s = ";tw="+(getWidth()*size)+";th="+(getHeight()*size);
+		if (cover) {
+			try {
+				return MangaApp.getCover(s);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+		try {
+			return MangaApp.getPage(n, s);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	/**
@@ -250,7 +268,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				y = 0;
 				reset();
 				try {
-					prepare(getImage(page, false));
+					prepare();
 					repaint();
 					resize(1);
 					zoom = 1;
@@ -375,28 +393,27 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	/**
 	 * Implementation must prepare {@link #page} for drawing. No resizing is needed.
 	 */
-	protected void prepare(byte[] data) throws InterruptedException {
-		if (hwa) return;
-		if (MangaApp.keepBitmap) {
-			int l = -1;
-			try {
-				l = data.length;
-				orig = Image.createImage(data, 0, data.length);
-				data = null;
-				System.gc();
-			} catch (RuntimeException e) {
-				e.printStackTrace();
-				orig = null;
-				System.out.println("Failed to decode an image in preparing. Size=" + l + "bytes");
-				if (MangaApp.chapterFileCache) {
-					showBrokenNotify();
-					try {
-						orig = Image.createImage(data = getImage(page, true), 0, data.length);
-						data = null;
-						System.gc();
-					} catch (RuntimeException e1) {
-						e1.printStackTrace();
-					}
+	protected void prepare() throws InterruptedException {
+		if (hwa || MangaApp.onlineResize || !MangaApp.keepBitmap) return;
+		byte[] data = getImage(page, false);
+		int l = -1;
+		try {
+			l = data.length;
+			orig = Image.createImage(data, 0, data.length);
+			data = null;
+			System.gc();
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			orig = null;
+			System.out.println("Failed to decode an image in preparing. Size=" + l + "bytes");
+			if (MangaApp.chapterFileCache) {
+				showBrokenNotify();
+				try {
+					orig = Image.createImage(data = getImage(page, true), 0, data.length);
+					data = null;
+					System.gc();
+				} catch (RuntimeException e1) {
+					e1.printStackTrace();
 				}
 			}
 		}
@@ -414,12 +431,13 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			System.gc();
 			repaint();
 			Image origImg;
-			if (MangaApp.keepBitmap && orig != null && orig.getHeight() != 1 && orig.getWidth() != 1) {
+			if (!MangaApp.onlineResize && MangaApp.keepBitmap && orig != null && orig.getHeight() != 1 && orig.getWidth() != 1) {
 				origImg = orig;
 			} else {
 				int l = -1;
+				byte[] b;
 				try {
-					byte[] b = getImage(page, false);
+					b = MangaApp.onlineResize ? getResizedImage(page, size) : getImage(page, false);
 					l = b.length;
 					origImg = Image.createImage(b, 0, b.length);
 					b = null;
@@ -431,7 +449,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					if (MangaApp.chapterFileCache) {
 						showBrokenNotify();
 						try {
-							byte[] b = getImage(page, true);
+							b = getImage(page, true);
 							origImg = Image.createImage(b, 0, b.length);
 							b = null;
 							System.gc();
@@ -446,17 +464,22 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				toDraw = null;
 				return;
 			}
-			int h = getHeight();
-			int w = (int) (((float) h / origImg.getHeight()) * origImg.getWidth());
-
-			if (w > getWidth()) {
-				w = getWidth();
-				h = (int) (((float) w / origImg.getWidth()) * origImg.getHeight());
+			
+			if (!MangaApp.onlineResize) {
+				int h = getHeight();
+				int w = (int) (((float) h / origImg.getHeight()) * origImg.getWidth());
+	
+				if (w > getWidth()) {
+					w = getWidth();
+					h = (int) (((float) w / origImg.getWidth()) * origImg.getHeight());
+				}
+	
+				h = h * size;
+				w = w * size;
+				toDraw = MangaApp.resize(origImg, w, h);
+			} else {
+				toDraw = origImg;
 			}
-
-			h = h * size;
-			w = w * size;
-			toDraw = MangaApp.resize(origImg, w, h);
 		} catch (Throwable e) {
 			e.printStackTrace();
 			error = true;
@@ -489,12 +512,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					g.drawImage(toDraw, (getWidth() - toDraw.getWidth()) / 2, (getHeight() - toDraw.getHeight()) / 2,
 							0);
 				}
-				// touch captions
-				if (hasPointerEvents() && touchCtrlShown) {
-					drawTouchControls(g, f);
-				}
 			}
-			paintHUD(g, f, !cover, !touchCtrlShown || !hasPointerEvents());
+			// touch captions
+			if (hasPointerEvents() && touchCtrlShown) {
+				drawTouchControls(g, f);
+			}
+			paintHUD(g, f, true, !cover && (!touchCtrlShown || !hasPointerEvents()));
 		} catch (Exception e) {
 			e.printStackTrace();
 			try {
@@ -548,10 +571,10 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			cache = null;
 			return;
 		}
-		if (!canDraw()) {
-			repaint();
-			return;
-		}
+//		if (!canDraw()) {
+//			repaint();
+//			return;
+//		}
 
 		if (k == KEY_NUM7 || k == -10 || k == 8) {
 			if (cover) return;
