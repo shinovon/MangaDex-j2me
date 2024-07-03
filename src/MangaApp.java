@@ -38,6 +38,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_CHANGE_CHAPTER = 9;
 //	private static final int RUN_DISPOSE_VIEW = 10;
 	private static final int RUN_AUTH = 11;
+	private static final int RUN_FOLLOW = 12;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -110,6 +111,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command downloadCoverCmd;
 	private static Command showLinkCmd;
 	private static Command pathCmd;
+	private static Command followCmd, unfollowCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -190,6 +192,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ImageItem mangaItem;
 	private static String mangaLastChapter;
 	private static Vector relatedManga = new Vector();
+	private static boolean mangaFollowed;
+	private static StringItem followBtn;
 
 	// список глав
 	private static String chapterId;
@@ -381,6 +385,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		downloadCoverCmd = new Command(L[DownloadCover], Command.ITEM, 2);
 		showLinkCmd = new Command(L[ShowLink], Command.SCREEN, 5);
 		pathCmd = new Command(L[SpecifyPath], Command.ITEM, 1);
+		followCmd = new Command(L[Follow], Command.ITEM, 1);
+		unfollowCmd = new Command(L[Unfollow], Command.ITEM, 1);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -857,6 +863,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listMode = LIST_ADVANCED_SEARCH;
 			display(listForm = f);
 			start(RUN_MANGAS);
+		}
+		if (c == followCmd || c == unfollowCmd) {
+			if (running) return;
+			d.setTicker(new Ticker(L[Loading]));
+			
+			runAfterAuth = RUN_FOLLOW;
+			start(RUN_AUTH);
+			return;
 		}
 		if (d instanceof Alert) {
 			if (c == continueCmd) {
@@ -1495,6 +1509,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray relationships = j.getArray("relationships");
 				coverItem.setAltText(mangaId = id = j.getString("id"));
 				
+				mangaFollowed = false;
+				
+				if (accessToken != null)
+				try {
+					mangaFollowed = api("user/follows/manga/".concat(id)).getString("result").equals("ok");
+				} catch (Exception e) {}
+				
 				JSONObject author = null,
 						artist = null;
 				
@@ -1653,6 +1674,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setDefaultCommand(relatedCmd);
 					s.setItemCommandListener(this);
 					f.append(s);
+				}
+				
+				if (accessToken != null) {
+					s = new StringItem(null, L[mangaFollowed ? Unfollow : Follow], StringItem.BUTTON);
+					s.setFont(Font.getDefaultFont());
+					s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+					s.addCommand(followCmd);
+					s.addCommand(unfollowCmd);
+					s.setDefaultCommand(mangaFollowed ? unfollowCmd : followCmd);
+					s.setItemCommandListener(this);
+					f.append(followBtn = s);
 				}
 				
 //				s = new StringItem(null, L[Save], StringItem.BUTTON);
@@ -2292,6 +2324,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			break;
 		}
+		case RUN_FOLLOW: {
+			Form f = mangaForm;
+			try {
+				api("manga/".concat(mangaId).concat("/follow?_method=").concat(mangaFollowed ? "DELETE" : "POST"));
+				followBtn.setText(L[(mangaFollowed = !mangaFollowed) ? Unfollow : Follow]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			f.setTicker(null);
+			break;
+		}
 		}
 		running = false;
 	}
@@ -2412,7 +2455,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			int r;
 			if ((r = hc.getResponseCode()) >= 400) {
-				throw new IOException("HTTP " + r);
+				throw new IOException("HTTP ".concat(Integer.toString(r)));
 			}
 			j = JSONStream.getStream(hc.openInputStream());
 //			String filename = j.getArray("data").getObject(0).getObject("attributes").getString("fileName");
@@ -2539,7 +2582,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterFilenames = null;
 			return;
 		}
-		if (coverLoading == 3 || p == mainForm) return;
+		if (coverLoading == 3 || p == mainForm || p == loadingForm || p == d) return;
 		if (d == listForm/*|| d == tempListForm*/) {
 			try {
 				// докачивание обложек
@@ -3003,7 +3046,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			hc = open(url);
 			int r;
 			if ((r = hc.getResponseCode()) >= 400) {
-				throw new IOException("HTTP " + r);
+				throw new IOException("HTTP ".concat(Integer.toString(r)));
 			}
 			in = hc.openInputStream();
 			return readBytes(in, (int) hc.getLength(), 8*1024, 16*1024);
@@ -3026,7 +3069,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			hc = open(url);
 			int i, j, k = 0;
 			if ((i = hc.getResponseCode()) >= 400) {
-				throw new IOException("HTTP " + i);
+				throw new IOException("HTTP ".concat(Integer.toString(i)));
 			}
 			String r;
 			while(i >= 300) {
@@ -3039,7 +3082,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				hc.close();
 				hc = open(r);
 				if ((i = hc.getResponseCode()) >= 400) {
-					throw new IOException("HTTP " + i);
+					throw new IOException("HTTP ".concat(Integer.toString(i)));
 				}
 			}
 			in = hc.openInputStream();

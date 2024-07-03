@@ -115,4 +115,6 @@ public interface LangConstants {
 	static final int Initializing = 114;
 	static final int Select = 115;
 	static final int SpecifyPath = 116;
+	static final int Follow = 117;
+	static final int Unfollow = 118;
 }
