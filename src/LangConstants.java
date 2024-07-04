@@ -126,4 +126,13 @@ public interface LangConstants {
 	static final int Or = 125;
 	static final int InclusionMode = 126;
 	static final int ExclusionMode = 127;
+	static final int Login = 128;
+	static final int TagsList = 129;
+	static final int Username = 130;
+	static final int Password = 131;
+	static final int AboutText = 132;
+	static final int Developer = 133;
+	static final int KeepAlreadyLoaded = 134;
+	static final int NoDownloadPath = 135;
+	static final int OutOfMemorySpace = 136;
 }

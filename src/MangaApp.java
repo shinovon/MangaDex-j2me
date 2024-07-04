@@ -274,8 +274,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static long refreshTokenTime;
 	private static int runAfterAuth;
 
-	public MangaApp() {}
-
 	protected void destroyApp(boolean unconditional) {}
 
 	protected void pauseApp() {}
@@ -341,7 +339,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} catch (Exception e) {}
 		
 		// загрузка локализации
-		(L = new String[128])[0] = "MangaDex";
+		(L = new String[150])[0] = "MangaDex";
 		try {
 			loadLocale(lang);
 		} catch (Exception e) {
@@ -353,7 +351,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		
-		loadingForm.append(L[Loading]);
+//		loadingForm.append(L[Loading]);
 		
 		// загрузка авторизации
 		try {
@@ -389,7 +387,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		libraryCmd = new Command(L[Library], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
-		authSubmitCmd = new Command("Login", Command.OK, 1);
+		authSubmitCmd = new Command(L[Login], Command.OK, 1);
 		
 		mangaItemCmd = new Command(L[Open], Command.ITEM, 1);
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
@@ -756,7 +754,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// поведение кэширования
 				cachingPolicyChoice = new ChoiceGroup(L[ChapterCaching], ChoiceGroup.POPUP, new String[] {
-						L[Disabled], "Keep already loaded", L[Preload]
+						L[Disabled], L[KeepAlreadyLoaded], L[Preload]
 				}, null);
 				cachingPolicyChoice.setSelectedIndex(cachingPolicy, true);
 				f.append(cachingPolicyChoice);
@@ -792,12 +790,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT);
 			f.append(s);
 			
-			s = new StringItem(null, "Unofficial MangaDex reader client for J2ME");
+			s = new StringItem(null, L[AboutText]);
 			s.setFont(Font.getDefaultFont());
 			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			f.append(s);
 
-			s = new StringItem("Developer", "shinovon");
+			s = new StringItem(L[Developer], "shinovon");
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 			f.append(s);
 
@@ -1014,10 +1012,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
 			
-			loginField = new TextField("Login", username != null ? username : "", 100, TextField.NON_PREDICTIVE);
+			loginField = new TextField(L[Username], username != null ? username : "", 100, TextField.NON_PREDICTIVE);
 			f.append(loginField);
 			
-			passwordField = new TextField("Password",
+			passwordField = new TextField(L[Password],
 					password != null ? password : "", 100, TextField.NON_PREDICTIVE);
 			f.append(passwordField);
 			clientField = new TextField("Client ID",
@@ -1028,7 +1026,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					clientSecret != null ? clientSecret : "", 100, TextField.NON_PREDICTIVE);
 			f.append(clientSecretField);
 			
-			StringItem s = new StringItem("", "Login", StringItem.BUTTON);
+			StringItem s = new StringItem("", L[Login], StringItem.BUTTON);
 			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
 			s.addCommand(authSubmitCmd);
 			s.setDefaultCommand(authSubmitCmd);
@@ -1230,7 +1228,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (!contentFilter[1]) g.delete(1);
 			f.append(advRatingChoice = g);
 			
-			s = new StringItem(null, "\nTags");
+			s = new StringItem(null, L[Tags]);
 			s.setFont(smallboldfont);
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 			f.append(s);
@@ -1251,7 +1249,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			g.setSelectedIndex(1, true);
 			f.append(advExclusionChoice = g);
 			
-			s = new StringItem(null, "\nTags list:");
+			s = new StringItem(null, L[TagsList]);
 			s.setFont(smallfont);
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 			f.append(s);
@@ -2125,7 +2123,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = chaptersForm;
 			
 			if (downloadPath == null || downloadPath.trim().length() == 0) {
-				display(errorAlert("No download path set!"), f);
+				display(errorAlert(L[NoDownloadPath]), f);
 				break;
 			}
 			
@@ -2215,7 +2213,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 								long al = fc.availableSize();
 								if (al < (fl * 2) || al < 1024 * 1024) {
 									fc.delete();
-									throw new Exception("Out of memory space");
+									throw new Exception(L[OutOfMemorySpace]);
 								}
 							}
 							in = hc.openInputStream();
@@ -2312,7 +2310,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //						break s;
 				}
 				if (found == 0) {
-//					display(errorAlert("Next chapter not found!"), view);
+					// выкидывать на список если глав больше нет
 //					start(RUN_DISPOSE_VIEW);
 					view = null;
 					chapterFilenames = null;
@@ -2470,8 +2468,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		case RUN_FOLLOW: { // добавить/убрать из библиотеки
 			Form f = mangaForm;
 			try {
-				// подменит метод прокси, потому что в ж2ме нельзя
-				api("manga/".concat(mangaId).concat("/follow;_method=").concat(mangaFollowed ? "DELETE" : "POST"));
+				// подменить метод в прокси, потому что в ж2ме нельзя
+				api("manga/".concat(mangaId).concat("/follow;method=").concat(mangaFollowed ? "DELETE" : "POST"));
 				followBtn.setText(L[(mangaFollowed = !mangaFollowed) ? Unfollow : Follow]);
 			} catch (Exception e) {
 				e.printStackTrace();
