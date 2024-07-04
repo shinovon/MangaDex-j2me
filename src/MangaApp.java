@@ -1162,19 +1162,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == showCoverCmd) {
 			if (running) return;
-			if (viewMode == 1) {
-				view = new ViewCommon(-2, false);
-			} else if (viewMode == 2) {
-				view = new ViewHWA(-2);
-			} else {
-				String vram = System.getProperty("com.nokia.gpu.memory.total");
-				if (vram != null && !vram.equals("0")) {
+			try {
+				if (viewMode == 1) {
+					view = new ViewCommon(-2, false);
+				} else if (viewMode == 2) {
 					view = new ViewHWA(-2);
 				} else {
-					view = new ViewCommon(-2, false);
+					String vram = System.getProperty("com.nokia.gpu.memory.total");
+					if (vram != null && !vram.equals("0")) {
+						view = new ViewHWA(-2);
+					} else {
+						view = new ViewCommon(-2, false);
+					}
 				}
+				display(view);
+			} catch (Throwable e) {
+				display(errorAlert(e.toString()));
 			}
-			display(view);
 			return;
 		}
 		if (c == downloadCoverCmd) {
@@ -2113,7 +2117,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				display(view);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
 			}
