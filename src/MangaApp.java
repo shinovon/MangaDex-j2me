@@ -285,10 +285,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		midlet = this;
 		
 		version = getAppProperty("MIDlet-Version");
-		display = Display.getDisplay(this);
-		
-		loadingForm = new Form("MangaDex");
-		display.setCurrent(loadingForm);
+		(display = Display.getDisplay(this))
+		.setCurrent(loadingForm = new Form("MangaDex"));
 		
 		// определения дефолтного пути куда будет скачиваться манга
 		String p = System.getProperty("microedition.platform");
@@ -927,7 +925,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		if (d instanceof TextBox) {
-			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ? mangaForm :listForm != null ? listForm : mainForm;
+			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ?
+					mangaForm :listForm != null ? listForm : mainForm;
 			if (c == openCmd) {
 				// открыть главу с конкретной страницы
 				int n = Integer.parseInt(((TextBox) d).getString());
@@ -1116,7 +1115,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				Alert a = new Alert(L[ExternalLink], "This chapter links to external source, open it?", null, AlertType.WARNING);
+				Alert a = new Alert(L[ExternalLink],
+						"This chapter links to external source, open it?", null, AlertType.WARNING);
 				a.addCommand(openCmd);
 				a.addCommand(backCmd);
 				a.setCommandListener(this);
@@ -1747,7 +1747,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
-				s = new StringItem(null, attributes.getString("year") + ", " + attributes.getString("status").toUpperCase());
+				s = new StringItem(null, attributes.getString("year") +
+						", " + attributes.getString("status").toUpperCase());
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
@@ -2187,7 +2188,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				fc = (FileConnection) Connector.open(folder = folder
-						.concat((v != null ? "Vol. " + v : "") + (c != null ? "Ch. " + c : "Oneshot") + " " + chapterLang + "/"));
+						.concat((v != null ? "Vol. " + v : "") +
+								(c != null ? "Ch. " + c : "Oneshot") + " " + chapterLang + "/"));
 				try {
 					fc.mkdir();
 				} catch (IOException e) {
@@ -2614,7 +2616,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		
 		JSONStream j = null;
-		HttpConnection hc = open(proxyUrl(APIURL.concat("cover?" + (manga ? "manga" : "ids") + "[]=" + id)));
+		HttpConnection hc = open(proxyUrl(APIURL + "cover?" + (manga ? "manga" : "ids") + "[]=" + id));
 		try {
 			int r;
 			if ((r = hc.getResponseCode()) >= 400) {
