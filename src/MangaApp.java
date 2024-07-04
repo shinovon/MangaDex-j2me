@@ -1075,7 +1075,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(mangaForm = f);
 			if (accessToken != null) {
 				runAfterAuth = RUN_MANGA;
-				start(RUN_MANGA);
+				start(RUN_AUTH);
 				return;
 			}
 			start(RUN_MANGA);
