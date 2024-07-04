@@ -1196,6 +1196,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (c == advSearchCmd) {
 			// форма адвансед поиска
+			if (searchForm != null) {
+				display(searchForm);
+				return;
+			}
 			Form f = new Form(L[AdvancedSearch]);
 			f.addCommand(advSubmitCmd);
 			f.addCommand(backCmd);
