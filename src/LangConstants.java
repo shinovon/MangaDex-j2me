@@ -117,4 +117,13 @@ public interface LangConstants {
 	static final int SpecifyPath = 116;
 	static final int Follow = 117;
 	static final int Unfollow = 118;
+	static final int ThisChapterLinks = 119;
+	static final int ServerSideResize = 120;
+	static final int FilterTags = 121;
+	static final int ExcludeTags = 122;
+	static final int IncludeTags = 123;
+	static final int And = 124;
+	static final int Or = 125;
+	static final int InclusionMode = 126;
+	static final int ExclusionMode = 127;
 }

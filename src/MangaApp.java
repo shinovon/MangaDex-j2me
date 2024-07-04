@@ -590,12 +590,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
-//		if (d == bookmarksForm && c == backCmd) {
-//			// возвращение из закладок
-//			display(mainForm);
-//			bookmarksForm = null;
-//			return;
-//		}
 		if (d == settingsForm && c == backCmd) {
 			// сохранить настройки
 			proxyUrl = proxyField.getString();
@@ -718,7 +712,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				contentFilterChoice.setSelectedFlags(contentFilter);
 				f.append(contentFilterChoice);
 				
-				tagsFilterField = new TextField("Exclude tags", tagsFilter, 100, TextField.NON_PREDICTIVE);
+				tagsFilterField = new TextField(L[FilterTags], tagsFilter, 100, TextField.NON_PREDICTIVE);
 				f.append(tagsFilterField);
 				
 				// путь скачивания
@@ -744,7 +738,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				jpegChoice.setSelectedIndex(dataSaver ? 0 : 1, true);
 				f.append(jpegChoice);
 				
-				onlineChoice = new ChoiceGroup("Server-side resizing", ChoiceGroup.POPUP, on_off, null);
+				onlineChoice = new ChoiceGroup(L[ServerSideResize], ChoiceGroup.POPUP, on_off, null);
 				onlineChoice.setSelectedIndex(onlineResize ? 0 : 1, true);
 				f.append(onlineChoice);
 				
@@ -1073,6 +1067,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			mangaId = id;
 			display(mangaForm = f);
+			// если есть авторизация, проверить ее для правильной работы кнопки follow
 			if (accessToken != null) {
 				runAfterAuth = RUN_MANGA;
 				start(RUN_AUTH);
@@ -1097,6 +1092,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			
 			display(listForm = f);
 			
+			// для библиотеки надо с начала проверить авторизацию
 			if (c == libraryCmd) {
 				listMode = LIST_FOLLOWED;
 				runAfterAuth = RUN_MANGAS;
@@ -1115,8 +1111,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
-				Alert a = new Alert(L[ExternalLink],
-						"This chapter links to external source, open it?", null, AlertType.WARNING);
+				Alert a = new Alert(L[ExternalLink], L[ThisChapterLinks], null, AlertType.WARNING);
 				a.addCommand(openCmd);
 				a.addCommand(backCmd);
 				a.setCommandListener(this);
@@ -1241,18 +1236,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(s);
 			
 			// теги
-			String[] and_or = new String[] { "And", "Or" };
+			String[] and_or = new String[] { L[And], L[Or] };
 			
-			t = new TextField("Include tags", "", 200, TextField.NON_PREDICTIVE);
+			t = new TextField(L[IncludeTags], "", 200, TextField.NON_PREDICTIVE);
 			f.append(advIncludeField = t);
 			
-			g = new ChoiceGroup("Inclusion mode", ChoiceGroup.POPUP, and_or, null);
+			g = new ChoiceGroup(L[InclusionMode], ChoiceGroup.POPUP, and_or, null);
 			f.append(advInclusionChoice = g);
 			
-			t = new TextField("Exclude tags", "", 200, TextField.NON_PREDICTIVE);
+			t = new TextField(L[ExcludeTags], "", 200, TextField.NON_PREDICTIVE);
 			f.append(advExcludeField = t);
 			
-			g = new ChoiceGroup("Exclusion mode", ChoiceGroup.POPUP, and_or, null);
+			g = new ChoiceGroup(L[ExclusionMode], ChoiceGroup.POPUP, and_or, null);
 			g.setSelectedIndex(1, true);
 			f.append(advExclusionChoice = g);
 			
