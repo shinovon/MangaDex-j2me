@@ -81,7 +81,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static String[] L;
 
 	private static Display display;
-	public static MangaApp midlet;
+	static MangaApp midlet;
 	
 	// команды
 	private static Command exitCmd;
@@ -1571,7 +1571,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						break;
 					}
 
-					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "Unknown";
+					String title = attributes.has("title") ? getTitle(attributes.getObject("title")) : "";
 					item = new ImageItem(title,
 							coverLoading != 3 ? coverPlaceholder : null,
 							Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
@@ -2789,7 +2789,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		fileList.addCommand(dirSelectCmd);
 		fileList.append("- ".concat(L[Select]), null);
 		try {
-			FileConnection fc = (FileConnection) Connector.open("file:///" + f);
+			FileConnection fc = (FileConnection) Connector.open("file:///".concat(f), Connector.READ);
 			Enumeration list = fc.list();
 			while(list.hasMoreElements()) {
 				String s = (String) list.nextElement();
@@ -2798,8 +2798,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			}
 			fc.close();
-		} catch (Exception e) {
-		}
+		} catch (Exception e) {}
 		display(fileList);
 	}
 	
@@ -3031,34 +3030,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	 */
 	public static void cachePage(byte[] a, int i) { // from njtai
 		synchronized (coverParseLock) {
-//			if (dir == null)
-//				dir = getWD();
-//			if (dir == null) {
-//				NJTAI.setScr(prev);
-//				NJTAI.pause(100);
-//				NJTAI.setScr(folderMissed(), prev);
-//				return;
-//			}
-	
-			FileConnection fc = null;
+			if (downloadPath == null) return;
 	
 			String folder = getFolderName();
-	
+
+			FileConnection fc = null;
 			DataOutputStream ou = null;
 	
 			try {
-				String n;
-				int j = i + 1;
-				if (j < 10) {
-					n = "00" + j;
-				} else if (j < 100) {
-					n = "0" + j;
-				} else {
-					n = "" + j;
-				}
-				fc = (FileConnection) Connector.open(folder + n + ".jpg");
+				String n = Integer.toString(i + 1);
+				while (n.length() < 3) n = "0".concat(n);
+				fc = (FileConnection) Connector.open(folder.concat(n).concat(".jpg"));
 				if (fc.exists()) {
-					fc.close();
 					return;
 				}
 				fc.create();
@@ -3066,50 +3049,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 				ou.write(a, 0, a.length);
 				ou.flush();
-				ou.close();
-				fc.close();
-	
-			} catch (Exception e) {
-				try {
-					if (ou != null)
+			} catch (Exception e) {} finally {
+				if (ou != null)
+					try {
 						ou.close();
-				} catch (IOException e1) {
-				}
-				try {
+					} catch (IOException e) {}
 					if (fc != null)
+					try {
 						fc.close();
-				} catch (IOException e1) {
+					} catch (IOException e) {}
 				}
-			}
 		}
 	}
 
 	public static byte[] readCachedPage(int i) { // from njtai too
-//		if (dir == null)
-//			dir = getWD();
-//		if (dir == null) {
-//			NJTAI.setScr(folderMissed(), prev);
-//			return null;
-//		}
-
-		FileConnection fc = null;
+		if (downloadPath == null) return null;
 
 		String folder = getFolderName();
 
+		FileConnection fc = null;
 		DataInputStream di = null;
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 
 		try {
-			String n;
-			int j = i + 1;
-			if (j < 10) {
-				n = "00" + j;
-			} else if (j < 100) {
-				n = "0" + j;
-			} else {
-				n = "" + j;
-			}
-			fc = (FileConnection) Connector.open(folder + n + ".jpg", Connector.READ);
+			String n = Integer.toString(i + 1);
+			while (n.length() < 3) n = "0".concat(n);
+			fc = (FileConnection) Connector.open(folder.concat(n).concat(".jpg"), Connector.READ);
 			if (!fc.exists()) {
 				return null;
 			}
@@ -3117,24 +3082,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 			byte[] buf = new byte[1024 * 64];
 
-			int len = 1;
+			int len;
 			while ((len = di.read(buf)) != -1) {
 				b.write(buf, 0, len);
 			}
-			di.close();
-			fc.close();
 			return b.toByteArray();
-		} catch (Exception e) {
+		} catch (Exception e) {} finally {
+			if (di != null)
 			try {
-				if (di != null)
-					di.close();
-			} catch (IOException e1) {
-			}
+				di.close();
+			} catch (IOException e) {}
+			if (fc != null)
 			try {
-				if (fc != null)
-					fc.close();
-			} catch (IOException e1) {
-			}
+				fc.close();
+			} catch (IOException e) {}
 		}
 		return null;
 	}
@@ -3226,9 +3187,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		int readLen;
 		while ((readLen = inputStream.read(readBuf)) != -1) {
 			if (count + readLen > buf.length) {
-				byte[] newbuf = new byte[count + expandSize];
-				System.arraycopy(buf, 0, newbuf, 0, count);
-				buf = newbuf;
+				System.arraycopy(buf, 0, buf = new byte[count + expandSize], 0, count);
 			}
 			System.arraycopy(readBuf, 0, buf, count, readLen);
 			count += readLen;
