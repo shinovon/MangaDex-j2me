@@ -380,7 +380,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		searchCmd = new Command(L[Search], Command.ITEM, 1);
 		updatesCmd = new Command(L[Updates], Command.ITEM, 1);
-//		bookmarksCmd = new Command(L[Bookmarks], Command.ITEM, 1);
 		advSearchCmd = new Command(L[AdvSearch], Command.ITEM, 1);
 		recentCmd = new Command(L[Recent], Command.ITEM, 1);
 		randomCmd = new Command(L[Random], Command.ITEM, 1);
@@ -392,7 +391,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		mangaItemCmd = new Command(L[Open], Command.ITEM, 1);
 		chaptersCmd = new Command(L[Chapters], Command.SCREEN, 2);
 		tagItemCmd = new Command(L[Tag], Command.ITEM, 1);
-//		saveCmd = new Command(L[AddToFavorite], Command.SCREEN, 3);
 		showCoverCmd = new Command(L[ShowCover], Command.ITEM, 1);
 		chapterCmd = new Command(L[Open], Command.ITEM, 1);
 		relatedCmd = new Command(L[Related], Command.ITEM, 1);
@@ -866,7 +864,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == advSubmitCmd) {
-			// адвансед поиск
+			// подача расширенного поиска
 			if (running) return;
 			coversToLoad.removeAllElements();
 			
@@ -890,9 +888,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_AUTH);
 			return;
 		}
-		if (d instanceof Alert) {
+		if (d instanceof Alert) { // диалоги
+			// согласие на переключение главы
 			if (c == continueCmd) {
-				// согласние на переключение диалога
 				display(loadingAlert(), view);
 				if (chapterDir == -1) chapterPage = -1;
 				chapterId = chapterNextId;
@@ -907,6 +905,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						notifyDestroyed();
 				} catch (Exception e) {}
 			}
+			// все остальное отмена
 			if (view != null) {
 				display(view);
 				return;
@@ -932,6 +931,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 			if (c == goCmd) {
+				// пагинация в списках
 				gotoPage(f, ((TextBox) d).getString());
 			}
 			display(f);
@@ -1002,12 +1002,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 			if (c == authSubmitCmd) {
+				// логин
 				if (running) return;
 				start(RUN_AUTH);
 				return;
 			}
 		}
 		if (c == authCmd) {
+			// форма авторизации
 			Form f = new Form("");
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -1161,6 +1163,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == showCoverCmd) {
+			// открыть вью с обложкой
 			if (running) return;
 			try {
 				if (viewMode == 1) {
@@ -1182,11 +1185,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == downloadCoverCmd) {
+			// открыть обложку в браузере
 			try {
-				String url = proxyUrl(COVERSURL + mangaId + '/' +
-						getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg");
-				
-				if (platformRequest(url))
+				if (platformRequest(proxyUrl(COVERSURL + mangaId + '/' +
+						getCover((String) mangaCoversCache.get(mangaId), false) + ".512.jpg")))
 					notifyDestroyed();
 			} catch (Exception e) {}
 			return;
@@ -1331,6 +1333,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == relatedCmd) {
+			// список связанного
 			Form f = new Form(L[0]);
 			f.addCommand(backCmd);
 			f.setCommandListener(this);
@@ -1343,7 +1346,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == pathCmd) {
-			showFileList(2);
+			// открыть выбор папки скачивания
+			fileList = new List("", List.IMPLICIT);
+			
+			if(rootsList == null) {
+				rootsList = new Vector();
+				try {
+					Enumeration roots = FileSystemRegistry.listRoots();
+					while(roots.hasMoreElements()) {
+						String s = (String) roots.nextElement();
+						if(s.startsWith("file:///")) s = s.substring(8);
+						rootsList.addElement(s);
+					}
+				} catch (Exception e) {}
+			}
+			
+			for(int i = 0; i < rootsList.size(); i++) {
+				String s = (String) rootsList.elementAt(i);
+				if(s.startsWith("file:///")) s = s.substring(8);
+				if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
+				fileList.append(s, null);
+			}
+			fileList.addCommand(List.SELECT_COMMAND);
+			fileList.setSelectCommand(List.SELECT_COMMAND);
+			fileList.addCommand(backCmd);
+			fileList.setCommandListener(midlet);
+			display(fileList);
 			return;
 		}
 //		if (c == bookmarksCmd) {
@@ -1505,7 +1533,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						break;
 					}
 
-					// фильтр по тегам
+					// теги
 					String[][] tags = null;
 					String inc = clearTag(advIncludeField.getString().trim());
 					String exc = clearTag(advExcludeField.getString().trim());
@@ -1526,7 +1554,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					break;
 				}
-				case LIST_RELATED: {
+				case LIST_RELATED: { // список связанного
 					f.setTitle(L[Related]);
 					int l = relatedManga.size();
 					for (int i = 0; i < l; i++) {
@@ -1534,7 +1562,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					break;
 				}
-				case LIST_FOLLOWED: {
+				case LIST_FOLLOWED: { // библиотека
 					f.setTitle(L[Library]);
 					sb.insert(0, "user/follows/");
 					break;
@@ -1647,6 +1675,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				mangaFollowed = false;
 				
+				// проверка на фолловед если есть авторизация
 				if (accessToken != null)
 				try {
 					mangaFollowed = api("user/follows/manga/".concat(id)).getString("result").equals("ok");
@@ -1792,7 +1821,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s);
 				}
 				
-				// добавить список альт тайтлов?
+				// туду добавить список альт тайтлов?
 				
 				// кнопки
 				s = new StringItem(null, L[Chapters], StringItem.BUTTON);
@@ -1823,14 +1852,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setItemCommandListener(this);
 					f.append(followBtn = s);
 				}
-				
-//				s = new StringItem(null, L[Save], StringItem.BUTTON);
-//				s.setFont(Font.getDefaultFont());
-//				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
-//				s.addCommand(saveCmd);
-//				s.setDefaultCommand(saveCmd);
-//				s.setItemCommandListener(this);
-//				f.append(s);
 				
 				// если обложка потерялась, поставить ее в очередь
 				if (thumb == null || thumb == coverPlaceholder) {
@@ -2797,45 +2818,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Enumeration list = fc.list();
 			while(list.hasMoreElements()) {
 				String s = (String) list.nextElement();
-				if(s.endsWith("/")) {
-					fileList.append(s.substring(0, s.length() - 1), null);
-				}
+				if(!s.endsWith("/")) continue; // только папки
+				fileList.append(s.substring(0, s.length() - 1), null);
 			}
 			fc.close();
 		} catch (Exception e) {}
 		display(fileList);
 	}
 	
-	private static void showFileList(int mode) {
-		fileList = new List("", List.IMPLICIT);
-		
-		if(rootsList == null) {
-			rootsList = new Vector();
-			try {
-				Enumeration roots = FileSystemRegistry.listRoots();
-				while(roots.hasMoreElements()) {
-					String s = (String) roots.nextElement();
-					if(s.startsWith("file:///")) s = s.substring(8);
-					rootsList.addElement(s);
-				}
-			} catch (Exception e) {}
-		}
-		
-		for(int i = 0; i < rootsList.size(); i++) {
-			String s = (String) rootsList.elementAt(i);
-			if(s.startsWith("file:///")) s = s.substring(8);
-			if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
-			fileList.append(s, null);
-		}
-		fileList.addCommand(List.SELECT_COMMAND);
-		fileList.setSelectCommand(List.SELECT_COMMAND);
-		fileList.addCommand(backCmd);
-		fileList.setCommandListener(midlet);
-		display(fileList);
-	}
-	
 	// возвращает массив массивов из [ид,название]
 	private String[][] tags(String group) throws IOException {
+		// содержит предварительно спарсенный список тегов: https://api.mangadex.org/manga/tag
 		JSONStream s = JSONStream.getStream(getClass().getResourceAsStream("tags"));
 		try {
 			if (group == null) {
@@ -3018,6 +3011,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return lastCh;
 	}
 
+	// переключить текущую главу, параметр - в какую сторону
 	static void changeChapter(int d) {
 		if (running) return;
 		chapterDir = d;
@@ -3144,7 +3138,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				.concat(mangaId).concat("/")
 				.concat(chapterId).concat("/");
 	}
-
+	
 	public static byte[] getPage(int n, String t) throws IOException {
 		return get(proxyUrl(chapterBaseUrl + (dataSaver ? "/data-saver/" : "/data/") +
 				chapterHash + '/' + chapterFilenames.elementAt(n) + t));
@@ -3269,6 +3263,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 	}
 	
+	// общая утилка для открытия хттп запросов, проставляет юзер агент и авторизацию если есть
 	private static HttpConnection open(String url) throws IOException {
 		HttpConnection hc = (HttpConnection) Connector.open(url);
 		hc.setRequestMethod("GET");
@@ -3316,6 +3311,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	// date utils
 	
+	// возвращает строки по типу 17 минут назад
 	static String localizeTime(String date) {
 		long now = System.currentTimeMillis();
 		Calendar c = parseDate(date);
@@ -3463,6 +3459,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return str;
 	}
 	
+	// очищает название файла от небезопасных символов, если в ней только они то возвращается второй параметр
 	private static String safeFileName(String s, String alt) {
 		if (s == null || s.trim().length() == 0)
 			return alt;
@@ -3482,7 +3479,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return s;
 	}
 
-	
+	// очистка тэга от символов для более мягкого сравнения
 	private static String clearTag(String s) {
 		StringBuffer t = new StringBuffer();
 		int l = s.length();
@@ -3496,7 +3493,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return t.toString().toLowerCase().trim();
 	}
 	
-	// image utils
+	// tube42 image utils
 
 	static Image resize(Image src_i, int size_w, int size_h) {
 		// set source size
