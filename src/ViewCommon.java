@@ -37,7 +37,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	private boolean cacheOk = false;
 
-	Image slider;
+	static Image slider;
 	
 	private boolean hwa;
 	
@@ -67,11 +67,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				: (40 * 1024 * 1024);
 		reload();
 		setFullScreenMode(true);
-		try {
-			slider = Image.createImage("/slider.png");
-		} catch (IOException e) {
-			e.printStackTrace();
-			slider = null;
+			if (slider == null) {
+			try {
+				slider = Image.createImage("/slider.png");
+			} catch (IOException e) {
+				slider = null;
+			}
 		}
 	}
 

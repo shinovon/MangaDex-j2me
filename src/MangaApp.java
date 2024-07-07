@@ -2144,20 +2144,27 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					n = Math.min(n, chapterPages) - 1;
 				}
-				if (viewMode == 1) {
-					view = new ViewCommon(n, false);
-				} else if (viewMode == 2) {
-					view = new ViewHWA(n);
+				if (view != null) {
+					view.page = n;
+					view.cover = false;
+					view.cache = null;
+					view.reload();
 				} else {
-					String vram = System.getProperty("com.nokia.gpu.memory.total");
-					if (vram != null && !vram.equals("0")) {
+					if (viewMode == 1) {
+						view = new ViewCommon(n, false);
+					} else if (viewMode == 2) {
 						view = new ViewHWA(n);
 					} else {
-						view = new ViewCommon(n, false);
+						String vram = System.getProperty("com.nokia.gpu.memory.total");
+						if (vram != null && !vram.equals("0")) {
+							view = new ViewHWA(n);
+						} else {
+							view = new ViewCommon(n, false);
+						}
 					}
+					
+					display(view);
 				}
-				
-				display(view);
 				
 				if (accessToken != null) {
 					MangaApp.run = RUN_READ;
@@ -2512,7 +2519,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					try {
 						apiPost("manga/".concat(mangaId).concat("/status"), "{\"status\":null}".getBytes(), "application/json");
 					} catch (Exception ignored) {}
-					// подменить метод в прокси, потому что в ж2ме нельзя
+					// подменить метод в прокси, потому что мидп разрешает только get, post и head
 					api("manga/".concat(mangaId).concat("/follow;method=DELETE"));
 				}
 				followBtn.setText(L[(mangaFollowed = !mangaFollowed) ? Unfollow : Follow]);
