@@ -115,6 +115,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command showLinkCmd;
 	private static Command pathCmd;
 	private static Command followCmd, unfollowCmd;
+	private static Command markAsReadCmd;
 
 	private static Command prevPageCmd;
 	private static Command nextPageCmd;
@@ -402,6 +403,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		pathCmd = new Command(L[SpecifyPath], Command.ITEM, 1);
 		followCmd = new Command(L[Follow], Command.ITEM, 1);
 		unfollowCmd = new Command(L[Unfollow], Command.ITEM, 1);
+		markAsReadCmd = new Command(L[MarkAsRead], Command.ITEM, 5);
 		
 		nextPageCmd = new Command(L[NextPage], Command.SCREEN, 2);
 		prevPageCmd = new Command(L[PrevPage], Command.SCREEN, 3);
@@ -1161,6 +1163,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			t.addCommand(cancelCmd);
 			t.setCommandListener(this);
 			display(t);
+			return;
+		}
+		if (c == markAsReadCmd) {
+			// пометить главу как прочитанную
+			if ((chapterId = (String) chapterItems.get(item)) == null)
+				return;
+			if (chapterId.startsWith("http")) {
+				return;
+			}
+			
+			start(RUN_READ);
 			return;
 		}
 		if (c == showCoverCmd) {
@@ -2077,6 +2090,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					.append(localizeTime(time))
 					;
 					
+					// туду статус прочтения
+//					if (true) {
+//						sb.append(L[Readed]);
+//					}
+					
 					if (scan != null) {
 						sb.append('\n').append(getName(scan));
 					} else if (user != null) {
@@ -2090,6 +2108,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.addCommand(chapterCmd);
 					s.addCommand(downloadCmd);
 					s.addCommand(openFromPageCmd);
+					if (accessToken != null) s.addCommand(markAsReadCmd);
 					s.setDefaultCommand(chapterCmd);
 					s.setItemCommandListener(this);
 					f.append(s);
@@ -2143,6 +2162,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (accessToken != null) {
 					MangaApp.run = RUN_READ;
 					run();
+					return;
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -3161,13 +3181,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// http
 	
 	private static JSONObject api(String url) throws IOException {
-		url = proxyUrl(APIURL.concat(url));
 		JSONObject res;
 
 		HttpConnection hc = null;
 		InputStream in = null;
 		try {
-			hc = open(url);
+			hc = open(proxyUrl(APIURL.concat(url)));
 			int c;
 			if ((c = hc.getResponseCode()) >= 400) {
 				throw new IOException("HTTP ".concat(Integer.toString(c)));
@@ -3198,7 +3217,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //		System.out.println(res);
 		// хендлить ошибки апи
 		if ("error".equals(res.get("result", null))) {
-			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()));
+			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()).concat("\nURL: ").concat(url));
 		}
 		return res;
 	}
@@ -3235,7 +3254,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		System.out.println(res);
 		if ("error".equals(res.get("result", null))) {
-			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()));
+			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()).concat("\nURL: ").concat(url));
 		}
 		return res;
 	}

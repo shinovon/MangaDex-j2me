@@ -135,4 +135,6 @@ public interface LangConstants {
 	static final int KeepAlreadyLoaded = 134;
 	static final int NoDownloadPath = 135;
 	static final int OutOfMemorySpace = 136;
+	static final int MarkAsRead = 137;
+	static final int Readed = 138; // unused
 }
