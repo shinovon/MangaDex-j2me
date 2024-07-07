@@ -138,4 +138,6 @@ public interface LangConstants {
 	static final int MarkAsRead = 137;
 	static final int Readed = 138; // unused
 	static final int Feed = 139;
+	static final int Follows = 140;
+	static final int Titles = 141;
 }

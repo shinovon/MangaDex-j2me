@@ -463,6 +463,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// есть авторизация, добавляем доп кнопки
 		if (refreshToken != null) {
+			s = new StringItem(null, L[Follows]);
+			s.setFont(smallboldfont);
+			s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+			f.append(s);
+			
 			// обновления юзера
 			s = new StringItem(null, L[Feed], StringItem.BUTTON);
 			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
@@ -477,6 +482,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.addCommand(libraryCmd);
 			s.setDefaultCommand(libraryCmd);
 			s.setItemCommandListener(this);
+			f.append(s);
+			
+			s = new StringItem(null, L[Titles]);
+			s.setFont(smallboldfont);
+			s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			f.append(s);
 		}
 		
