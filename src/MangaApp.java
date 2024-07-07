@@ -2814,8 +2814,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setFont(smallfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						s.addCommand(chapterCmd);
-						s.addCommand(downloadCmd);
-						s.addCommand(openFromPageCmd);
 						s.setDefaultCommand(chapterCmd);
 						s.setItemCommandListener(this);
 						f.append(s);
