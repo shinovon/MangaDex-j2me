@@ -137,4 +137,5 @@ public interface LangConstants {
 	static final int OutOfMemorySpace = 136;
 	static final int MarkAsRead = 137;
 	static final int Readed = 138; // unused
+	static final int Feed = 139;
 }
