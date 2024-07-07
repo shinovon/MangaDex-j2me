@@ -361,12 +361,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			JSONObject j = JSONObject.parseObject(new String(r.getRecord(1), "UTF-8"));
 			r.closeRecordStore();
 			
-			accessToken = j.getNullableString("accessToken");
-			refreshToken = j.getNullableString("refreshToken");
-			clientId = j.getNullableString("clientId");
-			clientSecret = j.getNullableString("clientSecret");
-			username = j.getNullableString("username");
-			password = j.getNullableString("password");
+			accessToken = j.getString("accessToken", null);
+			refreshToken = j.getString("refreshToken", null);
+			clientId = j.getString("clientId", null);
+			clientSecret = j.getString("clientSecret", null);
+			username = j.getString("username", null);
+			password = j.getString("password", null);
 			accessTokenTime = j.getLong("accessTime", 0);
 			refreshTokenTime = j.getLong("refreshTime", 0);
 //			start(RUN_AUTH);
@@ -1280,7 +1280,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// Format
 				tags = tags("format");
 				for (int i = 0; i < tags.length; i++) {
-					sb.append(tags[i][1]).append("; ");
+					sb.append(tags[i][1]).append(", ");
 				}
 				sb.setLength(sb.length() - 2);
 				
@@ -2948,17 +2948,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			curVolume = "none";
 
 		String lastCh = null;
-		JSONObject vol = volumes.getNullableObject(curVolume);
+		JSONObject vol = volumes.getObject(curVolume, null);
 		if (vol == null || (lastCh = getNextChapter(vol, curCh, dir)) == null) {
 			if (dir) {
 				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
-				if ((vol = volumes.getNullableObject(Integer.toString(n))) != null) {
+				if ((vol = volumes.getObject(Integer.toString(n), null)) != null) {
 					lastCh = getNextChapter(vol, curCh, true);
-				} else if ((vol = volumes.getNullableObject("none")) != null) {
+				} else if ((vol = volumes.getObject("none", null)) != null) {
 					lastCh = getNextChapter(vol, curCh, true);
 					n = 0;
 				}
-				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+				if (lastCh == null && n > 0 && (vol = volumes.getObject("none", null)) != null) {
 					lastCh = getNextChapter(vol, curCh, true);
 					n = 0;
 				}
@@ -2972,15 +2972,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						if (t > n) n = t;
 					}
 					if (n != -1)
-						vol = volumes.getNullableObject(Integer.toString(n));
+						vol = volumes.getObject(Integer.toString(n), null);
 				} else {
 					n = Integer.parseInt(curVolume) - 1;
-					vol = volumes.getNullableObject(n < 1 ? "none" : Integer.toString(n));
+					vol = volumes.getObject(n < 1 ? "none" : Integer.toString(n), null);
 				}
 				if (vol != null) {
 					lastCh = getNextChapter(vol, curCh, false);
 				}
-				if (lastCh == null && n > 0 && (vol = volumes.getNullableObject("none")) != null) {
+				if (lastCh == null && n > 0 && (vol = volumes.getObject("none", null)) != null) {
 					lastCh = getNextChapter(vol, curCh, false);
 					n = 0;
 				}
