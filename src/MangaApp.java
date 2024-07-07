@@ -1868,8 +1868,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s = new StringItem(null, L[mangaFollowed ? Unfollow : Follow], StringItem.BUTTON);
 					s.setFont(Font.getDefaultFont());
 					s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
-					s.addCommand(followCmd);
-					s.addCommand(unfollowCmd);
+					s.addCommand(mangaFollowed ? unfollowCmd : followCmd);
 					s.setDefaultCommand(mangaFollowed ? unfollowCmd : followCmd);
 					s.setItemCommandListener(this);
 					f.append(followBtn = s);
@@ -2515,6 +2514,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					try {
 						apiPost("manga/".concat(mangaId).concat("/status"), "{\"status\":\"reading\"}".getBytes(), "application/json");
 					} catch (Exception ignored) {}
+					followBtn.removeCommand(followCmd);
+					followBtn.addCommand(unfollowCmd);
+					followBtn.setDefaultCommand(unfollowCmd);
 				} else {
 					// удаление
 					try {
@@ -2522,6 +2524,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					} catch (Exception ignored) {}
 					// подменить метод в прокси, потому что мидп разрешает только get, post и head
 					api("manga/".concat(mangaId).concat("/follow;method=DELETE"));
+					followBtn.removeCommand(unfollowCmd);
+					followBtn.addCommand(followCmd);
+					followBtn.setDefaultCommand(followCmd);
 				}
 				followBtn.setText(L[(mangaFollowed = !mangaFollowed) ? Unfollow : Follow]);
 			} catch (Exception e) {
