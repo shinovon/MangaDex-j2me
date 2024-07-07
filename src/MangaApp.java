@@ -39,6 +39,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //	private static final int RUN_DISPOSE_VIEW = 10;
 	private static final int RUN_AUTH = 11;
 	private static final int RUN_FOLLOW = 12;
+	private static final int RUN_READ = 13;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -2138,6 +2139,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				display(view);
+				
+				if (accessToken != null) {
+					MangaApp.run = RUN_READ;
+					run();
+				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 				display(errorAlert(e.toString()), f);
@@ -2429,7 +2435,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						.append(url(refreshToken))
 						;
 					} else if(accessToken == null && username != null && password != null) {
-						// рефреш токен умер, перелогиниваемся
+						// рефреш токен умер, перелогиниваемся заново
 						p.append("&grant_type=password&username=")
 						.append(url(username))
 						.append("&password=")
@@ -2441,36 +2447,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					a.setString(L[Authorizing]);
 					display(a, f);
 					
-					byte[] data = p.toString().getBytes();
-					
-					HttpConnection h = (HttpConnection) open(proxyUrl(AUTHURL));
-					try {
-						h.setRequestMethod("POST");
-						h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-						h.setRequestProperty("Content-length", Integer.toString(data.length));
-						OutputStream out = h.openOutputStream();
-						out.write(data);
-						out.flush();
-						out.close();
-						InputStream in = h.openInputStream();
-						try {
-							JSONObject j = JSONObject.parseObject(new String(readBytes(in, 0, 2048, 2048)));
-							if (j.has("access_token")) {
-								accessToken = j.getString("access_token");
-								accessTokenTime = System.currentTimeMillis();
-							}
-							if (j.has("refresh_token")) {
-								refreshToken = j.getString("refresh_token");
-								refreshTokenTime = System.currentTimeMillis();
-							}
-							if (j.has("error")) {
-								throw new Exception("Auth error: ".concat(j.getString("error")));
-							}
-						} finally {
-							in.close();
-						}
-					} finally {
-						h.close();
+					JSONObject j = apiPost(AUTHURL, p.toString().getBytes(), "application/x-www-form-urlencoded");
+					if (j.has("access_token")) {
+						accessToken = j.getString("access_token");
+						accessTokenTime = System.currentTimeMillis();
+					}
+					if (j.has("refresh_token")) {
+						refreshToken = j.getString("refresh_token");
+						refreshTokenTime = System.currentTimeMillis();
+					}
+					if (j.has("error")) {
+						throw new Exception("Auth error: ".concat(j.getString("error")));
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -2493,13 +2480,33 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		case RUN_FOLLOW: { // добавить/убрать из библиотеки
 			Form f = mangaForm;
 			try {
-				// подменить метод в прокси, потому что в ж2ме нельзя
-				api("manga/".concat(mangaId).concat("/follow;method=").concat(mangaFollowed ? "DELETE" : "POST"));
+				if (!mangaFollowed) {
+					// добавление
+					apiPost("manga/".concat(mangaId).concat("/follow"), null, null);
+					// туду выбор статуса чтения
+					try {
+						apiPost("manga/".concat(mangaId).concat("/status"), "{\"status\":\"reading\"}".getBytes(), "application/json");
+					} catch (Exception ignored) {}
+				} else {
+					// удаление
+					try {
+						apiPost("manga/".concat(mangaId).concat("/status"), "{\"status\":null}".getBytes(), "application/json");
+					} catch (Exception ignored) {}
+					// подменить метод в прокси, потому что в ж2ме нельзя
+					api("manga/".concat(mangaId).concat("/follow;method=DELETE"));
+				}
 				followBtn.setText(L[(mangaFollowed = !mangaFollowed) ? Unfollow : Follow]);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			f.setTicker(null);
+			break;
+		}
+		case RUN_READ: { // пометить главу как прочитанную
+			if (accessToken == null) break;
+			try {
+				apiPost("manga/".concat(mangaId).concat("/read"), "{\"chapterIdsRead\":[\"".concat(chapterId).concat("\"]}").getBytes(), "application/json");
+			} catch (Exception ignored) {}
 			break;
 		}
 		}
@@ -3154,13 +3161,83 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// http
 	
 	private static JSONObject api(String url) throws IOException {
-		JSONObject j = JSONObject.parseObject(getUtf(proxyUrl(APIURL.concat(url))));
-//		System.out.println(j);
-		// хендлить ошибки апи
-		if ("error".equals(j.get("result", null))) {
-			throw new RuntimeException("API " + j.getArray("errors").getObject(0).toString());
+		url = proxyUrl(APIURL.concat(url));
+		JSONObject res;
+
+		HttpConnection hc = null;
+		InputStream in = null;
+		try {
+			hc = open(url);
+			int c;
+			if ((c = hc.getResponseCode()) >= 400) {
+				throw new IOException("HTTP ".concat(Integer.toString(c)));
+			}
+//			String r;
+//			while(i >= 300) {
+//				if (++k > 3) {
+//					throw new IOException("Too many redirects!");
+//				}
+//				if ((r = hc.getHeaderField("Location")).startsWith("/")) {
+//					r = url.substring(0, (j = url.indexOf("//") + 2)) + url.substring(j, url.indexOf("/", j)) + r;
+//				}
+//				hc.close();
+//				hc = open(r);
+//				if ((i = hc.getResponseCode()) >= 400) {
+//					throw new IOException("HTTP ".concat(Integer.toString(i)));
+//				}
+//			}
+			res = JSONObject.parseObject(readUtf(in = hc.openInputStream(), (int) hc.getLength()));
+		} finally {
+			if (in != null) try {
+				in.close();
+			} catch (IOException e) {}
+			if (hc != null) try {
+				hc.close();
+			} catch (IOException e) {}
 		}
-		return j;
+//		System.out.println(res);
+		// хендлить ошибки апи
+		if ("error".equals(res.get("result", null))) {
+			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()));
+		}
+		return res;
+	}
+	
+	private static JSONObject apiPost(String url, byte[] body, String type) throws IOException {
+		JSONObject res;
+
+		HttpConnection hc = null;
+		InputStream in = null;
+		try {
+			hc = open(proxyUrl(url.startsWith("http") ? url : APIURL.concat(url)));
+			hc.setRequestMethod("POST");
+			if (type != null) hc.setRequestProperty("Content-Type", type);
+			hc.setRequestProperty("Content-length", body == null ? "0" : Integer.toString(body.length));
+			if (body != null) {
+				OutputStream out = hc.openOutputStream();
+				out.write(body);
+				out.flush();
+				out.close();
+			}
+
+			int c;
+			if ((c = hc.getResponseCode()) >= 400) {
+				throw new IOException("HTTP ".concat(Integer.toString(c)));
+			}
+			res = JSONObject.parseObject(readUtf(in = hc.openInputStream(), (int) hc.getLength()));
+		} finally {
+			if (in != null) try {
+				in.close();
+			} catch (IOException e) {}
+			if (hc != null) try {
+				hc.close();
+			} catch (IOException e) {}
+		}
+		System.out.println(res);
+		if ("error".equals(res.get("result", null))) {
+			throw new RuntimeException("API error: ".concat(res.getArray("errors").getObject(0).toString()));
+		}
+		return res;
 	}
 	
 	private static String proxyUrl(String url) {
@@ -3198,6 +3275,18 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return res;
 	}
 	
+	private static String readUtf(InputStream in, int i) throws IOException {
+		byte[] buf = new byte[i <= 0 ? 1024 : i];
+		i = 0;
+		int j;
+		while((j = in.read(buf, i, buf.length - i)) != -1) {
+			if ((i += j) >= buf.length) {
+				System.arraycopy(buf, 0, buf = new byte[i + 2048], 0, i);
+			}
+		}
+		return new String(buf, 0, i, "UTF-8");
+	}
+	
 	private static byte[] get(String url) throws IOException {
 		HttpConnection hc = null;
 		InputStream in = null;
@@ -3218,48 +3307,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (hc != null) hc.close();
 			} catch (IOException e) {
 			}
-		}
-	}
-
-	private static String getUtf(String url) throws IOException {
-		HttpConnection hc = null;
-		InputStream in = null;
-		try {
-			hc = open(url);
-			int i, j, k = 0;
-			if ((i = hc.getResponseCode()) >= 400) {
-				throw new IOException("HTTP ".concat(Integer.toString(i)));
-			}
-			String r;
-			while(i >= 300) {
-				if (++k > 3) {
-					throw new IOException("Too many redirects!");
-				}
-				if ((r = hc.getHeaderField("Location")).startsWith("/")) {
-					r = url.substring(0, (j = url.indexOf("//") + 2)) + url.substring(j, url.indexOf("/", j)) + r;
-				}
-				hc.close();
-				hc = open(r);
-				if ((i = hc.getResponseCode()) >= 400) {
-					throw new IOException("HTTP ".concat(Integer.toString(i)));
-				}
-			}
-			in = hc.openInputStream();
-			byte[] buf = new byte[(i = (int) hc.getLength()) <= 0 ? 1024 : i];
-			i = 0;
-			while((j = in.read(buf, i, buf.length - i)) != -1) {
-				if ((i += j) == buf.length) {
-					System.arraycopy(buf, 0, buf = new byte[i + 2048], 0, i);
-				}
-			}
-			return new String(buf, 0, i, "UTF-8");
-		} finally {
-			try {
-				if (in != null) in.close();
-			} catch (IOException e) {}
-			try {
-				if (hc != null) hc.close();
-			} catch (IOException e) {}
 		}
 	}
 	
