@@ -1838,8 +1838,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
-				s = new StringItem(null, attributes.getString("year") +
-						", " + attributes.getString("status").toUpperCase());
+				s = new StringItem(null, (attributes.isNull("year") ? "" : (attributes.getString("year") + ", "))
+						+ attributes.getString("status").toUpperCase());
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
@@ -2210,6 +2210,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					view.cover = false;
 					view.cache = null;
 					view.reload();
+					display(view);
 				} else {
 					if (viewMode == 1) {
 						view = new ViewCommon(n, false);
@@ -2489,7 +2490,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //		}
 		case RUN_AUTH: { // авторизация
 			auth: {
-				Displayable f = display.getCurrent();
+				Displayable f = view != null ? view :
+					mangaForm != null ? mangaForm :
+					listForm != null ? listForm : display.getCurrent();
 				
 				try {
 					// проверка времени жизни токенов
@@ -3025,12 +3028,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// парсит массив альт тайтлов
 	private static String getTitle(JSONArray j) {
 		int l = j.size();
+		String s = null;
 		for (int i = 0; i < l; i++) {
 			JSONObject t = j.getObject(i);
 			if (t.has("ru") && "ru".equals(lang)) return t.getString("ru"); // тоже выф
-			if (t.has("en")) return t.getString("en");
+			if (s != null) continue;
+			if (t.has("en")) s = t.getString("en");
+			if (t.has("ja")) s = t.getString("ja");
 		}
-		return null;
+		return s;
 	}
 	
 	// загрузка локали
