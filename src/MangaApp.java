@@ -1689,12 +1689,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				mangaFollowed = false;
 				
-				// проверка на фолловед если есть авторизация
-				if (accessToken != null)
-				try {
-					mangaFollowed = api("user/follows/manga/".concat(id)).getString("result").equals("ok");
-				} catch (Exception e) {}
-				
 				JSONObject author = null,
 						artist = null;
 				
@@ -1837,7 +1831,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// туду добавить список альт тайтлов?
 				
-				// кнопки
+				// главы
 				s = new StringItem(null, L[Chapters], StringItem.BUTTON);
 				s.setFont(Font.getDefaultFont());
 				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
@@ -1846,6 +1840,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setItemCommandListener(this);
 				f.append(s);
 				
+				// связанное
 				if (!relatedManga.isEmpty()) {
 					s = new StringItem(null, L[Related], StringItem.BUTTON);
 					s.setFont(Font.getDefaultFont());
@@ -1856,7 +1851,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					f.append(s);
 				}
 				
+				if (mangaForm == f)
+					display(f);
+				
+				// если обложка потерялась, поставить ее в очередь
+				if (thumb == null || thumb == coverPlaceholder) {
+					scheduleCover(coverItem, id);
+				}
+				
+				// добавить в библиотеку
 				if (accessToken != null) {
+					try {
+						mangaFollowed = api("user/follows/manga/".concat(id)).getString("result").equals("ok");
+					} catch (Exception e) {}
+					
 					s = new StringItem(null, L[mangaFollowed ? Unfollow : Follow], StringItem.BUTTON);
 					s.setFont(Font.getDefaultFont());
 					s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
@@ -1866,13 +1874,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.setItemCommandListener(this);
 					f.append(followBtn = s);
 				}
-				
-				// если обложка потерялась, поставить ее в очередь
-				if (thumb == null || thumb == coverPlaceholder) {
-					scheduleCover(coverItem, id);
-				}
-				if (mangaForm == f)
-					display(f);
 			} catch (Exception e) {
 				e.printStackTrace();
 				if (mangaForm == f)
@@ -2139,7 +2140,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				int n = chapterPage;
 				chapterPages = chapterFilenames.size();
-				if (n == -1) { // последняя страницы
+				if (n == -1) { // последняя страница
 					n = chapterPages - 1;
 				} else {
 					n = Math.min(n, chapterPages) - 1;
@@ -3086,7 +3087,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					try {
 						ou.close();
 					} catch (IOException e) {}
-					if (fc != null)
+				if (fc != null)
 					try {
 						fc.close();
 					} catch (IOException e) {}
@@ -3121,13 +3122,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return b.toByteArray();
 		} catch (Exception e) {} finally {
 			if (di != null)
-			try {
-				di.close();
-			} catch (IOException e) {}
+				try {
+					di.close();
+				} catch (IOException e) {}
 			if (fc != null)
-			try {
-				fc.close();
-			} catch (IOException e) {}
+				try {
+					fc.close();
+				} catch (IOException e) {}
 		}
 		return null;
 	}
