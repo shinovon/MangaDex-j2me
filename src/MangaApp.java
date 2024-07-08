@@ -846,6 +846,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 			f.append(s);
 
+			s = new StringItem("Donate", "boosty.to/nnproject/donate\nko-fi.com/shinovon");
+			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+			f.append(s);
+
 			s = new StringItem("Chat", "t.me/nnmidletschat");
 			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 			f.append(s);
