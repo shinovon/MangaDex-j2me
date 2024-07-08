@@ -627,7 +627,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			downloadPath = downloadPathField.getString();
 			coverSize = coverSizeGauge.getValue();
 			viewMode = viewModeChoice.getSelectedIndex();
-			chapterLangFilter = chapterLangField.getString();
+			chapterLangFilter = chapterLangField.getString().trim().toLowerCase();
 			keepListCovers = keepCoversChoice.isSelected(0);
 			cachingPolicy = cachingPolicyChoice.getSelectedIndex();
 			chapterFileCache = chapterCacheChoice.isSelected(0);
@@ -1159,7 +1159,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setTicker(new Ticker(L[Loading]));
 			
 			display(listForm = f);
-			
+
+			listOffset = 0;
 			listMode = LIST_FEED;
 			runAfterAuth = RUN_FEED;
 			start(RUN_AUTH);
