@@ -136,8 +136,9 @@ public interface LangConstants {
 	static final int NoDownloadPath = 135;
 	static final int OutOfMemorySpace = 136;
 	static final int MarkAsRead = 137;
-	static final int Readed = 138; // unused
+	static final int Readed = 138;
 	static final int Feed = 139;
 	static final int Follows = 140;
 	static final int Titles = 141;
+	static final int ShowReadStatus = 142;
 }

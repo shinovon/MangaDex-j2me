@@ -178,6 +178,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup jpegChoice;
 	private static ChoiceGroup onlineChoice;
 	private static TextField tagsFilterField;
+	private static ChoiceGroup readChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -214,6 +215,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int chaptersTotal;
 	private static Hashtable chapterItems = new Hashtable();
 	private static boolean chaptersOrder;
+	private static Vector readChapters;
 	
 	// для просмотра
 	private static String chapterBaseUrl;
@@ -270,6 +272,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean useLoadingForm;
 	static boolean onlineResize = true;
 	private static String tagsFilter = "";
+	private static boolean showRead;
 
 	// auth
 	private static String clientId;
@@ -344,6 +347,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			dataSaver = j.getBoolean("dataSaver", dataSaver);
 			onlineResize = j.getBoolean("onlineResize", onlineResize);
 			tagsFilter = j.getString("tagsFilter", tagsFilter);
+			showRead = j.getBoolean("showRead", showRead);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -598,6 +602,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
 				chaptersForm = null;
 				chapterItems.clear();
+				readChapters = null;
 				return;
 			}
 		}
@@ -635,6 +640,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			dataSaver = jpegChoice.isSelected(0);
 			onlineResize = onlineChoice.isSelected(0);
 			tagsFilter = tagsFilterField.getString();
+			showRead = readChoice.isSelected(0);
 			
 			try {
 				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -663,6 +669,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				j.put("dataSaver", dataSaver);
 				j.put("onlineResize", onlineResize);
 				j.put("tagsFilter", tagsFilter);
+				j.put("showRead", showRead);
 				
 				byte[] b = j.toString().getBytes("UTF-8");
 				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -795,6 +802,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				keepBitmapChoice = new ChoiceGroup(L[KeepOriginalPages], ChoiceGroup.POPUP, on_off, null);
 				keepBitmapChoice.setSelectedIndex(keepBitmap ? 0 : 1, true);
 				f.append(keepBitmapChoice);
+				
+				readChoice = new ChoiceGroup(L[ShowReadStatus], ChoiceGroup.POPUP, on_off, null);
+				readChoice.setSelectedIndex(showRead ? 0 : 1, true);
+				f.append(readChoice);
 				
 				settingsForm = f;
 			}
@@ -2063,8 +2074,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				JSONObject j = api(sb.toString());
-				JSONArray data = j.getArray("data");
-				int l = data.size();
 				chaptersTotal = j.getInt("total");
 				
 				// команда пагинирования добавляется только если в ответе что-то есть
@@ -2074,6 +2083,28 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// проверка на последнюю страницу
 				if (chaptersOffset < chaptersTotal - chaptersLimit)
 					f.addCommand(nextPageCmd);
+				
+				if (chaptersForm != f) break;
+				
+				if (showRead && accessToken != null && readChapters == null) {
+					sb.setLength(0);
+					sb.append("manga/").append(id).append("/read?limit=100");
+					try {
+						readChapters = new Vector(100);
+						JSONArray read = api(sb.toString()).getArray("data");
+						int l = read.size();
+						for (int i = 0; i < l; i++) {
+							readChapters.addElement(read.get(i));
+						}
+					} catch (Throwable e) {
+						e.printStackTrace();
+					}
+				}
+				
+				if (chaptersForm != f) break;
+				
+				JSONArray data = j.getArray("data");
+				int l = data.size();
 				
 				sb.setLength(0);
 				// надпись состояния пагинации
@@ -2088,7 +2119,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				String lastVolume = null;
 				String lastChapter = null;
-				for (int i = 0; i < l && chaptersForm != null; i++) {
+				for (int i = 0; i < l && chaptersForm == f; i++) {
 					JSONObject c = data.getObject(i);
 					JSONObject a = c.getObject("attributes");
 					JSONArray relationships = c.getArray("relationships");
@@ -2145,18 +2176,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					// внешний источник?
 					boolean ext = a.has("externalUrl") && !a.isNull("externalUrl");
+					boolean read = showRead && readChapters.contains(c.get("id"));
 
 					// текст ссылки на главу: язык, название, время загрузки
 					sb.setLength(0);
-					sb.append("• ").append(lang).append(" / ")
+					sb.append(read ? L[Readed] : "• ").append(lang).append(" / ")
 					.append(title != null ? title : "Ch. ".concat(chapter)).append(" / ")
 					.append(localizeTime(time))
 					;
-					
-					// туду статус прочтения
-//					if (true) {
-//						sb.append(L[Readed]);
-//					}
 					
 					if (scan != null) {
 						sb.append('\n').append(getName(scan));
@@ -2680,8 +2707,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					v.addElement(c);
 				}
 				
-				if (listForm != f)
-					break;
+				if (listForm != f) break;
 				
 				sb.setLength(0);
 				sb.append("manga?limit=100");
@@ -2707,6 +2733,21 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					l = mangasJson.size();
 					for (int i = 0; i < l; i++) {
 						mangas.addElement(mangasJson.getObject(i));
+					}
+				}
+				
+				JSONObject read = null;
+				if (showRead) {
+						sb.setLength(0);
+					sb.append("manga/read?grouped=true");
+					keys = t.keys();
+					while (keys.hasMoreElements()) {
+						sb.append("&ids[]=").append((String) keys.nextElement());
+					}
+					try {
+						read = api(sb.toString()).getObject("data");
+					} catch (Throwable e) {
+						e.printStackTrace();
 					}
 				}
 				
@@ -2789,10 +2830,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 								lang = a.getString("translatedLanguage");
 						
 						boolean ext = a.has("externalUrl") && !a.isNull("externalUrl");
+						boolean r = read != null && read.has(id) && read.getArray(id).has(c.get("id"));
 
-						// текст ссылки на главу: язык, название, время загрузки
 						sb.setLength(0);
-						sb.append("• ").append(lang).append(" / ");
+						sb.append(r ? L[Readed] : "• ").append(lang).append(" / ");
 						
 						if (volume != null) {
 							sb.append("Vol. ").append(volume).append(' ');
