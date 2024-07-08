@@ -2787,7 +2787,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						break;
 					}
 
-					img = new ImageItem(null, null,
+					String n = attributes.has("title") ? getTitle(attributes.getObject("title")) : "";
+					img = new ImageItem(coverLoading == 3 ? n : null, null,
 							Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
 							id, Item.BUTTON);
 					img.addCommand(mangaItemCmd);
@@ -2796,10 +2797,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					scheduleCover(img, id);
 					f.append(img);
 					
-					s = new StringItem(null, attributes.has("title") ? getTitle(attributes.getObject("title")) : "");
-					s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
-					s.setFont(medboldfont);
-					f.append(s);
+					if (coverLoading != 3) {
+						s = new StringItem(null, n);
+						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+						s.setFont(medboldfont);
+						f.append(s);
+					}
 					
 					// главы
 					Vector ch = (Vector) t.get(id);
