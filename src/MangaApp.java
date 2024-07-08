@@ -363,8 +363,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 		}
 		
-//		loadingForm.append(L[Loading]);
-		
 		// загрузка авторизации
 		try {
 			RecordStore r = RecordStore.openRecordStore(AUTH_RECORDNAME, false);
@@ -536,6 +534,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_COVERS);
 			start(RUN_COVERS);
 		}
+		
+		loadingForm.append(L[Loading]);
 	}
 
 	public void commandAction(Command c, Displayable d) {
@@ -2198,7 +2198,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					s.addCommand(chapterCmd);
 					s.addCommand(downloadCmd);
 					s.addCommand(openFromPageCmd);
-					if (accessToken != null) s.addCommand(markAsReadCmd);
+					if (accessToken != null && !read) s.addCommand(markAsReadCmd);
 					s.setDefaultCommand(chapterCmd);
 					s.setItemCommandListener(this);
 					f.append(s);
