@@ -965,7 +965,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		// slider's body
 		if (slider == null) {
 			for (int i = 0; i < 10; i++) {
-				g.setColor(MangaApp.blend(touchHoldPos == 8 ? 0x357EDE : 0x444444, 0xffffff, i * 255 / 9));
+				g.setColor(MangaApp.blend(touchHoldPos == 8 ? 0xFF6740 : 0x444444, 0xffffff, i * 255 / 9));
 				g.drawRoundRect(25 - i, 25 - i, getWidth() - 50 + (i * 2), i * 2, i, i);
 			}
 		} else {
@@ -981,10 +981,10 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 		// slider's pin
 		for (int i = 0; i < 15; i++) {
-			g.setColor(MangaApp.blend(touchHoldPos == 8 ? 0x357EDE : 0x444444, 0, i * 255 / 14));
+			g.setColor(MangaApp.blend(touchHoldPos == 8 ? 0xFF6740 : 0x444444, 0, i * 255 / 14));
 			g.fillArc(px - 15 + i, 10 + i, 30 - i * 2, 30 - i * 2, 0, 360);
 		}
-		g.setColor(touchHoldPos == 8 ? 0x357EDE : -1);
+		g.setColor(touchHoldPos == 8 ? 0xFF6740 : -1);
 
 		g.drawArc(px - 16, 9, 30, 30, 0, 360);
 
@@ -1118,27 +1118,5 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		default:
 			return k;
 		}
-	}
-
-	/**
-	 * Creates a view.
-	 * 
-	 * @param mo Object to work with.
-	 * @param d  Previous screen.
-	 * @param i  Page number.
-	 * @return Created view.
-	 */
-	public static ViewCommon create(int i) {
-		if (MangaApp.viewMode == 1) {
-			return new ViewCommon(i, false);
-		}
-		if (MangaApp.viewMode == 2) {
-			return new ViewHWA(i);
-		}
-		String vram = System.getProperty("com.nokia.gpu.memory.total");
-		if (vram != null && !vram.equals("0")) {
-			return new ViewHWA(i);
-		}
-		return new ViewCommon(i, false);
 	}
 }

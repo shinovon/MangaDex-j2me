@@ -2884,6 +2884,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		case RUN_ZOOM_VIEW: {
 			if (view == null) break;
 			view.resize((int) view.zoom);
+			view.repaint();
 			break;
 		}
 		}
@@ -3032,6 +3033,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		JSONStream j = null;
 		HttpConnection hc = open(proxyUrl(APIURL + "cover?" + (manga ? "manga" : "ids") + "[]=" + id));
+		hc.setRequestMethod("GET");
 		try {
 			int r;
 			if ((r = hc.getResponseCode()) >= 400) {
@@ -3561,6 +3563,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		InputStream in = null;
 		try {
 			hc = open(proxyUrl(APIURL.concat(url)));
+			hc.setRequestMethod("GET");
 			int c;
 			if ((c = hc.getResponseCode()) >= 400) {
 				throw new IOException("HTTP ".concat(Integer.toString(c)));
@@ -3671,6 +3674,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		InputStream in = null;
 		try {
 			hc = open(url);
+			hc.setRequestMethod("GET");
 			int r;
 			if ((r = hc.getResponseCode()) >= 400) {
 				throw new IOException("HTTP ".concat(Integer.toString(r)));
@@ -3692,7 +3696,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// общая утилка для открытия хттп запросов, проставляет юзер агент и авторизацию если есть
 	private static HttpConnection open(String url) throws IOException {
 		HttpConnection hc = (HttpConnection) Connector.open(url);
-		hc.setRequestMethod("GET");
 		hc.setRequestProperty("User-Agent", "j2me-client/" + version + " (https://github.com/shinovon)");
 		if (accessToken != null && url.indexOf("api.mangadex.org") != -1) {
 			hc.setRequestProperty("Authorization", "Bearer ".concat(accessToken));
