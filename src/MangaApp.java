@@ -61,7 +61,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
 	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
 	private static final Font smallboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_SMALL);
-	private static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
+	static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
 	
 	private static final String[] MANGA_STATUSES = {
 			"ongoing", "completed", "hiatus", "cancelled"
@@ -221,8 +221,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Vector chapterFilenames;
 	static int chapterPages;
 	private static int chapterPage;
-	private static String chapterVolume;
-	private static String chapterNum;
+	static String chapterVolume;
+	static String chapterNum;
 	private static String chapterLang;
 	private static String chapterGroup;
 	private static int chapterDir;
@@ -1910,6 +1910,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				if (mangaForm == f)
 					display(f);
+				else break;
 				
 				// если обложка потерялась, поставить ее в очередь
 				if (thumb == null || thumb == coverPlaceholder) {
@@ -2678,6 +2679,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					v.addElement(c);
 				}
 				
+				if (listForm != f)
+					break;
+				
 				sb.setLength(0);
 				sb.append("manga?limit=100");
 				Enumeration keys = t.keys();
@@ -2722,7 +2726,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 				ImageItem img;
 				StringItem s;
-				for (int i = 0; i < l && listForm != null; i++) {
+				for (int i = 0; i < l && listForm == f; i++) {
 					JSONObject m = (JSONObject) mangas.elementAt(i);
 					String id = m.getString("id");
 					JSONObject attributes = m.getObject("attributes");

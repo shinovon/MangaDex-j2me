@@ -126,7 +126,7 @@ public class ViewHWA extends ViewCommon {
 
 	protected void paint(Graphics g) {
 		try {
-			final Font f = Font.getFont(0, 0, 8);
+			final Font f = MangaApp.smallfont;
 			g.setFont(f);
 
 			// bg fill

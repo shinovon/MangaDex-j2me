@@ -50,6 +50,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	boolean cover;
 	boolean infinite; // TODO
 
+	private long chapterShown;
+
 
 	/**
 	 * Creates the view.
@@ -67,7 +69,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				: (40 * 1024 * 1024);
 		reload();
 		setFullScreenMode(true);
-			if (slider == null) {
+		if (slider == null) {
 			try {
 				slider = Image.createImage("/slider.png");
 			} catch (IOException e) {
@@ -268,6 +270,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				x = 0;
 				y = 0;
 				reset();
+				chapterShown = System.currentTimeMillis();
 				try {
 					prepare();
 					repaint();
@@ -277,6 +280,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					error = true;
 					e.printStackTrace();
 				}
+				chapterShown = System.currentTimeMillis();
 				repaint();
 				runPreloader();
 			}
@@ -492,7 +496,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	protected void paint(Graphics g) {
 		if (hwa) return;
 		try {
-			Font f = Font.getFont(0, 0, 8);
+			Font f = MangaApp.smallfont;
 			g.setFont(f);
 			if (toDraw == null) {
 				if (firstDraw) {
@@ -850,6 +854,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 	
 	protected final void paintHUD(Graphics g, Font f, boolean drawZoom, boolean drawPages) {
+		int w = getWidth(), h = getHeight();
+		int fh = f.getHeight();
 		String pageNum = (page + 1) + "/" + MangaApp.chapterPages;
 		String zoomN = hwa ? String.valueOf(zoom) : Integer.toString((int) zoom);
 		if (zoomN.length() > 3)
@@ -864,71 +870,88 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		}
 
 		// BGs
-		g.setGrayScale(0);
+		g.setColor(0);
 		if (drawPages) {
-			g.fillRect(0, 0, f.stringWidth(pageNum), f.getHeight());
+			g.fillRect(0, 0, f.stringWidth(pageNum), fh);
 		}
 		if (drawZoom) {
-			g.fillRect(getWidth() - f.stringWidth(zoomN), 0, f.stringWidth(zoomN), f.getHeight());
+			g.fillRect(w - f.stringWidth(zoomN), 0, f.stringWidth(zoomN), fh);
 		}
 		if (prefetch != null) {
-			g.fillRect(0, getHeight() - f.getHeight(), f.stringWidth(prefetch), f.getHeight());
+			g.fillRect(0, h - fh, f.stringWidth(prefetch), fh);
 		}
 
 		// texts
-		g.setGrayScale(255);
+		g.setColor(-1);
 		if (drawPages) {
 			g.drawString(pageNum, 0, 0, 0);
 		}
 		if (drawZoom) {
-			g.drawString(zoomN, getWidth() - f.stringWidth(zoomN), 0, 0);
+			g.drawString(zoomN, w - f.stringWidth(zoomN), 0, 0);
 		}
 		if (prefetch != null) {
-			g.drawString(prefetch, 0, getHeight() - f.getHeight(), 0);
+			g.drawString(prefetch, 0, h - fh, 0);
 		}
-
+		
+		if (!cover && chapterShown != 0 && (page == 0 || page == MangaApp.chapterPages - 1)) {
+			if (System.currentTimeMillis() - chapterShown > 3000L) {
+				chapterShown = 0;
+				return;
+			}
+			StringBuffer sb = new StringBuffer();
+			if (MangaApp.chapterVolume != null) {
+				sb.append("Vol. ").append(MangaApp.chapterVolume).append(' ');
+			}
+			if (MangaApp.chapterNum != null) {
+				sb.append("Ch. ").append(MangaApp.chapterNum);
+			}
+			g.setColor(0xFF6740);
+			g.drawString(sb.toString(), w >> 1, drawPages ? 4 : 50, Graphics.HCENTER | Graphics.TOP);
+		}
 	}
 
 	protected final void drawTouchControls(Graphics g, Font f) {
+		int w = getWidth(), h = getHeight();
 		int fh = f.getHeight();
 
 		// captions
 		for (int i = 3; i < 7; i++) {
 			if (cover && i != 6) continue;
-			fillGrad(g, getWidth() * (i - 3) / 4, getHeight() - 50, getWidth() / 4, 51, 0,
+			fillGrad(g, w * (i - 3) / 4, h - 50, w / 4, 51, 0,
 					touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222);
 			g.setGrayScale(255);
-			g.drawString(i == 4 ? ((page + 1) + "/" + MangaApp.chapterPages) : touchCaps[i], getWidth() * (1 + (i - 3) * 2) / 8,
-					getHeight() - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+			g.drawString(i == 4 ? ((page + 1) + "/" + MangaApp.chapterPages) : touchCaps[i], w * (1 + (i - 3) * 2) / 8,
+					h - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
 		g.setGrayScale(255);
 		if (!cover) {
 			// hor lines
-			g.drawLine(0, getHeight() - 50, getWidth(), getHeight() - 50);
+			g.drawLine(0, h - 50, w, h - 50);
 			// vert lines between btns
-			g.drawLine(getWidth() / 4, getHeight() - 50, getWidth() / 4, getHeight());
-			g.drawLine(getWidth() * 2 / 4, getHeight() - 50, getWidth() * 2 / 4, getHeight());
+			g.drawLine(w / 4, h - 50, w / 4, h);
+			g.drawLine(w >> 1, h - 50, w * 2 / 4, h);
 		} else {
-			g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth(), getHeight() - 50);
+			g.drawLine(w * 3 / 4, h - 50, w, h - 50);
 		}
-		g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth() * 3 / 4, getHeight());
+		g.drawLine(w * 3 / 4, h - 50, w * 3 / 4, h);
 
 		if (hwa) {
 			drawZoomSlider(g, f);
 			return;
 		}
 		for (int i = 0; i < 3; i++) {
-			fillGrad(g, getWidth() * i / 3, 0, getWidth() / 3 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222,
+			fillGrad(g, w * i / 3, 0, w / 3 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222,
 					0);
 			g.setGrayScale(255);
-			g.drawString(touchCaps[i], getWidth() * (1 + i * 2) / 6, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+			g.drawString(touchCaps[i], w * (1 + i * 2) / 6, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
 		// bottom hor line
 		g.setGrayScale(255);
-		g.drawLine(0, 50, getWidth(), 50);
+		g.drawLine(0, 50, w, 50);
 		// vert lines between btns
-		g.drawLine(getWidth() / 3, 0, getWidth() / 3, 50);
-		g.drawLine(getWidth() * 2 / 3, 0, getWidth() * 2 / 3, 50);
+		g.drawLine(w / 3, 0, w / 3, 50);
+		g.drawLine(w * 2 / 3, 0, w * 2 / 3, 50);
+
 	}
 
 	private final void drawZoomSlider(Graphics g, Font f) {
@@ -969,31 +992,32 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 
 	protected final void paintNullImg(Graphics g, Font f) {
+		int w = getWidth(), h = getHeight();
+		int fh = f.getHeight();
+		
 		String info;
 		if (error) {
 			g.setGrayScale(0);
-			g.fillRect(0, 0, getWidth(), getHeight());
+			g.fillRect(0, 0, w, h);
 			info = "Failed to load image.";
 		} else {
 			info = "Preparing";
 		}
 		g.setGrayScale(0);
-		int w = g.getFont().stringWidth(info);
-		int h = g.getFont().getHeight();
-		g.fillRect(getWidth() / 2 - w / 2, getHeight() / 2, w, h);
+		int tw = f.stringWidth(info);
+		g.fillRect(w / 2 - tw / 2, h / 2, tw,  fh);
 		g.setGrayScale(255);
-		g.drawString(info, getWidth() / 2, getHeight() / 2, Graphics.HCENTER | Graphics.TOP);
+		g.drawString(info, w / 2, h / 2, Graphics.HCENTER | Graphics.TOP);
 		if (hasPointerEvents()) {
-			int fh = f.getHeight();
 			// grads
-			fillGrad(g, getWidth() * 3 / 4, getHeight() - 50, getWidth() / 4, 51, 0, 0x222222);
+			fillGrad(g, w * 3 / 4, h - 50, w / 4, 51, 0, 0x222222);
 			// lines
 			g.setGrayScale(255);
-			g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth(), getHeight() - 50);
-			g.drawLine(getWidth() * 3 / 4, getHeight() - 50, getWidth() * 3 / 4, getHeight());
+			g.drawLine(w * 3 / 4, h - 50, w, h - 50);
+			g.drawLine(w * 3 / 4, h - 50, w * 3 / 4, h);
 			// captions
 			g.setGrayScale(255);
-			g.drawString(touchCaps[6], getWidth() * 7 / 8, getHeight() - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+			g.drawString(touchCaps[6], w * 7 / 8, h - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
 	}
 
