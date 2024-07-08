@@ -50,6 +50,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	boolean cover;
 
 	private long chapterShown;
+	private boolean resizing;
 
 
 	/**
@@ -430,6 +431,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	 */
 	protected void resize(int size) {
 		if (hwa) return;
+		resizing = true;
 		try {
 			toDraw = null;
 			System.gc();
@@ -463,6 +465,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					}
 				}
 			}
+			resizing = false;
 			if (origImg == null) {
 				error = true;
 				toDraw = null;
@@ -486,6 +489,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();
+			resizing = false;
 			error = true;
 			toDraw = null;
 			return;
@@ -595,49 +599,51 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			changePage(1);
 		}
 
-		// zooming via *0#
-		if (k == KEY_STAR) {
-			zoom = 1;
-			resize((int) zoom);
-		}
-		if (k == KEY_NUM0) {
-			zoom = 2;
-			resize((int) zoom);
-		}
-		if (k == KEY_POUND) {
-			zoom = 3;
-			resize((int) zoom);
-		}
-
-		// zoom is active
-		if (zoom != 1) {
-			if (k == -5) {
-				zoom++;
-				if (zoom > 3)
-					zoom = 1;
-
-				resize((int) zoom);
-			} else if (k == -1 || k == KEY_NUM2 || k == 'w') {
-				// up
-				y += getHeight() * panDeltaMul() / 4;
-			} else if (k == -2 || k == KEY_NUM8 || k == 's') {
-				y -= getHeight() * panDeltaMul() / 4;
-			} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
-				x += getWidth() * panDeltaMul() / 4;
-			} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
-				x -= getWidth() * panDeltaMul() / 4;
+		if (!resizing) {
+			// zooming via *0#
+			if (k == KEY_STAR) {
+				zoom = 1;
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
 			}
-		} else {
-			// zoom inactive
-			if (k == -5) {
+			if (k == KEY_NUM0) {
 				zoom = 2;
-				x = 0;
-				y = 0;
-				resize((int) zoom);
-			} else if (k == -3) {
-				changePage(-1);
-			} else if (k == -4) {
-				changePage(1);
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+			}
+			if (k == KEY_POUND) {
+				zoom = 3;
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+			}
+	
+			// zoom is active
+			if (zoom != 1) {
+				if (k == -5) {
+					zoom++;
+					if (zoom > 3)
+						zoom = 1;
+	
+					resize((int) zoom);
+				} else if (k == -1 || k == KEY_NUM2 || k == 'w') {
+					// up
+					y += getHeight() * panDeltaMul() / 4;
+				} else if (k == -2 || k == KEY_NUM8 || k == 's') {
+					y -= getHeight() * panDeltaMul() / 4;
+				} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
+					x += getWidth() * panDeltaMul() / 4;
+				} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
+					x -= getWidth() * panDeltaMul() / 4;
+				}
+			} else {
+				// zoom inactive
+				if (k == -5) {
+					zoom = 2;
+					x = 0;
+					y = 0;
+					MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+				} else if (k == -3) {
+					changePage(-1);
+				} else if (k == -4) {
+					changePage(1);
+				}
 			}
 		}
 
@@ -808,9 +814,9 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			zone = b;
 		}
 		if (zone == touchHoldPos) {
-			if (zone >= 1 && zone <= 3) {
+			if (zone >= 1 && zone <= 3 && !resizing) {
 				zoom = zone;
-				resize(zone);
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
 			} else if (zone == 4) {
 				changePage(-1);
 			} else if (zone == 5) {

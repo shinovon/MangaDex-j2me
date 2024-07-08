@@ -41,6 +41,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_FOLLOW = 12;
 	private static final int RUN_READ = 13;
 	private static final int RUN_FEED = 14;
+	static final int RUN_ZOOM_VIEW = 15;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -383,7 +384,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// команды
 		
 		exitCmd = new Command(L[Exit], Command.EXIT, 2);
-		backCmd = new Command(L[Back], Command.EXIT, 2);
+		backCmd = new Command(L[Back], Command.BACK, 2);
 		settingsCmd = new Command(L[Settings], Command.SCREEN, 3);
 		authCmd = new Command(L[Authorization], Command.SCREEN, 4);
 		aboutCmd = new Command(L[About], Command.SCREEN, 5);
@@ -2878,6 +2879,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					display(errorAlert(e.toString()), f);
 			}
 			f.setTicker(null);
+			break;
+		}
+		case RUN_ZOOM_VIEW: {
+			if (view == null) break;
+			view.resize((int) view.zoom);
 			break;
 		}
 		}
