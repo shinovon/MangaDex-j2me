@@ -80,6 +80,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			"en", "ru"
 	};
 	
+	private static final String ALL_RATINGS = "&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic";
+	
 	private static String[][] tags;
 
 	static String[] L;
@@ -2439,6 +2441,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					curChB = Integer.parseInt(curCh.substring(curChA + 1));
 					curChA = Integer.parseInt(curCh.substring(0, curChA));
 				}
+				chapterNextNum = null;
 				
 				s: {
 					StringBuffer sb = new StringBuffer("manga/").append(mangaId)
@@ -2485,6 +2488,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 //					start(RUN_DISPOSE_VIEW);
 					chapterId = chapterNextId;
+					chapterNextId = null;
 					if (chapterDir == -1) chapterPage = -1;
 					MangaApp.run = RUN_CHAPTER_VIEW;
 					run();
@@ -2913,11 +2917,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		JSONObject j;
 		
 		try {
-			j = api("chapter?ids[]=" + id).getArray("data").getObject(0);
+			j = api("chapter?ids[]=" + id + ALL_RATINGS).getArray("data").getObject(0);
 			
 			JSONObject att = j.getObject("attributes");
-			chapterVolume = att.getString("volume");
-			chapterNum = att.getString("chapter");
+			chapterVolume = att.getString("volume", null);
+			chapterNum = att.getString("chapter", null);
 			chapterLang = att.getString("translatedLanguage");
 			
 			JSONArray relations = j.getArray("relationships");
@@ -3166,7 +3170,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} catch (Exception e) {}
 		}
-		if (p instanceof ViewCommon) {
+		if (p instanceof ViewCommon && p != d) {
 //			midlet.start(RUN_DISPOSE_VIEW);
 			view = null;
 			chapterFilenames = null;
@@ -3314,6 +3318,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (curVolume == null)
 			curVolume = "none";
 
+		// TODO rewrite this
 		String lastCh = null;
 		JSONObject vol = volumes.getObject(curVolume, null);
 		if (vol == null || (lastCh = getNextChapter(vol, curCh, dir)) == null) {
@@ -3392,7 +3397,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (dir) {
 				if ((chA == curChA && chB > curChB && (lastA != chA || chB > lastB)) ||
 						(chA == lastA && chA != curChA && chB < lastB) ||
-						(chA > curChA && (lastCh == null || (chA < lastA && lastA != curChA)))
+						(chA > curChA && (lastCh == null || (chA < lastA && lastA > curChA)))
 						) {
 					lastA = chA;
 					lastB = chB;
@@ -3402,7 +3407,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} else {
 				if ((chA == curChA && chB < curChB && (lastA != chA || chB < lastB)) ||
-						(chA < curChA && (lastCh == null || (chA > lastA && lastA != curChA))) ||
+						(chA < curChA && (lastCh == null || (chA > lastA && lastA < curChA))) ||
 						(chA == lastA && chA != curChA && chB > lastB)
 						) {
 					lastA = chA;
