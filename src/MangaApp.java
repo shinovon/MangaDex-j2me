@@ -3170,7 +3170,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} catch (Exception e) {}
 		}
-		if (p instanceof ViewCommon && p != d) {
+		if (p instanceof ViewCommon && p != d && !(d instanceof TextBox)) {
 //			midlet.start(RUN_DISPOSE_VIEW);
 			view = null;
 			chapterFilenames = null;
