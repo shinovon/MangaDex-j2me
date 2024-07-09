@@ -954,7 +954,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			// согласие на переключение главы
 			if (c == continueCmd) {
 				display(loadingAlert(), view);
-				if (chapterDir == -1) chapterPage = -1;
+				chapterPage = chapterDir;
 				chapterId = chapterNextId;
 				chapterNextId = null;
 				start(RUN_CHAPTER_VIEW);
@@ -2489,7 +2489,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //					start(RUN_DISPOSE_VIEW);
 					chapterId = chapterNextId;
 					chapterNextId = null;
-					if (chapterDir == -1) chapterPage = -1;
+					chapterPage = chapterDir;
 					MangaApp.run = RUN_CHAPTER_VIEW;
 					run();
 					return;
