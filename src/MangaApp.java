@@ -32,7 +32,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER_VIEW = 5;
-//	private static final int RUN_BOOKMARKS = 6;
 	private static final int RUN_DOWNLOAD_CHAPTER = 7;
 	static final int RUN_PRELOADER = 8;
 	private static final int RUN_CHANGE_CHAPTER = 9;
@@ -97,7 +96,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Command searchCmd;
 	private static Command updatesCmd;
-//	private static Command bookmarksCmd;
 	private static Command advSearchCmd;
 	private static Command recentCmd;
 	private static Command randomCmd;
@@ -111,7 +109,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command mangaItemCmd;
 	private static Command chaptersCmd;
 	private static Command tagItemCmd;
-//	private static Command saveCmd;
 	private static Command showCoverCmd;
 	private static Command chapterCmd;
 	private static Command relatedCmd;
@@ -143,10 +140,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static Form chaptersForm;
 	private static Form searchForm;
 	private static Form settingsForm;
-//	private static Form bookmarksForm;
-//	private static Form viewForm;
 	private static Form tempListForm;
 	private static Form loadingForm;
+	private static ViewCommon view;
 	
 	private static TextField searchField;
 
@@ -233,7 +229,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static int chapterDir;
 	private static String chapterNextNum;
 	private static String chapterNextId;
-	private static ViewCommon view; // канва
 	
 	// фид
 	private static Hashtable feedChapterIds = new Hashtable();
@@ -542,6 +537,101 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	public void commandAction(Command c, Displayable d) {
+		if (d == mainForm) {
+			if (c == searchCmd || c == updatesCmd || c == recentCmd || c == libraryCmd) {
+				// открыть поиск или список последних обновленных манг
+				if (running) return; // игнорировать запросы, пока что-то еще грузится
+				coversToLoad.removeAllElements();
+				
+				// поиск и список манг
+				Form f = new Form(L[0]);
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				f.setTicker(new Ticker(L[Loading]));
+				
+				listOffset = 0;
+				query = c == searchCmd ? searchField.getString().trim() : null;
+				
+				display(listForm = f);
+				
+				// для библиотеки надо с начала проверить авторизацию
+				if (c == libraryCmd) {
+					listMode = LIST_FOLLOWED;
+					runAfterAuth = RUN_MANGAS;
+					start(RUN_AUTH);
+					return;
+				}
+				
+				listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
+				start(RUN_MANGAS);
+				return;
+			}
+			if (c == feedCmd) {
+				// обновления юзера
+				if (running) return;
+				coversToLoad.removeAllElements();
+				
+				Form f = new Form(L[0].concat(" - ").concat(L[Feed]));
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				f.setTicker(new Ticker(L[Loading]));
+				
+				display(listForm = f);
+
+				listOffset = 0;
+				listMode = LIST_FEED;
+				runAfterAuth = RUN_FEED;
+				start(RUN_AUTH);
+				return;
+			}
+			if (c == aboutCmd) {
+				// о программе
+				Form f = new Form(L[About]);
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				
+				try {
+					f.append(new ImageItem(null, Image.createImage("/d.png"), Item.LAYOUT_LEFT, null));
+				} catch (Exception ignored) {}
+				
+				StringItem s;
+				s = new StringItem(null, "MahoDex v" + version);
+				s.setFont(largefont);
+				s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT);
+				f.append(s);
+				
+				s = new StringItem(null, L[AboutText]);
+				s.setFont(Font.getDefaultFont());
+				s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+				f.append(s);
+
+				s = new StringItem(L[Developer], "shinovon");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+
+				s = new StringItem("GitHub", "github.com/shinovon");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+
+				s = new StringItem("Web", "nnp.nnchan.ru");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+
+				s = new StringItem("Donate", "boosty.to/nnproject/donate\nko-fi.com/shinovon");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+
+				s = new StringItem("Chat", "t.me/nnmidletschat");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+				
+				s = new StringItem(null, "\n292 labs (tm)");
+				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
+				f.append(s);
+				display(f);
+				return;
+			}
+		}
 		if (d == mangaForm) {
 			if (c == chaptersCmd) {
 				// открыть список глав
@@ -556,6 +646,49 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chaptersOrder = chaptersOrderDef;
 				display(chaptersForm = f);
 				start(RUN_CHAPTERS);
+				return;
+			}
+			if (c == showCoverCmd) {
+				// открыть вью с обложкой
+				if (running) return;
+				try {
+					if (viewMode == 1) {
+						view = new ViewCommon(-2, false);
+					} else if (viewMode == 2) {
+						view = new ViewHWA(-2);
+					} else {
+						String vram = System.getProperty("com.nokia.gpu.memory.total");
+						if (vram != null && !vram.equals("0")) {
+							view = new ViewHWA(-2);
+						} else {
+							view = new ViewCommon(-2, false);
+						}
+					}
+					display(view);
+				} catch (Throwable e) {
+					display(errorAlert(e.toString()));
+				}
+				return;
+			}
+			if (c == relatedCmd) {
+				// список связанного
+				Form f = new Form(L[0]);
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				f.setTicker(new Ticker(L[Loading]));
+				
+				prevListMode = listMode;
+				listMode = LIST_RELATED;
+				display(tempListForm = f);
+				start(RUN_MANGAS);
+				return;
+			}
+			if (c == followCmd || c == unfollowCmd) {
+				if (running) return;
+				d.setTicker(new Ticker(L[Loading]));
+				
+				runAfterAuth = RUN_FOLLOW;
+				start(RUN_AUTH);
 				return;
 			}
 			if (c == showLinkCmd) {
@@ -623,68 +756,99 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			return;
 		}
-		if (d == settingsForm && c == backCmd) {
-			// сохранить настройки
-			proxyUrl = proxyField.getString();
-			coverLoading = coversChoice.getSelectedIndex();
-			contentFilterChoice.getSelectedFlags(contentFilter);
-			lang = LANGUAGES[langChoice.getSelectedIndex()];
-			listLimit = (itemsLimitChoice.getSelectedIndex() + 1) * 8;
-			chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
-			chaptersOrderDef = chaptersOrderChoice.isSelected(1);
-			downloadPath = downloadPathField.getString();
-			coverSize = coverSizeGauge.getValue();
-			viewMode = viewModeChoice.getSelectedIndex();
-			chapterLangFilter = chapterLangField.getString().trim().toLowerCase();
-			keepListCovers = keepCoversChoice.isSelected(0);
-			cachingPolicy = cachingPolicyChoice.getSelectedIndex();
-			chapterFileCache = chapterCacheChoice.isSelected(0);
-			keepBitmap = keepBitmapChoice.isSelected(0);
-			dataSaver = jpegChoice.isSelected(0);
-			onlineResize = onlineChoice.isSelected(0);
-			tagsFilter = tagsFilterField.getString();
-			showRead = readChoice.isSelected(0);
-			
-			try {
-				RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
-			} catch (Exception e) {}
-			try {
-				JSONObject j = new JSONObject();
-				j.put("proxy", proxyUrl);
-				j.put("coverLoading", coverLoading);
-				j.put("lang", lang);
-				if (contentFilter != null) {
-					for (int i = 0; i < 4; i++) {
-						j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
-					}
-				}
-				j.put("listLimit", listLimit);
-				j.put("chaptersLimit", chaptersLimit);
-				j.put("chaptersOrder", chaptersOrderDef);
-				j.put("downloadPath", downloadPath);
-				j.put("coverSize", coverSize);
-				j.put("viewMode", viewMode);
-				j.put("chapterLangFilter", chapterLangFilter);
-				j.put("chapterCache", chapterFileCache);
-				j.put("cachingPolicy", cachingPolicy);
-				j.put("keepBitmap", keepBitmap);
-				j.put("keepListCovers", keepListCovers);
-				j.put("dataSaver", dataSaver);
-				j.put("onlineResize", onlineResize);
-				j.put("tagsFilter", tagsFilter);
-				j.put("showRead", showRead);
+		if (d == settingsForm) {
+			if (c == backCmd) {
+				// сохранить настройки
+				proxyUrl = proxyField.getString();
+				coverLoading = coversChoice.getSelectedIndex();
+				contentFilterChoice.getSelectedFlags(contentFilter);
+				lang = LANGUAGES[langChoice.getSelectedIndex()];
+				listLimit = (itemsLimitChoice.getSelectedIndex() + 1) * 8;
+				chaptersLimit = (chaptersLimitChoice.getSelectedIndex() + 1) * 8;
+				chaptersOrderDef = chaptersOrderChoice.isSelected(1);
+				downloadPath = downloadPathField.getString();
+				coverSize = coverSizeGauge.getValue();
+				viewMode = viewModeChoice.getSelectedIndex();
+				chapterLangFilter = chapterLangField.getString().trim().toLowerCase();
+				keepListCovers = keepCoversChoice.isSelected(0);
+				cachingPolicy = cachingPolicyChoice.getSelectedIndex();
+				chapterFileCache = chapterCacheChoice.isSelected(0);
+				keepBitmap = keepBitmapChoice.isSelected(0);
+				dataSaver = jpegChoice.isSelected(0);
+				onlineResize = onlineChoice.isSelected(0);
+				tagsFilter = tagsFilterField.getString();
+				showRead = readChoice.isSelected(0);
 				
-				byte[] b = j.toString().getBytes("UTF-8");
-				RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
-				r.addRecord(b, 0, b.length);
-				r.closeRecordStore();
-			} catch (Exception e) {}
-			
-			display(mainForm);
-			// пересоздать плейсхолдер на случай если поменяли размер обложек
-			makeCoverPlaceholder();
-//			settingsForm = null;
-			return;
+				try {
+					RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
+				} catch (Exception e) {}
+				try {
+					JSONObject j = new JSONObject();
+					j.put("proxy", proxyUrl);
+					j.put("coverLoading", coverLoading);
+					j.put("lang", lang);
+					if (contentFilter != null) {
+						for (int i = 0; i < 4; i++) {
+							j.put("contentFilter.".concat(Integer.toString(i)), contentFilter[i]);
+						}
+					}
+					j.put("listLimit", listLimit);
+					j.put("chaptersLimit", chaptersLimit);
+					j.put("chaptersOrder", chaptersOrderDef);
+					j.put("downloadPath", downloadPath);
+					j.put("coverSize", coverSize);
+					j.put("viewMode", viewMode);
+					j.put("chapterLangFilter", chapterLangFilter);
+					j.put("chapterCache", chapterFileCache);
+					j.put("cachingPolicy", cachingPolicy);
+					j.put("keepBitmap", keepBitmap);
+					j.put("keepListCovers", keepListCovers);
+					j.put("dataSaver", dataSaver);
+					j.put("onlineResize", onlineResize);
+					j.put("tagsFilter", tagsFilter);
+					j.put("showRead", showRead);
+					
+					byte[] b = j.toString().getBytes("UTF-8");
+					RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
+					r.addRecord(b, 0, b.length);
+					r.closeRecordStore();
+				} catch (Exception e) {}
+				
+				display(mainForm);
+				// пересоздать плейсхолдер на случай если поменяли размер обложек
+				makeCoverPlaceholder();
+	//			settingsForm = null;
+				return;
+			}
+			if (c == pathCmd) {
+				// открыть выбор папки скачивания
+				fileList = new List("", List.IMPLICIT);
+				
+				if(rootsList == null) {
+					rootsList = new Vector();
+					try {
+						Enumeration roots = FileSystemRegistry.listRoots();
+						while(roots.hasMoreElements()) {
+							String s = (String) roots.nextElement();
+							if(s.startsWith("file:///")) s = s.substring(8);
+							rootsList.addElement(s);
+						}
+					} catch (Exception e) {}
+				}
+				
+				for(int i = 0; i < rootsList.size(); i++) {
+					String s = (String) rootsList.elementAt(i);
+					if(s.startsWith("file:///")) s = s.substring(8);
+					if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
+					fileList.append(s, null);
+				}
+				fileList.addCommand(List.SELECT_COMMAND);
+				fileList.setSelectCommand(List.SELECT_COMMAND);
+				fileList.addCommand(backCmd);
+				fileList.setCommandListener(midlet);
+				display(fileList);
+				return;
+			}
 		}
 		if (c == settingsCmd) {
 			// настройки
@@ -815,53 +979,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(settingsForm);
 			return;
 		}
-		if (c == aboutCmd) {
-			// о программе
-			Form f = new Form(L[About]);
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			
-			try {
-				f.append(new ImageItem(null, Image.createImage("/d.png"), Item.LAYOUT_LEFT, null));
-			} catch (Exception ignored) {}
-			
-			StringItem s;
-			s = new StringItem(null, "MahoDex v" + version);
-			s.setFont(largefont);
-			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT);
-			f.append(s);
-			
-			s = new StringItem(null, L[AboutText]);
-			s.setFont(Font.getDefaultFont());
-			s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
-			f.append(s);
-
-			s = new StringItem(L[Developer], "shinovon");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-
-			s = new StringItem("GitHub", "github.com/shinovon");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-
-			s = new StringItem("Web", "nnp.nnchan.ru");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-
-			s = new StringItem("Donate", "boosty.to/nnproject/donate\nko-fi.com/shinovon");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-
-			s = new StringItem("Chat", "t.me/nnmidletschat");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-			
-			s = new StringItem(null, "\n292 labs (tm)");
-			s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-			f.append(s);
-			display(f);
-			return;
-		}
 		if (c == nextPageCmd || c == prevPageCmd) {
 			// переключение страниц в списке манг и глав
 			if (running) return;
@@ -942,14 +1059,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(listForm = f);
 			start(RUN_MANGAS);
 		}
-		if (c == followCmd || c == unfollowCmd) {
-			if (running) return;
-			d.setTicker(new Ticker(L[Loading]));
-			
-			runAfterAuth = RUN_FOLLOW;
-			start(RUN_AUTH);
-			return;
-		}
 		if (d instanceof Alert) { // диалоги
 			// согласие на переключение главы
 			if (c == continueCmd) {
@@ -979,7 +1088,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d instanceof TextBox) {
 			Form f = chaptersForm != null ? chaptersForm : mangaForm != null ?
-					mangaForm :listForm != null ? listForm : mainForm;
+					mangaForm : listForm != null ? listForm : mainForm;
 			if (c == openCmd) {
 				// открыть главу с конкретной страницы
 				int n = Integer.parseInt(((TextBox) d).getString());
@@ -1138,52 +1247,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			start(RUN_MANGA);
 			return;
 		}
-		if (c == searchCmd || c == updatesCmd || c == recentCmd || c == libraryCmd) {
-			// открыть поиск или список последних обновленных манг
-			if (running) return; // игнорировать запросы, пока что-то еще грузится
-			coversToLoad.removeAllElements();
-			
-			// поиск и список манг
-			Form f = new Form(L[0]);
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			f.setTicker(new Ticker(L[Loading]));
-			
-			listOffset = 0;
-			query = c == searchCmd ? searchField.getString().trim() : null;
-			
-			display(listForm = f);
-			
-			// для библиотеки надо с начала проверить авторизацию
-			if (c == libraryCmd) {
-				listMode = LIST_FOLLOWED;
-				runAfterAuth = RUN_MANGAS;
-				start(RUN_AUTH);
-				return;
-			}
-			
-			listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
-			start(RUN_MANGAS);
-			return;
-		}
-		if (c == feedCmd) {
-			// обновления юзера
-			if (running) return;
-			coversToLoad.removeAllElements();
-			
-			Form f = new Form(L[0].concat(" - ").concat(L[Feed]));
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			f.setTicker(new Ticker(L[Loading]));
-			
-			display(listForm = f);
-
-			listOffset = 0;
-			listMode = LIST_FEED;
-			runAfterAuth = RUN_FEED;
-			start(RUN_AUTH);
-			return;
-		}
 		if (c == chapterCmd) {
 			// просмотр главы
 			if (running) return;
@@ -1251,28 +1314,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			
 			start(RUN_READ);
-			return;
-		}
-		if (c == showCoverCmd) {
-			// открыть вью с обложкой
-			if (running) return;
-			try {
-				if (viewMode == 1) {
-					view = new ViewCommon(-2, false);
-				} else if (viewMode == 2) {
-					view = new ViewHWA(-2);
-				} else {
-					String vram = System.getProperty("com.nokia.gpu.memory.total");
-					if (vram != null && !vram.equals("0")) {
-						view = new ViewHWA(-2);
-					} else {
-						view = new ViewCommon(-2, false);
-					}
-				}
-				display(view);
-			} catch (Throwable e) {
-				display(errorAlert(e.toString()));
-			}
 			return;
 		}
 		if (c == downloadCoverCmd) {
@@ -1423,57 +1464,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(searchForm = f);
 			return;
 		}
-		if (c == relatedCmd) {
-			// список связанного
-			Form f = new Form(L[0]);
-			f.addCommand(backCmd);
-			f.setCommandListener(this);
-			f.setTicker(new Ticker(L[Loading]));
-			
-			prevListMode = listMode;
-			listMode = LIST_RELATED;
-			display(tempListForm = f);
-			start(RUN_MANGAS);
-			return;
-		}
-		if (c == pathCmd) {
-			// открыть выбор папки скачивания
-			fileList = new List("", List.IMPLICIT);
-			
-			if(rootsList == null) {
-				rootsList = new Vector();
-				try {
-					Enumeration roots = FileSystemRegistry.listRoots();
-					while(roots.hasMoreElements()) {
-						String s = (String) roots.nextElement();
-						if(s.startsWith("file:///")) s = s.substring(8);
-						rootsList.addElement(s);
-					}
-				} catch (Exception e) {}
-			}
-			
-			for(int i = 0; i < rootsList.size(); i++) {
-				String s = (String) rootsList.elementAt(i);
-				if(s.startsWith("file:///")) s = s.substring(8);
-				if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
-				fileList.append(s, null);
-			}
-			fileList.addCommand(List.SELECT_COMMAND);
-			fileList.setSelectCommand(List.SELECT_COMMAND);
-			fileList.addCommand(backCmd);
-			fileList.setCommandListener(midlet);
-			display(fileList);
-			return;
-		}
-//		if (c == bookmarksCmd) {
-//			Form f = new Form(L[Bookmarks]);
-//			f.addCommand(backCmd);
-//			f.setCommandListener(this);
-//			
-//			display(bookmarksForm = f);
-//			start(RUN_BOOKMARKS);
-//			return;
-//		}
 		commandAction(c, display.getCurrent());
 	}
 	
@@ -3524,7 +3514,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} catch (IOException e) {}
 		}
 		try {
-			fc = (FileConnection) Connector.open(folder = folder.concat(mangaId).concat("/"));
+			fc = (FileConnection) Connector.open(folder = folder
+					.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
@@ -3547,7 +3538,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	private static String getFolderName() {
 		return "file:///".concat(downloadPath).concat("/")
-				.concat(mangaId).concat("/")
+				.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/")
 				.concat(chapterId).concat("/");
 	}
 	
@@ -3693,12 +3684,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} finally {
 			try {
 				if (in != null) in.close();
-			} catch (IOException e) {
-			}
+			} catch (IOException e) {}
 			try {
 				if (hc != null) hc.close();
-			} catch (IOException e) {
-			}
+			} catch (IOException e) {}
 		}
 	}
 	
