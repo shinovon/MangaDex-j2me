@@ -32,15 +32,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_COVERS = 3;
 	private static final int RUN_CHAPTERS = 4;
 	private static final int RUN_CHAPTER_VIEW = 5;
-	private static final int RUN_DOWNLOAD_CHAPTER = 7;
-	static final int RUN_PRELOADER = 8;
-	private static final int RUN_CHANGE_CHAPTER = 9;
-//	private static final int RUN_DISPOSE_VIEW = 10;
-	private static final int RUN_AUTH = 11;
-	private static final int RUN_FOLLOW = 12;
-	private static final int RUN_READ = 13;
-	private static final int RUN_FEED = 14;
-	static final int RUN_ZOOM_VIEW = 15;
+	private static final int RUN_DOWNLOAD_CHAPTER = 6;
+	static final int RUN_PRELOADER = 7;
+	private static final int RUN_CHANGE_CHAPTER = 8;
+	private static final int RUN_AUTH = 9;
+	private static final int RUN_FOLLOW = 10;
+	private static final int RUN_READ = 11;
+	private static final int RUN_FEED = 12;
+	static final int RUN_ZOOM_VIEW = 13;
 	
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
@@ -2470,7 +2469,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				if (found == 0) {
 					// выкидывать на список если глав больше нет
-//					start(RUN_DISPOSE_VIEW);
 //					view = null;
 					chapterFilenames = null;
 					display(null);
@@ -2488,7 +2486,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					a.setCommandListener(this);
 					display(a, view);
 				} else {
-//					start(RUN_DISPOSE_VIEW);
 					chapterId = chapterNextId;
 					chapterNextId = null;
 					chapterPage = chapterDir;
@@ -2502,32 +2499,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			break;
 		}
-//		case RUN_DISPOSE_VIEW: {
-			// тихо очистить кэш главы
-//			if (!chapterFileCache) break;
-//			
-//			FileConnection fc = null;
-//			try {
-//				String folder = getFolderName();
-//				fc = (FileConnection) Connector.open(folder);
-//				Vector list = new Vector();
-//				Enumeration e = fc.list();
-//				while (e.hasMoreElements()) list.addElement(e.nextElement());
-//				
-//				int l = list.size();
-//				for (int i = 0; i < l; i++) {
-//					fc.setFileConnection((i == 0 ? "./" : "../").concat((String) list.elementAt(i)));
-//					fc.delete();
-//				}
-//				fc.delete();
-//			} catch (Exception ignored) {
-//			} finally {
-//				if (fc != null) try {
-//					fc.close();
-//				} catch (Exception e) {}
-//			}
-//			break;
-//		}
 		case RUN_AUTH: { // авторизация
 			auth: {
 				Displayable f = view != null ? view :
@@ -3176,7 +3147,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {}
 		}
 		if (p instanceof ViewCommon && p != d && !(d instanceof TextBox)) {
-//			midlet.start(RUN_DISPOSE_VIEW);
 //			view = null;
 			chapterFilenames = null;
 			System.gc();
