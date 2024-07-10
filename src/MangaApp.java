@@ -136,8 +136,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// ui
 	private static Form mainForm;
 	private static Form listForm;
-	static Form mangaForm;
-	static Form chaptersForm;
+	private static Form mangaForm;
+	private static Form chaptersForm;
 	private static Form searchForm;
 	private static Form settingsForm;
 	private static Form tempListForm;
@@ -652,7 +652,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// открыть вью с обложкой
 				if (running) return;
 				try {
-					if (viewMode == 1) {
+					if (view != null) {
+						view.page = -2;
+						view.cover = true;
+						view.cache = null;
+						view.reload();
+					} else if (viewMode == 1) {
 						view = new ViewCommon(-2, false);
 					} else if (viewMode == 2) {
 						view = new ViewHWA(-2);
@@ -2221,6 +2226,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = chaptersForm != null ? chaptersForm : mainForm;
 			
 			display(loadingAlert(), f);
+			System.gc();
+			
 			try {
 				loadChapterInfo(id);
 				
@@ -2236,23 +2243,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					view.cover = false;
 					view.cache = null;
 					view.reload();
-					display(view);
+				} else if (viewMode == 1) {
+					view = new ViewCommon(n, false);
+				} else if (viewMode == 2) {
+					view = new ViewHWA(n);
 				} else {
-					if (viewMode == 1) {
-						view = new ViewCommon(n, false);
-					} else if (viewMode == 2) {
+					String vram = System.getProperty("com.nokia.gpu.memory.total");
+					if (vram != null && !vram.equals("0")) {
 						view = new ViewHWA(n);
 					} else {
-						String vram = System.getProperty("com.nokia.gpu.memory.total");
-						if (vram != null && !vram.equals("0")) {
-							view = new ViewHWA(n);
-						} else {
-							view = new ViewCommon(n, false);
-						}
+						view = new ViewCommon(n, false);
 					}
-					
-					display(view);
 				}
+				display(view);
 				
 				if (accessToken != null) {
 					MangaApp.run = RUN_READ;
@@ -2459,9 +2462,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (found == 0) {
 					// выкидывать на список если глав больше нет
 //					start(RUN_DISPOSE_VIEW);
-					view = null;
+//					view = null;
 					chapterFilenames = null;
-					display(chaptersForm != null ? chaptersForm : mangaForm);
+					display(null);
 				} else if (found > 1) {
 					Alert a;
 //					if (found == 2 || found == 4) {
@@ -3146,7 +3149,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display.setCurrent((Alert) d, mainForm);
 			return;
 		}
-		if (d == null) d = listForm != null ? listForm : mainForm;
+		if (d == null)
+			d = chaptersForm != null ? chaptersForm :
+				mangaForm != null ? mangaForm :
+					listForm != null ? listForm : mainForm;
 		Displayable p = display.getCurrent();
 		display.setCurrent(d);
 		if (!keepListCovers && p != null && (p == listForm || p == tempListForm)) {
@@ -3162,9 +3168,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (p instanceof ViewCommon && p != d && !(d instanceof TextBox)) {
 //			midlet.start(RUN_DISPOSE_VIEW);
-			view = null;
+//			view = null;
 			chapterFilenames = null;
-			return;
+			System.gc();
 		}
 		if (coverLoading == 3 || p == mainForm || p == loadingForm || p == d) return;
 		if (d == listForm/*|| d == tempListForm*/) {
@@ -3173,9 +3179,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				int l = ((Form) d).size();
 				for (int i = 0; i < l; i++) {
 					Item item = ((Form) d).get(i);
-					if (!(item instanceof ImageItem)) continue;
-					if (((ImageItem) item).getImage() != null
-							&& ((ImageItem) item).getImage() != coverPlaceholder) continue;
+					if (!(item instanceof ImageItem) ||
+							(((ImageItem) item).getImage() != null &&
+							((ImageItem) item).getImage() != coverPlaceholder))
+						continue;
 					scheduleCover((ImageItem) item, ((ImageItem) item).getAltText());
 				}
 			} catch (Exception e) {}

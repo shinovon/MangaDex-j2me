@@ -286,13 +286,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 		} catch (OutOfMemoryError e) {
 			cache = null;
-			Form f = cover ? MangaApp.mangaForm : MangaApp.chaptersForm;
-			MangaApp.display(f);
+			MangaApp.display(null);
 			try {
 				Thread.sleep(100);
 			} catch (Exception ignored) {}
 			MangaApp.display(new Alert("Error", "Not enough memory to continue viewing. Try to disable caching.", null,
-					AlertType.ERROR), f);
+					AlertType.ERROR));
 			return;
 		}
 	}
@@ -574,8 +573,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			} catch (RuntimeException e) {
 				e.printStackTrace();
 			}
-			MangaApp.display(cover ? MangaApp.mangaForm : MangaApp.chaptersForm);
-
+			MangaApp.display(null);
+			toDraw = orig = null;
 			cache = null;
 			return;
 		}
