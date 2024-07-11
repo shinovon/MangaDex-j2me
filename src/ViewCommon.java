@@ -47,6 +47,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	private boolean firstDraw = true;
 	
 	boolean cover;
+	boolean longscroll;
 
 	private long chapterShown;
 	private boolean resizing;
@@ -156,7 +157,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 	
 	private final byte[] getResizedImage(int n, int size) {
-		String s = ";tw="+(getWidth()*size)+";th="+(getHeight()*size);
+		String s = ";tw="+(getWidth()*size)+(!longscroll?";th="+(getHeight()*size):"");
 		if (cover) {
 			try {
 				return MangaApp.getCover(s);
@@ -376,8 +377,16 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected void limitOffset() {
 		if (hwa) return;
-		int hw = toDraw.getWidth() / 2;
-		int hh = toDraw.getHeight() / 2;
+		if (zoom == 1) {
+			x = 0;
+			int qh = (toDraw.getHeight() - getHeight()) / 2;
+			if (y < -qh) y = -qh;
+			if (y > qh) y = qh;
+			return;
+		}
+		
+		int hw = (toDraw.getWidth() - getWidth()) / 2;
+		int hh = (toDraw.getHeight() - getHeight()) / 2;
 		if (x < -hw) x = -hw;
 		if (x > hw) x = hw;
 		if (y < -hh) y = -hh;
@@ -469,20 +478,40 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				toDraw = null;
 				return;
 			}
-			
 			if (!MangaApp.onlineResize) {
 				int h = getHeight();
 				int w = (int) (((float) h / origImg.getHeight()) * origImg.getWidth());
 	
-				if (w > getWidth()) {
+				if ((!cover && MangaApp.enableLongScroll &&
+						(longscroll || origImg.getHeight() / origImg.getWidth() > 2)) ||
+						w > getWidth()) {
+					longscroll = true;
 					w = getWidth();
 					h = (int) (((float) w / origImg.getWidth()) * origImg.getHeight());
+					if (size == 1 && y == 0)
+						y = h / 2;
 				}
 	
 				h = h * size;
 				w = w * size;
 				toDraw = MangaApp.resize(origImg, w, h);
 			} else {
+				if (!cover && MangaApp.enableLongScroll) {
+					int h, w;
+					if (size == 1 && longscroll && y == 0) {
+						h = origImg.getHeight();
+						w = origImg.getWidth();
+						if (h > getHeight())
+							y = ((h / (float) w) * getWidth() / 2);
+					} else if (!longscroll && (longscroll = (h = origImg.getHeight()) / (w = origImg.getWidth()) > 2)) {
+						longscroll = true;
+						origImg = null;
+						y = (h / (float) w) * getWidth() / 2;
+						System.gc();
+						byte[] b = getResizedImage(page, size);
+						origImg = Image.createImage(b, 0, b.length);
+					}
+				}
 				toDraw = origImg;
 			}
 		} catch (Throwable e) {
@@ -511,7 +540,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				g.setGrayScale(0);
 				g.fillRect(0, 0, getWidth(), getHeight());
 				limitOffset();
-				if (zoom != 1) {
+				if (zoom != 1 || longscroll) {
 					g.drawImage(toDraw, (int) x + getWidth() / 2, (int) y + getHeight() / 2,
 							Graphics.HCENTER | Graphics.VCENTER);
 				} else {
@@ -593,7 +622,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 		if (k == KEY_NUM1) {
 			changePage(-1);
-		} else if (k == KEY_NUM3 || k == 32) {
+		} else if (k == KEY_NUM3 || k == ' ') {
 			changePage(1);
 		}
 
@@ -612,36 +641,33 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
 			}
 	
-			// zoom is active
-			if (zoom != 1) {
+			
+			if ((zoom != 1 || longscroll) && (k == -1 || k == KEY_NUM2 || k == 'w')) {
+				// up
+				y += getHeight() * panDeltaMul() / 4;
+			} else if ((zoom != 1 || longscroll) && (k == -2 || k == KEY_NUM8 || k == 's')) {
+				y -= getHeight() * panDeltaMul() / 4;
+			} else if (zoom != 1) { // zoom is active
 				if (k == -5) {
 					zoom++;
 					if (zoom > 3)
 						zoom = 1;
 	
 					resize((int) zoom);
-				} else if (k == -1 || k == KEY_NUM2 || k == 'w') {
-					// up
-					y += getHeight() * panDeltaMul() / 4;
-				} else if (k == -2 || k == KEY_NUM8 || k == 's') {
-					y -= getHeight() * panDeltaMul() / 4;
 				} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
 					x += getWidth() * panDeltaMul() / 4;
 				} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
 					x -= getWidth() * panDeltaMul() / 4;
 				}
-			} else {
-				// zoom inactive
-				if (k == -5) {
-					zoom = 2;
-					x = 0;
-					y = 0;
-					MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
-				} else if (k == -3) {
-					changePage(-1);
-				} else if (k == -4) {
-					changePage(1);
-				}
+			} else if (k == -5) { // zoom inactive
+				zoom = 2;
+				x = 0;
+				y = 0;
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+			} else if (k == -3) {
+				changePage(-1);
+			} else if (k == -4) {
+				changePage(1);
 			}
 		}
 
@@ -654,14 +680,14 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			repaint();
 			return;
 		}
-		// zoom is active
-		if (zoom != 1) {
-			if (k == -1 || k == KEY_NUM2 || k == 'w') {
-				// up
-				y += getHeight() * panDeltaMul() / 4;
-			} else if (k == -2 || k == KEY_NUM8 || k == 's') {
-				y -= getHeight() * panDeltaMul() / 4;
-			} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
+		
+		if ((zoom != 1 || longscroll) && (k == -1 || k == KEY_NUM2 || k == 'w')) {
+			// up
+			y += getHeight() * panDeltaMul() / 4;
+		} else if ((zoom != 1 || longscroll) && (k == -2 || k == KEY_NUM8 || k == 's')) {
+			y -= getHeight() * panDeltaMul() / 4;
+		} else if (zoom != 1) { // zoom is active
+			if (k == -3 || k == KEY_NUM4 || k == 'a') {
 				x += getWidth() * panDeltaMul() / 4;
 			} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
 				x -= getWidth() * panDeltaMul() / 4;

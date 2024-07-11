@@ -270,6 +270,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean onlineResize = true;
 	private static String tagsFilter = "";
 	private static boolean showRead;
+	static boolean enableLongScroll;
 
 	// auth
 	private static String clientId;
@@ -317,6 +318,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				System.getProperty("com.symbian.default.to.suite.icon") != null);
 		
 		onlineResize = loadingForm.getWidth() < 320;
+		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
 		
 		// загрузка настроек
 		try {
@@ -655,6 +657,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						view.page = -2;
 						view.cover = true;
 						view.cache = null;
+						view.longscroll = false;
 						view.reload();
 					} else if (viewMode == 1) {
 						view = new ViewCommon(-2, false);
@@ -2249,6 +2252,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					view.page = n;
 					view.cover = false;
 					view.cache = null;
+					view.longscroll = false;
 					view.reload();
 				} else if (viewMode == 1) {
 					view = new ViewCommon(n, false);
