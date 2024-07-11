@@ -1325,7 +1325,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 			
-			start(RUN_READ);
+			runAfterAuth = RUN_READ;
+			start(RUN_AUTH);
 			return;
 		}
 		if (c == advSearchCmd || c == tagItemCmd) {
@@ -2266,6 +2267,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				display(view);
 				
 				if (accessToken != null) {
+					running = false;
 					MangaApp.run = RUN_READ;
 					run();
 					return;
