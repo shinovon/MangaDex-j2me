@@ -1649,8 +1649,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				case LIST_RELATED: { // список связанного
 					f.setTitle(L[Related]);
-					int l = relatedManga.size();
-					for (int i = 0; i < l; i++) {
+					for (int i = 0, l = relatedManga.size(); i < l; i++) {
 						sb.append("&ids[]=").append(((JSONObject) relatedManga.elementAt(i)).getString("id"));
 					}
 					break;
@@ -1664,7 +1663,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				JSONObject j = api(sb.toString());
 				JSONArray data = j.getArray("data");
-				int l = data.size();
 				
 				// команды пагинации
 				if (!temp) {
@@ -1677,7 +1675,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				ImageItem item;
-				for (int i = 0; i < l && listForm != null; i++) {
+				for (int i = 0, l = data.size(); i < l && listForm != null; i++) {
 					JSONObject m = data.getObject(i);
 					String id = m.getString("id");
 					JSONObject attributes = m.getObject("attributes");
@@ -1770,8 +1768,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONObject author = null,
 						artist = null;
 				
-				int k = relationships.size();
-				for (int p = 0; p < k; p++) {
+				for (int p = 0, k = relationships.size(); p < k; p++) {
 					JSONObject r = relationships.getObject(p);
 					String type = r.getString("type");
 					if ("cover_art".equals(type)) {
@@ -1818,8 +1815,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				JSONArray tags = attributes.getArray("tags");
-				int l = tags.size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = tags.size(); i < l; i++) {
 					// отображение тегов как кнопки потому что почему нет
 					s = new StringItem(null, getName(tags.getObject(i)), StringItem.BUTTON);
 					s.setFont(smallfont);
@@ -1993,6 +1989,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 										String cover = (String) mangaCoversCache.get(id);
 										if (cover.indexOf('.') != -1) continue;
 										sb.append("&ids[]=").append(cover);
+										j++;
 									}
 									
 									if (j > 0) {
@@ -2093,31 +2090,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (chaptersTotal > 0)
 					f.addCommand(gotoPageCmd);
 				
-				// проверка на последнюю страницу
+				// добавить команду след. страницы если 
 				if (chaptersOffset < chaptersTotal - chaptersLimit)
 					f.addCommand(nextPageCmd);
 				
+				// проверка на отмену пользователем
 				if (chaptersForm != f) break;
 				
+				// получение статуса прочтения глав, если есть авторизация
 				if (showRead && accessToken != null && readChapters == null) {
 					sb.setLength(0);
 					sb.append("manga/").append(id).append("/read?limit=100");
 					try {
 						readChapters = new Vector(100);
 						JSONArray read = api(sb.toString()).getArray("data");
-						int l = read.size();
-						for (int i = 0; i < l; i++) {
+						for (int i = 0, l = read.size(); i < l; i++) {
 							readChapters.addElement(read.get(i));
 						}
 					} catch (Throwable e) {
 						e.printStackTrace();
 					}
 				}
-				
+
+				// еще раз
 				if (chaptersForm != f) break;
 				
 				JSONArray data = j.getArray("data");
-				int l = data.size();
 				
 				sb.setLength(0);
 				// надпись состояния пагинации
@@ -2132,19 +2130,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				String lastVolume = null;
 				String lastChapter = null;
-				for (int i = 0; i < l && chaptersForm == f; i++) {
+				for (int i = 0, l = data.size(); i < l && chaptersForm == f; i++) {
 					JSONObject c = data.getObject(i);
 					JSONObject a = c.getObject("attributes");
 					JSONArray relationships = c.getArray("relationships");
-					JSONObject user = null, scan = null;
+					JSONObject scan = null;
 					
-					int l2 = relationships.size();
-					for (int k = 0; k < l2; k++) {
+					for (int k = 0, l2 = relationships.size(); k < l2; k++) {
 						JSONObject r = relationships.getObject(k);
 						String type = r.getString("type");
+						if ("scanlation_group".equals(type)) {
+							scan = r;
+							break;
+						}
 						if ("user".equals(type)) {
-							user = r;
-						} else if ("scanlation_group".equals(type)) {
 							scan = r;
 						}
 					}
@@ -2196,10 +2195,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					.append(localizeTime(time))
 					;
 					
+					// автор
 					if (scan != null) {
 						sb.append('\n').append(getName(scan));
-					} else if (user != null) {
-						sb.append('\n').append(getName(user));
 					}
 					sb.append('\n');
 					
@@ -2619,7 +2617,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception ignored) {}
 			break;
 		}
-		case RUN_FEED: { // обновления
+		case RUN_FEED: { // обновления пользователя
 			Form f = listForm;
 			if (useLoadingForm) display(loadingForm);
 			
@@ -2691,8 +2689,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					v.addElement(c);
 				}
 				
+				// проверка на отмену пользователем
 				if (listForm != f) break;
 				
+				// получение списка манги
 				sb.setLength(0);
 				sb.append("manga?limit=100");
 				Enumeration keys = t.keys();
@@ -2711,18 +2711,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-				Vector mangas = new Vector();
-				{
-					JSONArray mangasJson = api(sb.toString()).getArray("data"); 
-					l = mangasJson.size();
-					for (int i = 0; i < l; i++) {
-						mangas.addElement(mangasJson.getObject(i));
-					}
-				}
+				JSONArray mangas = api(sb.toString()).getArray("data");
 				
 				JSONObject read = null;
 				if (showRead) {
-						sb.setLength(0);
+					// получение списка идов прочтенных глав
+					sb.setLength(0);
 					sb.append("manga/read?grouped=true");
 					keys = t.keys();
 					while (keys.hasMoreElements()) {
@@ -2735,17 +2729,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-				// сортировка
+				// сортировка манги по главам в них
 				for (int i = 0; i < l; i++) {
 					for (int j = i + 1; j < l; j++) {
-						JSONObject a = (JSONObject) mangas.elementAt(i);
-						JSONObject b = (JSONObject) mangas.elementAt(j);
+						JSONObject a = (JSONObject) mangas.get(i);
+						JSONObject b = (JSONObject) mangas.get(j);
 						if (parseDateGMT(((JSONObject) ((Vector) t.get(a.get("id"))).elementAt(0))
 								.getObject("attributes").getString("publishAt"))
 								< parseDateGMT(((JSONObject) ((Vector) t.get(b.get("id"))).elementAt(0))
 										.getObject("attributes").getString("publishAt"))) {
-							mangas.setElementAt(b, i);
-							mangas.setElementAt(a, j);
+							mangas.set(i, b);
+							mangas.set(j, a);
 						}
 					}
 				}
@@ -2753,14 +2747,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				ImageItem img;
 				StringItem s;
 				for (int i = 0; i < l && listForm == f; i++) {
-					JSONObject m = (JSONObject) mangas.elementAt(i);
+					JSONObject m = (JSONObject) mangas.get(i);
 					String id = m.getString("id");
 					JSONObject attributes = m.getObject("attributes");
 					JSONArray relationships = m.getArray("relationships");
 					
-					int k = relationships.size();
 					// получение айдишника обложки
-					for (int p = 0; p < k; p++) {
+					for (int p = 0, k = relationships.size(); p < k; p++) {
 						JSONObject r = relationships.getObject(p);
 						if (!"cover_art".equals(r.getString("type"))) continue;
 						if (r.has("attributes")) {
@@ -2792,19 +2785,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					Vector ch = (Vector) t.get(id);
 					int cl = ch.size();
 					
-					for (k = 0; k < cl; k++) {
+					for (int k = 0; k < cl; k++) {
 						JSONObject c = (JSONObject) ch.elementAt(k);
 						JSONObject a = c.getObject("attributes");
 						relationships = c.getArray("relationships");
-						JSONObject user = null, scan = null;
+						JSONObject scan = null;
 						
-						int l2 = relationships.size();
-						for (int p = 0; p < l2; p++) {
+						for (int p = 0, l2 = relationships.size(); p < l2; p++) {
 							JSONObject r = relationships.getObject(p);
 							String type = r.getString("type");
+							if ("scanlation_group".equals(type)) {
+								scan = r;
+								break;
+							}
 							if ("user".equals(type)) {
-								user = r;
-							} else if ("scanlation_group".equals(type)) {
 								scan = r;
 							}
 						}
@@ -2836,8 +2830,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						
 						if (scan != null) {
 							sb.append('\n').append(getName(scan)).append(' ');
-						} else if (user != null) {
-							sb.append('\n').append(getName(user)).append(' ');
 						}
 					
 						sb.append(localizeTime(time));
@@ -2900,8 +2892,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			chapterLang = att.getString("translatedLanguage");
 			
 			JSONArray relations = j.getArray("relationships");
-			int l = relations.size();
-			for (int i = 0; i < l; i++) {
+			for (int i = 0, l = relations.size(); i < l; i++) {
 				JSONObject r = relations.getObject(i);
 				String type = r.getString("type");
 				if ("scanlation_group".equals(type)) {
@@ -2928,8 +2919,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (dataSaver && j.has("dataSaver")) data = j.getArray("dataSaver");
 		else data = j.getArray("data");
 		
-		int l = data.size();
-		for (int i = 0; i < l; i++) {
+		for (int i = 0, l = data.size(); i < l; i++) {
 			String n = data.getString(i);
 			chapterFilenames.addElement(n);
 		}
@@ -3047,7 +3037,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	// название и описание
 	private static String getTitle(JSONObject j) {
-		if ("ru".equals(lang) && j.has("ru")) return j.getString("ru"); // выф
+		if (j.has(lang)) return j.getString(lang);
 		if (j.has("en")) return j.getString("en");
 		if (j.has("ja")) return j.getString("ja");
 		return "";
@@ -3058,18 +3048,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (j.has("username")) return j.getString("username");
 		if (j.has("name")) {
 			Object o = j.get("name");
-			return o instanceof JSONObject ? getTitle((JSONObject) o) : j.getString("name");
+			return o instanceof JSONObject ? getTitle((JSONObject) o) : (String) o;
 		}
 		return null;
 	}
 
 	// парсит массив альт тайтлов
 	private static String getTitle(JSONArray j) {
-		int l = j.size();
 		String s = null;
-		for (int i = 0; i < l; i++) {
+		for (int i = 0, l = j.size(); i < l; i++) {
 			JSONObject t = j.getObject(i);
-			if (t.has("ru") && "ru".equals(lang)) return t.getString("ru"); // тоже выф
+			if (t.has(lang)) return t.getString(lang);
 			if (s != null) continue;
 			if (t.has("en")) s = t.getString("en");
 			if (t.has("ja")) s = t.getString("ja");
@@ -3077,7 +3066,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		return s;
 	}
 	
-	// загрузка локали
+	// загрузка локализации
 	private void loadLocale(String lang) throws IOException {
 		InputStreamReader r = new InputStreamReader(getClass().getResourceAsStream("/l/" + lang), "UTF-8");
 		StringBuffer s = new StringBuffer();
@@ -3137,28 +3126,28 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					listForm != null ? listForm : mainForm;
 		Displayable p = display.getCurrent();
 		display.setCurrent(d);
-		if (!keepListCovers && p != null && (p == listForm || p == tempListForm)) {
+		if (p == null || p == d) return;
+		if (!keepListCovers && (p == listForm || p == tempListForm)) {
+			// обнуление обложек
 			try {
-				// обнуление обложек
-				int l = ((Form) p).size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = ((Form) p).size(); i < l; i++) {
 					Item item = ((Form) p).get(i);
 					if (!(item instanceof ImageItem)) continue;
 					((ImageItem) item).setImage(coverPlaceholder);
 				}
 			} catch (Exception e) {}
 		}
-		if (p instanceof ViewCommon && p != d && !(d instanceof TextBox)) {
+		if (p instanceof ViewCommon && !(d instanceof TextBox)) {
+			// очистка мусора после просмотра
 //			view = null;
 			chapterFilenames = null;
 			System.gc();
 		}
-		if (coverLoading == 3 || p == mainForm || p == loadingForm || p == d) return;
+		// докачивание обложек
+		if (coverLoading == 3 || p == mainForm || p == loadingForm) return;
 		if (d == listForm/*|| d == tempListForm*/) {
 			try {
-				// докачивание обложек
-				int l = ((Form) d).size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = ((Form) p).size(); i < l; i++) {
 					Item item = ((Form) d).get(i);
 					if (!(item instanceof ImageItem) ||
 							(((ImageItem) item).getImage() != null &&
@@ -3232,26 +3221,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						m = j.getArray("content");
 				String[][] res = new String[f.size() + g.size() + t.size() + m.size()][2];
 				int k = 0;
-				int l = f.size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = f.size(); i < l; i++) {
 					JSONArray b = f.getArray(i);
 					res[k][0] = b.getString(0);
 					res[k++][1] = clearTag(b.getString(1));
 				}
-				l = g.size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = g.size(); i < l; i++) {
 					JSONArray b = g.getArray(i);
 					res[k][0] = b.getString(0);
 					res[k++][1] = clearTag(b.getString(1));
 				}
-				l = t.size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = t.size(); i < l; i++) {
 					JSONArray b = t.getArray(i);
 					res[k][0] = b.getString(0);
 					res[k++][1] = clearTag(b.getString(1));
 				}
-				l = m.size();
-				for (int i = 0; i < l; i++) {
+				for (int i = 0, l = m.size(); i < l; i++) {
 					JSONArray b = m.getArray(i);
 					res[k][0] = b.getString(0);
 					res[k++][1] = clearTag(b.getString(1));
