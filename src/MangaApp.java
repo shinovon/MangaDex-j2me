@@ -1637,12 +1637,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					if (inc.length() > 0) {
 						tagsParam(inc, tags, sb, true);
-						sb.append("&includedTagsMode=").append(advInclusionChoice.isSelected(0) ? "and" : "or");
+						sb.append("&includedTagsMode=").append(advInclusionChoice.isSelected(0) ? "AND" : "OR");
 					}
 					
-					if (inc.length() > 0) {
-						tagsParam(inc, tags, sb, false);
-						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "and" : "or");
+					if (exc.length() > 0) {
+						tagsParam(exc, tags, sb, false);
+						sb.append("&excludedTagsMode=").append(advExclusionChoice.isSelected(0) ? "AND" : "OR");
 					}
 					
 					break;
