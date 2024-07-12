@@ -930,7 +930,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(tagsFilterField);
 				
 				// путь скачивания
-				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.URL);
+				downloadPathField = new TextField(L[DownloadPath], downloadPath, 200, TextField.NON_PREDICTIVE);
 				downloadPathField.addCommand(pathCmd);
 				downloadPathField.setItemCommandListener(this);
 				f.append(downloadPathField);
@@ -943,7 +943,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				// прокси
-				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.URL);
+				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.NON_PREDICTIVE);
 				f.append(proxyField);
 				
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
