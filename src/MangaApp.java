@@ -27,6 +27,7 @@ import cc.nnproject.json.JSONStream;
 
 public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemCommandListener, LangConstants {
 
+	// threaded tasks
 	private static final int RUN_MANGAS = 1;
 	private static final int RUN_MANGA = 2;
 	private static final int RUN_COVERS = 3;
@@ -41,6 +42,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_FEED = 12;
 	static final int RUN_ZOOM_VIEW = 13;
 	
+	// list types
 	private static final int LIST_UPDATES = 1;
 	private static final int LIST_RECENT = 2;
 	private static final int LIST_SEARCH = 3;
@@ -49,13 +51,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_FOLLOWED = 6;
 	private static final int LIST_FEED = 7;
 	
+	// rms
 	private static final String SETTINGS_RECORDNAME = "mangaDsets";
 	private static final String AUTH_RECORDNAME = "mangaDauth";
 	
+	// api urls
 	private static final String APIURL = "https://api.mangadex.org/";
 	private static final String COVERSURL = "https://uploads.mangadex.org/covers/";
 	private static final String AUTHURL = "https://auth.mangadex.org/realms/mangadex/protocol/openid-connect/token";
 
+	// fonts
 	private static final Font largefont = Font.getFont(0, 0, Font.SIZE_LARGE);
 	private static final Font medboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_MEDIUM);
 	private static final Font medfont = Font.getFont(0, 0, Font.SIZE_MEDIUM);
@@ -82,12 +87,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String[][] tags;
 
+	// localization
 	static String[] L;
 
+	// midp lifecycle
 	private static Display display;
 	static MangaApp midlet;
 	
-	// команды
+	// commands
 	private static Command exitCmd;
 	static Command backCmd;
 	private static Command settingsCmd;
@@ -145,7 +152,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static TextField searchField;
 
-	// элементы расширенного поиска
+	// advanced search items
 	private static TextField advTitleField;
 	private static TextField advYearField;
 	private static ChoiceGroup advStatusChoice;
@@ -157,7 +164,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static TextField advExcludeField;
 	private static ChoiceGroup advExclusionChoice;
 	
-	// элементы настроек
+	// settings items
 	private static TextField proxyField;
 	private static ChoiceGroup coversChoice;
 	private static ChoiceGroup contentFilterChoice;
@@ -181,25 +188,25 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
 	
-	// логин
+	// login ui
 	private static Form authForm;
 	private static TextField loginField;
 	private static TextField passwordField;
 	private static TextField clientField;
 	private static TextField clientSecretField;
 	
-	// трединг
+	// threading
 	private static int run;
 	private static boolean running;
 	
-	// список манги
+	// manga list
 	private static String query;
 	private static int listOffset = 0;
 	private static int listTotal;
 	private static int listMode;
 	private static int prevListMode;
 	
-	// манга
+	// manga page
 	private static String mangaId;
 	private static ImageItem mangaItem;
 	private static String mangaLastChapter;
@@ -207,7 +214,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean mangaFollowed;
 	private static StringItem followBtn;
 
-	// список глав
+	// chapters list
 	private static String chapterId;
 	private static int chaptersOffset = 0;
 	private static int chaptersTotal;
@@ -215,7 +222,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean chaptersOrder;
 	private static Vector readChapters;
 	
-	// для просмотра
+	// view
 	private static String chapterBaseUrl;
 	private static String chapterHash;
 	private static Vector chapterFilenames;
@@ -229,8 +236,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterNextNum;
 	private static String chapterNextId;
 	
-	// фид
+	// feed
 	private static Hashtable feedChapterIds = new Hashtable();
+	private static boolean userFeed;
 	
 	private static Object coverLoadLock = new Object();
 	private static Vector coversToLoad = new Vector();
@@ -242,12 +250,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Image coverPlaceholder;
 	
-	// файлы
+	// files
 	private static List fileList;
 	private static String curDir;
 	private static Vector rootsList;
 	
-	// настройки
+	// settings
 	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
 	private static int coverLoading = 0; // 0 - auto, 1 - single, 2 - multi thread, 3 - disabled
 	private static boolean[] contentFilter = {true, true, true, false};
@@ -539,7 +547,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	public void commandAction(Command c, Displayable d) {
 		if (d == mainForm) {
-			if (c == searchCmd || c == updatesCmd || c == recentCmd || c == libraryCmd) {
+			if (c == updatesCmd) {
+				// latest updates feed
+				if (running) return;
+				coversToLoad.removeAllElements();
+				
+				Form f = new Form(L[0].concat(" - ").concat(L[Updates]));
+				f.addCommand(backCmd);
+				f.setCommandListener(this);
+				f.setTicker(new Ticker(L[Loading]));
+				
+				display(listForm = f);
+
+				listOffset = 0;
+				query = null;
+				userFeed = false;
+				listMode = LIST_FEED;
+				start(RUN_FEED);
+				return;
+			}
+			if (c == searchCmd /*|| c == updatesCmd*/ || c == recentCmd || c == libraryCmd) {
 				// открыть поиск или список последних обновленных манг
 				if (running) return; // игнорировать запросы, пока что-то еще грузится
 				coversToLoad.removeAllElements();
@@ -579,6 +606,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				display(listForm = f);
 
+				userFeed = true;
 				listOffset = 0;
 				listMode = LIST_FEED;
 				runAfterAuth = RUN_FEED;
@@ -1011,8 +1039,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						o = Math.min(o + chaptersLimit, listTotal);
 					}
 					listOffset = o;
-					runAfterAuth = RUN_FEED;
-					start(RUN_AUTH);
+					if (userFeed) {
+						runAfterAuth = RUN_FEED;
+						start(RUN_AUTH);
+					} else start(RUN_FEED);
 					return;
 				}
 				if (c == prevPageCmd) {
@@ -2614,14 +2644,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.setTicker(null);
 			break;
 		}
-		case RUN_READ: { // пометить главу как прочитанную
+		case RUN_READ: { // mark chapter as read
 			if (accessToken == null) break;
 			try {
 				apiPost("manga/".concat(mangaId).concat("/read"), "{\"chapterIdsRead\":[\"".concat(chapterId).concat("\"]}").getBytes(), "application/json");
 			} catch (Exception ignored) {}
 			break;
 		}
-		case RUN_FEED: { // обновления пользователя
+		case RUN_FEED: { // users or latest feed
 			Form f = listForm;
 			if (useLoadingForm) display(loadingForm);
 			
@@ -2631,11 +2661,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.removeCommand(gotoPageCmd);
 			
 			try {
-				StringBuffer sb = new StringBuffer("user/follows/manga/feed?limit=")
+				StringBuffer sb = new StringBuffer(userFeed ? "user/follows/manga/feed" : "chapter")
+						.append("?limit=")
 						.append(chaptersLimit)
 						.append("&includes[0]=scanlation_group&includes[1]=user&order[readableAt]=desc");
 				
-				// фильтр по языкам
+				// translated language filter
 				if (chapterLangFilter != null && chapterLangFilter.length() > 0) {
 					String[] s = split(chapterLangFilter, ',');
 					for (int i = 0; i < s.length; i++) {
@@ -2643,7 +2674,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-				// фильтр по рейтингу
+				// rating filter
 				if (contentFilter != null) {
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
@@ -2651,7 +2682,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-				// пагинация
+				// pagination
 				if (listOffset > 0) {
 					sb.append("&offset=").append(listOffset);
 					// добавить команду перехода на пред страницу
@@ -2662,7 +2693,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray chapters = feed.getArray("data");
 				int l = chapters.size();
 				
-				// команды пагинации
+				// add pagination commands
 				listTotal = feed.getInt("total");
 				if (listTotal > 0)
 					f.addCommand(gotoPageCmd);
@@ -2693,10 +2724,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					v.addElement(c);
 				}
 				
-				// проверка на отмену пользователем
+				// check if aborted by user
 				if (listForm != f) break;
 				
-				// получение списка манги
+				// get manga objects
 				sb.setLength(0);
 				sb.append("manga?limit=100");
 				Enumeration keys = t.keys();
@@ -2718,8 +2749,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray mangas = api(sb.toString()).getArray("data");
 				
 				JSONObject read = null;
-				if (showRead) {
-					// получение списка идов прочтенных глав
+				if (accessToken != null && showRead) {
+					// get read statuses
 					sb.setLength(0);
 					sb.append("manga/read?grouped=true");
 					keys = t.keys();
@@ -2733,7 +2764,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 				}
 				
-				// сортировка манги по главам в них
+				// sort manga by publication date of chapters
 				for (int i = 0; i < l; i++) {
 					for (int j = i + 1; j < l; j++) {
 						JSONObject a = (JSONObject) mangas.get(i);
@@ -2756,7 +2787,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					JSONObject attributes = m.getObject("attributes");
 					JSONArray relationships = m.getArray("relationships");
 					
-					// получение айдишника обложки
+					// get cover id
 					for (int p = 0, k = relationships.size(); p < k; p++) {
 						JSONObject r = relationships.getObject(p);
 						if (!"cover_art".equals(r.getString("type"))) continue;
@@ -2785,7 +2816,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						f.append(s);
 					}
 					
-					// главы
+					// chapters
 					Vector ch = (Vector) t.get(id);
 					int cl = ch.size();
 					
@@ -2870,7 +2901,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		running = false;
 	}
 
-	// запустить задачу
+	// start task thread
 	Thread start(int i) {
 		Thread t = null;
 		try {

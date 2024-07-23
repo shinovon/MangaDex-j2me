@@ -30,7 +30,7 @@ import java.util.Vector;
  * Usage:<p><code>JSONObject obj = getObject(str);</code></p>
  * <b>Use with proguard argument</b>: <p><code>-optimizations !code/simplification/object</code>
  * @author Shinovon
- * @version 2.2
+ * @version 2.2 (Shrinked)
  */
 public class JSONObject {
 
@@ -381,13 +381,6 @@ public class JSONObject {
 		}
 		return copy;
 	}
-	
-	void _put(String name, Object obj) {
-		table.put(name, obj);
-	}
-	
-	// TODO: Enumeration elements()
-	// TODO: String keyOf(Object)
 
 	// JSON
 
@@ -575,7 +568,7 @@ public class JSONObject {
 					value = parse_members || (c != '{' && c != '[') ?
 							parseJSON((String) value) : new String[] {(String) value};
 					if (object) {
-						((JSONObject) res)._put(key, value);
+						((JSONObject) res).table.put(key, value);
 						key = null;
 						nextDelimiter = ':';
 					} else if (splIndex > i) {
