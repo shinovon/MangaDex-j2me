@@ -744,7 +744,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			if (c == backCmd) {
 				// возвращение из манги
-				display(tempListForm != null ? tempListForm : listForm != null ? listForm : mainForm);
+				display(tempListForm != null ? tempListForm : listForm != null ? listForm : mainForm, true);
 				mangaForm = null;
 				relatedManga.removeAllElements();
 				return;
@@ -752,7 +752,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d == listForm && c == backCmd) {
 			// возвращение из списка манг
-			display(searchForm != null ? searchForm : mainForm);
+			display(searchForm != null ? searchForm : mainForm, true);
 			coversToLoad.removeAllElements();
 			feedChapterIds.clear();
 			mangaCoversCache.clear();
@@ -761,7 +761,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d == searchForm && c == backCmd) {
 			// возвращение из поиска
-			display(mainForm);
+			display(mainForm, true);
 			searchForm = null;
 			return;
 		}
@@ -778,7 +778,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			}
 			if (c == backCmd) {
 				// возвращение из списка глав
-				display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
+				display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm, true);
 				chaptersForm = null;
 				chapterItems.clear();
 				readChapters = null;
@@ -787,7 +787,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d == tempListForm && c == backCmd) {
 			// возвращение из времменого списка манги
-			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm);
+			display(mangaForm != null ? mangaForm : listForm != null ? listForm : mainForm, true);
 			coversToLoad.removeAllElements();
 			listMode = prevListMode;
 			tempListForm = null;
@@ -857,7 +857,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					r.closeRecordStore();
 				} catch (Exception e) {}
 				
-				display(mainForm);
+				display(mainForm, true);
 				// пересоздать плейсхолдер на случай если поменяли размер обложек
 				makeCoverPlaceholder();
 	//			settingsForm = null;
@@ -963,7 +963,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				downloadPathField.setItemCommandListener(this);
 				f.append(downloadPathField);
 				
-				s = new StringItem("", "...", StringItem.BUTTON);
+				s = new StringItem("", "...", Item.BUTTON);
 				s.addCommand(pathCmd);
 				s.setDefaultCommand(pathCmd);
 				s.setItemCommandListener(this);
@@ -1212,9 +1212,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		if (d == authForm) {
 			if (c == backCmd) {
+				display(mainForm, true);
 				loginField = passwordField = clientField = clientSecretField = null;
 				authForm = null;
-				display(mainForm);
 				return;
 			}
 			if (c == authSubmitCmd) {
@@ -1244,7 +1244,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					clientSecret != null ? clientSecret : "", 100, TextField.NON_PREDICTIVE);
 			f.append(clientSecretField);
 			
-			StringItem s = new StringItem("", L[Login], StringItem.BUTTON);
+			StringItem s = new StringItem("", L[Login], Item.BUTTON);
 			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
 			s.addCommand(authSubmitCmd);
 			s.setDefaultCommand(authSubmitCmd);
@@ -1258,7 +1258,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == backCmd) {
-			display(mainForm);
+			display(mainForm, true);
 			return;
 		}
 		if (c == exitCmd) {
@@ -1295,7 +1295,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (c == chapterCmd) {
 			// просмотр главы
 			if (running) return;
-			if ((chapterId = (String) chapterItems.get(item)) == null && (chapterId = (String) feedChapterIds.get(item)) == null)
+			if ((chapterId = (String) chapterItems.get(item)) == null &&
+					(chapterId = (String) feedChapterIds.get(item)) == null)
 				return;
 			if (chapterId.startsWith("http")) {
 				// внешний источник
@@ -1850,7 +1851,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				JSONArray tags = attributes.getArray("tags");
 				for (int i = 0, l = tags.size(); i < l; i++) {
 					// отображение тегов как кнопки потому что почему нет
-					s = new StringItem(null, getName(tags.getObject(i)), StringItem.BUTTON);
+					s = new StringItem(null, getName(tags.getObject(i)), Item.BUTTON);
 					s.setFont(smallfont);
 					s.setLayout(Item.LAYOUT_LEFT);
 					s.addCommand(tagItemCmd);
@@ -1939,7 +1940,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// туду добавить список альт тайтлов?
 				
 				// главы
-				s = new StringItem(null, L[Chapters], StringItem.BUTTON);
+				s = new StringItem(null, L[Chapters], Item.BUTTON);
 				s.setFont(Font.getDefaultFont());
 				s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				s.addCommand(chaptersCmd);
@@ -1949,7 +1950,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				// связанное
 				if (!relatedManga.isEmpty()) {
-					s = new StringItem(null, L[Related], StringItem.BUTTON);
+					s = new StringItem(null, L[Related], Item.BUTTON);
 					s.setFont(Font.getDefaultFont());
 					s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					s.addCommand(relatedCmd);
@@ -2261,7 +2262,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		case RUN_CHAPTER_VIEW: { // просмотр главы
 			String id = chapterId;
-			if (mangaId == null || id == null) break;
+			if (id == null) break;
 			
 			Form f = chaptersForm != null ? chaptersForm : mainForm;
 			
@@ -2468,14 +2469,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				String curCh = chapterNum;
 				if (curCh == null)
 					curCh = "0";
-				curChA = curCh.indexOf('.');
-				curChB = 0;
-				if (curChA == -1) {
-					curChA = Integer.parseInt(curCh);
-				} else {
-					curChB = Integer.parseInt(curCh.substring(curChA + 1));
-					curChA = Integer.parseInt(curCh.substring(0, curChA));
-				}
 				chapterNextNum = null;
 				
 				s: {
@@ -3150,8 +3143,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		display.setCurrent(a, d);
 	}
-
+	
 	static void display(Displayable d) {
+		display(d, false);
+	}
+
+	static void display(Displayable d, boolean back) {
 		if (d instanceof Alert) {
 			display.setCurrent((Alert) d, mainForm);
 			return;
@@ -3163,7 +3160,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		Displayable p = display.getCurrent();
 		display.setCurrent(d);
 		if (p == null || p == d) return;
-		if (!keepListCovers && (p == listForm || p == tempListForm)) {
+		if (!keepListCovers && !back && (p == listForm || p == tempListForm)) {
 			// обнуление обложек
 			try {
 				for (int i = 0, l = ((Form) p).size(); i < l; i++) {
@@ -3173,6 +3170,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 			} catch (Exception e) {}
 		}
+		if (!back) return;
 		if (p instanceof ViewCommon && !(d instanceof TextBox)) {
 			// очистка мусора после просмотра
 //			view = null;
@@ -3299,8 +3297,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	// view
-
-	private int lastA, curChA, curChB;
 	
 	// 1 - perfect match, 2 - big gap, 3 - different language, 4 - both
 	private int searchNextChapter(String url, int type) throws IOException {
@@ -3311,115 +3307,66 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (!dir && curCh == null)
 			return 0;
 		if (curCh == null)
-			curCh = "none";
+			curCh = "000";
+		else while (curCh.length() < 3) curCh = "0".concat(curCh);
 		
-		String curVolume = chapterVolume;
-		if (curVolume == null)
-			curVolume = "none";
-
-		// TODO rewrite this
-		String lastCh = null;
-		JSONObject vol = volumes.getObject(curVolume, null);
-		if (vol == null || (lastCh = getNextChapter(vol, curCh, dir)) == null) {
-			if (dir) {
-				int n = chapterVolume == null ? 1 : Integer.parseInt(curVolume) + 1;
-				if ((vol = volumes.getObject(Integer.toString(n), null)) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-				} else if ((vol = volumes.getObject("none", null)) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-					n = 0;
-				}
-				if (lastCh == null && n > 0 && (vol = volumes.getObject("none", null)) != null) {
-					lastCh = getNextChapter(vol, curCh, true);
-					n = 0;
-				}
-			} else {
-				int n;
-				if (chapterVolume == null) {
-					Enumeration keys = volumes.keys();
-					n = -1;
-					while (keys.hasMoreElements()) {
-						int t = Integer.parseInt((String) keys.nextElement());
-						if (t > n) n = t;
-					}
-					if (n != -1)
-						vol = volumes.getObject(Integer.toString(n), null);
-				} else {
-					n = Integer.parseInt(curVolume) - 1;
-					vol = volumes.getObject(n < 1 ? "none" : Integer.toString(n), null);
-				}
-				if (vol != null) {
-					lastCh = getNextChapter(vol, curCh, false);
-				}
-				if (lastCh == null && n > 0 && (vol = volumes.getObject("none", null)) != null) {
-					lastCh = getNextChapter(vol, curCh, false);
-					n = 0;
+		Vector allChapters = new Vector();
+		Hashtable table = new Hashtable();
+		for (Enumeration e = volumes.keys(); e.hasMoreElements(); ) {
+			String volume = (String) e.nextElement();
+			JSONObject chapters = volumes.getObject(volume).getObject("chapters");
+			for (Enumeration e2 = chapters.keys(); e2.hasMoreElements(); ) {
+				String ch = (String) e2.nextElement();
+				JSONObject chapter = chapters.getObject(ch);
+				if ("none".equals(ch)) {
+					ch = "000";
+				} else while (ch.length() < 3) ch = "0".concat(ch);
+				allChapters.addElement(ch);
+				table.put(ch, chapter);
+			}
+		}
+		int l = allChapters.size();
+		for (int i = 0; i < l; i++) {
+			for (int j = i + 1; j < l; j++) {
+				String a = (String) allChapters.elementAt(i);
+				String b = (String) allChapters.elementAt(j);
+				if (a.compareTo(b) > 0) {
+					allChapters.setElementAt(b, i);
+					allChapters.setElementAt(a, j);
 				}
 			}
 		}
-		if (lastCh != null) {
-			chapterNextNum = lastCh;
-			if (Math.abs(lastA - curChA) > 1)
-				return type == 3 ? 4 : 2;
-			return type == 3 ? 3 : 1;
+		
+		int i = allChapters.indexOf(curCh);
+		if (i == -1) {
+			System.out.println("not found: " + curCh);
+			return -1;
 		}
-		return 0;
-	}
+		
+		if (i == l - 1 && dir)
+			return 0;
+		
+		if (i == 0 && !dir)
+			return 0;
+		
+		JSONObject chapter = (JSONObject) table.get(allChapters.elementAt(i + (dir ? 1 : -1)));
+		String ch = chapterNextNum = chapter.getString("chapter");
+		chapterNextId = chapter.getString("id");
 
-	private String getNextChapter(JSONObject vol, String curCh, boolean dir) {
-		vol = vol.getObject("chapters");
-		Enumeration keys = vol.keys();
-
-		String lastCh = null;
-		String lastChId = null;
-		int curChA = this.curChA,
-				lastA = curChA,
-				lastB = curChB;
-		while (keys.hasMoreElements()) {
-			String ch = (String) keys.nextElement();
-			if (ch.equals(curCh)) continue;
-			String id = vol.getObject(ch).getString("id");
-			int chA, chB = 0;
-			if ("none".equals(ch)) {
-				ch = "0";
-				chA = 0;
-			} else {
-				chA = ch.indexOf('.');
-				if (chA == -1) {
-					chA = Integer.parseInt(ch);
-				} else {
-					chB = Integer.parseInt(ch.substring(chA + 1));
-					chA = Integer.parseInt(ch.substring(0, chA));
-				}
-			}
-			
-			if (dir) {
-				if ((chA == curChA && chB > curChB && (lastA != chA || chB > lastB)) ||
-						(chA == lastA && chA != curChA && chB < lastB) ||
-						(chA > curChA && (lastCh == null || (chA < lastA && lastA > curChA)))
-						) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
-					continue;
-				}
-			} else {
-				if ((chA == curChA && chB < curChB && (lastA != chA || chB < lastB)) ||
-						(chA < curChA && (lastCh == null || (chA > lastA && lastA < curChA))) ||
-						(chA == lastA && chA != curChA && chB > lastB)
-						) {
-					lastA = chA;
-					lastB = chB;
-					lastCh = ch;
-					lastChId = id;
-					continue;
-				}
-			}
+		int curChA = curCh.indexOf('.');
+		curChA = Integer.parseInt(curChA == -1 ? curCh : curCh.substring(0, curChA));
+		
+		int nextA;
+		if ("none".equals(ch)) {
+			nextA = 0;
+		} else {
+			nextA = ch.indexOf('.');
+			nextA = Integer.parseInt(nextA == -1 ? ch : ch.substring(0, nextA));
 		}
-		this.lastA = lastA;
-		chapterNextId = lastChId;
-		return lastCh;
+		
+		if (Math.abs(nextA - curChA) > 1)
+			return type == 3 ? 4 : 2;
+		return type == 3 ? 3 : 1;
 	}
 
 	// переключить текущую главу, параметр - в какую сторону
