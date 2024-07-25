@@ -286,7 +286,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 		} catch (OutOfMemoryError e) {
 			cache = null;
-			MangaApp.display(null);
+			MangaApp.display(null, true);
 			try {
 				Thread.sleep(100);
 			} catch (Exception ignored) {}
@@ -601,7 +601,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			} catch (RuntimeException e) {
 				e.printStackTrace();
 			}
-			MangaApp.display(null);
+			MangaApp.display(null, true);
 			toDraw = orig = null;
 			cache = null;
 			return;

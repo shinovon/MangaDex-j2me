@@ -462,7 +462,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		searchField.setItemCommandListener(this);
 		f.append(searchField);
 		
-		s = new StringItem(null, L[Search], StringItem.BUTTON);
+		s = new StringItem(null, L[Search], Item.BUTTON);
 		s.setFont(Font.getDefaultFont());
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(searchCmd);
@@ -478,7 +478,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(s);
 			
 			// обновления юзера
-			s = new StringItem(null, L[Feed], StringItem.BUTTON);
+			s = new StringItem(null, L[Feed], Item.BUTTON);
 			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 			s.addCommand(feedCmd);
 			s.setDefaultCommand(feedCmd);
@@ -486,8 +486,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(s);
 			
 			// библиотека
-			s = new StringItem(null, L[Library], StringItem.BUTTON);
-			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+			s = new StringItem(null, L[Library], Item.BUTTON);
+			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
 			s.addCommand(libraryCmd);
 			s.setDefaultCommand(libraryCmd);
 			s.setItemCommandListener(this);
@@ -500,7 +500,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		
 		// последние созданные
-		s = new StringItem(null, L[RecentlyAdded], StringItem.BUTTON);
+		s = new StringItem(null, L[RecentlyAdded], Item.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(recentCmd);
 		s.setDefaultCommand(recentCmd);
@@ -508,7 +508,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.append(s);
 		
 		// последние обновленные
-		s = new StringItem(null, L[LatestUpdates], StringItem.BUTTON);
+		s = new StringItem(null, L[LatestUpdates], Item.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(updatesCmd);
 		s.setDefaultCommand(updatesCmd);
@@ -516,7 +516,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.append(s);
 		
 		// расширенный поиск
-		s = new StringItem(null, L[AdvancedSearch], StringItem.BUTTON);
+		s = new StringItem(null, L[AdvancedSearch], Item.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(advSearchCmd);
 		s.setDefaultCommand(advSearchCmd);
@@ -524,7 +524,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.append(s);
 		
 		// рандом
-		s = new StringItem(null, L[Random], StringItem.BUTTON);
+		s = new StringItem(null, L[Random], Item.BUTTON);
 		s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
 		s.addCommand(randomCmd);
 		s.setDefaultCommand(randomCmd);
@@ -1574,14 +1574,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					break;
 				}
 				case LIST_SEARCH: { // обычный поиск
-					f.setTitle(L[0].concat("- ").concat(L[Search]));
+					f.setTitle(L[0].concat(" - ").concat(L[Search]));
 					if (query != null)
 						sb.append("&title=").append(url(query));
 					sb.append("&order[relevance]=desc"); // сортировать по релеванции
 					break;
 				}
 				case LIST_ADVANCED_SEARCH: { // расширенный поиск
-					f.setTitle(L[0].concat("- ").concat(L[Search]));
+					f.setTitle(L[0].concat(" - ").concat(L[Search]));
 					
 					// название
 					String t = advTitleField.getString().trim();
@@ -1977,7 +1977,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						mangaFollowed = api("user/follows/manga/".concat(id)).getString("result").equals("ok");
 					} catch (Exception e) {}
 					
-					s = new StringItem(null, L[mangaFollowed ? Unfollow : Follow], StringItem.BUTTON);
+					s = new StringItem(null, L[mangaFollowed ? Unfollow : Follow], Item.BUTTON);
 					s.setFont(Font.getDefaultFont());
 					s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 					s.addCommand(mangaFollowed ? unfollowCmd : followCmd);
