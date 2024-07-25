@@ -2747,6 +2747,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				
 				JSONArray mangas = api(sb.toString()).getArray("data");
+				l = mangas.size();
 				
 				JSONObject read = null;
 				if (accessToken != null && showRead) {
