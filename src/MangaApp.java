@@ -467,18 +467,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		f.addCommand(authCmd);
 		f.setCommandListener(this);
 		
-		// лого, не грузить если выключены обложки
-		if (coverLoading != 3)
-		try {
-			f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
-		} catch (Exception ignored) {}
-		
 		StringItem s;
 		
-		s = new StringItem(null, L[0]);
-		s.setFont(largefont);
-		s.setLayout(Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
-		f.append(s);
+		// лого, не грузить если выключены обложки
+		if (coverLoading != 3) {
+			try {
+				f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
+			} catch (Exception ignored) {}
+		} else {
+			s = new StringItem(null, L[0]);
+			s.setFont(largefont);
+			s.setLayout(Item.LAYOUT_VCENTER | Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
+			f.append(s);
+		}
 
 		// поиск
 		searchField = new TextField("", "", 200, TextField.NON_PREDICTIVE);
@@ -494,9 +495,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		
+		if (lcduiExtensions)
+		try {
+			LCDUIExtensions.setButtonIcon(s, Image.createImage("/search.png"));
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
+					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
+					LCDUIExtensions.BUTTON_ICON_AFTER_TEXT);
+		} catch (Throwable e) {}
+		
 		// есть авторизация, добавляем доп кнопки
 		if (refreshToken != null) {
-			s = new StringItem(null, L[Follows], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
+			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Follows]) : L[Follows], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
 			s.setFont(smallboldfont);
 			s.setLayout(lcduiExtensions ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND :
 				Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
@@ -541,7 +550,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
 			}
 			
-			s = new StringItem(null, L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
+			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Title]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
 			s.setFont(smallboldfont);
 			s.setLayout(lcduiExtensions ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND :
 				Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
@@ -730,7 +739,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 
-				s = new StringItem("Donate", "boosty.to/nnproject/donate\nko-fi.com/shinovon");
+				s = new StringItem("Donate", "boosty.to/nnproject\nko-fi.com/shinovon");
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 
@@ -951,22 +960,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// открыть выбор папки скачивания
 				fileList = new List("", List.IMPLICIT);
 				
-				if(rootsList == null) {
+				if (rootsList == null) {
 					rootsList = new Vector();
 					try {
 						Enumeration roots = FileSystemRegistry.listRoots();
 						while(roots.hasMoreElements()) {
 							String s = (String) roots.nextElement();
-							if(s.startsWith("file:///")) s = s.substring(8);
+							if (s.startsWith("file:///")) s = s.substring(8);
 							rootsList.addElement(s);
 						}
 					} catch (Exception e) {}
 				}
 				
-				for(int i = 0; i < rootsList.size(); i++) {
+				for (int i = 0; i < rootsList.size(); i++) {
 					String s = (String) rootsList.elementAt(i);
-					if(s.startsWith("file:///")) s = s.substring(8);
-					if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
+					if (s.startsWith("file:///")) s = s.substring(8);
+					if (s.endsWith("/")) s = s.substring(0, s.length() - 1);
 					fileList.append(s, null);
 				}
 				fileList.addCommand(List.SELECT_COMMAND);
@@ -2680,12 +2689,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						.append("&password=")
 						.append(url(password = passwordField.getString()))
 						;
-					} else if(refreshToken != null && accessToken == null) {
+					} else if (refreshToken != null && accessToken == null) {
 						// refresh
 						p.append("&grant_type=refresh_token&refresh_token=")
 						.append(url(refreshToken))
 						;
-					} else if(accessToken == null && username != null && password != null) {
+					} else if (accessToken == null && username != null && password != null) {
 						// рефреш токен умер, перелогиниваемся заново
 						p.append("&grant_type=password&username=")
 						.append(url(username))
@@ -2931,7 +2940,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						feedChapterIds.put(s, id);
 						
 						try {
-							// TODO
 							LCDUIExtensions.setButtonText(s, n);
 							LCDUIExtensions.setButtonAlignment(s,
 									LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
@@ -3024,6 +3032,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setItemCommandListener(this);
 						f.append(s);
 						feedChapterIds.put(s, ext ? a.get("externalUrl") : c.get("id"));
+						if (lcduiExtensions)
+						try {
+							LCDUIExtensions.setUnderline(s, false);
+						} catch (Throwable e) {}
 					}
 				}
 
@@ -3392,9 +3404,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			FileConnection fc = (FileConnection) Connector.open("file:///".concat(f), Connector.READ);
 			Enumeration list = fc.list();
-			while(list.hasMoreElements()) {
+			while (list.hasMoreElements()) {
 				String s = (String) list.nextElement();
-				if(!s.endsWith("/")) continue; // только папки
+				if (!s.endsWith("/")) continue; // только папки
 				fileList.append(s.substring(0, s.length() - 1), null);
 			}
 			fc.close();
