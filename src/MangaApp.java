@@ -498,9 +498,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (lcduiExtensions)
 		try {
 			LCDUIExtensions.setButtonIcon(s, Image.createImage("/search.png"));
-			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-					LCDUIExtensions.BUTTON_ICON_AFTER_TEXT);
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+					LCDUIExtensions.TAlignment_Center,
+					LCDUIExtensions.TTextAndIconAlignment_IconAfterText,
+					-1, -1);
 		} catch (Throwable e) {}
 		
 		// есть авторизация, добавляем доп кнопки
@@ -514,10 +515,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				try {
 					s.addCommand(itemCmd);
 					LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
-					LCDUIExtensions.setButtonAlignment(s,
-							LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-							LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-							LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+					LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+							-1, -1, -1, -1);
 					LCDUIExtensions.setButtonIcon(s, Image.createImage("/follows.png"));
 				} catch (Throwable e) {}
 			}
@@ -530,10 +529,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setItemCommandListener(this);
 			f.append(s);
 			if (lcduiExtensions) {
-				LCDUIExtensions.setButtonAlignment(s,
-						LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-						LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-						LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+				LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+						-1, -1, -1, -1);
 			}
 			
 			// библиотека
@@ -544,10 +541,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setItemCommandListener(this);
 			f.append(s);
 			if (lcduiExtensions) {
-				LCDUIExtensions.setButtonAlignment(s,
-						LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-						LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-						LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+				LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+						-1, -1, -1, -1);
 			}
 			
 			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Title]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
@@ -559,10 +554,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				try {
 					s.addCommand(itemCmd);
 					LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
-					LCDUIExtensions.setButtonAlignment(s,
-							LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-							LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-							LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+					LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+							-1, -1, -1, -1);
 					LCDUIExtensions.setButtonIcon(s, Image.createImage("/titles.png"));
 				} catch (Throwable e) {}
 			}
@@ -576,10 +569,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		if (lcduiExtensions) {
-			LCDUIExtensions.setButtonAlignment(s,
-					LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-					LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+					-1, -1, -1, -1);
 		}
 		
 		// последние обновленные
@@ -590,10 +581,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		if (lcduiExtensions) {
-			LCDUIExtensions.setButtonAlignment(s,
-					LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-					LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+					-1, -1, -1, -1);
 		}
 		
 		// расширенный поиск
@@ -604,10 +593,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		if (lcduiExtensions) {
-			LCDUIExtensions.setButtonAlignment(s,
-					LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-					LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+					-1, -1, -1, -1);
 		}
 		
 		// рандом
@@ -618,10 +605,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setItemCommandListener(this);
 		f.append(s);
 		if (lcduiExtensions) {
-			LCDUIExtensions.setButtonAlignment(s,
-					LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-					LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-					LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+					-1, -1, -1, -1);
 		}
 		
 		display.setCurrent(mainForm = f);
@@ -2941,10 +2926,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						
 						try {
 							LCDUIExtensions.setButtonText(s, n);
-							LCDUIExtensions.setButtonAlignment(s,
-									LCDUIExtensions.BUTTON_HORIZONTAL_LEFT,
-									LCDUIExtensions.BUTTON_VERTICAL_CENTER,
-									LCDUIExtensions.BUTTON_ICON_BEFORE_TEXT);
+							LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+									-1, -1, -1, -1);
 							LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
 							LCDUIExtensions.setButtonIcon(s, coverPlaceholder2);
 
