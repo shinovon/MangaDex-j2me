@@ -141,4 +141,5 @@ public interface LangConstants {
 	static final int Follows = 140;
 	static final int Titles = 141;
 	static final int ShowReadStatus = 142;
+	static final int UseProxy = 143;
 }

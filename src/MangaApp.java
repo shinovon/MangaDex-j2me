@@ -184,6 +184,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup onlineChoice;
 	private static TextField tagsFilterField;
 	private static ChoiceGroup readChoice;
+	private static ChoiceGroup proxyChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -279,6 +280,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String tagsFilter = "";
 	private static boolean showRead;
 	static boolean enableLongScroll;
+	private static boolean useProxy = true;
 
 	// auth
 	private static String clientId;
@@ -355,6 +357,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			onlineResize = j.getBoolean("onlineResize", onlineResize);
 			tagsFilter = j.getString("tagsFilter", tagsFilter);
 			showRead = j.getBoolean("showRead", showRead);
+			useProxy = j.getBoolean("useProxy", useProxy);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -821,6 +824,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				onlineResize = onlineChoice.isSelected(0);
 				tagsFilter = tagsFilterField.getString();
 				showRead = readChoice.isSelected(0);
+				useProxy = proxyChoice.isSelected(0);
 				
 				try {
 					RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -850,6 +854,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j.put("onlineResize", onlineResize);
 					j.put("tagsFilter", tagsFilter);
 					j.put("showRead", showRead);
+					j.put("useProxy", useProxy);
 					
 					byte[] b = j.toString().getBytes("UTF-8");
 					RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -971,6 +976,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				// прокси
+				
+				proxyChoice = new ChoiceGroup(L[UseProxy], ChoiceGroup.POPUP, on_off, null);
+				proxyChoice.setSelectedIndex(useProxy ? 0 : 1, true);
+				f.append(proxyChoice);
+				
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.NON_PREDICTIVE);
 				f.append(proxyField);
 				
@@ -3579,7 +3589,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String proxyUrl(String url) {
 		System.out.println(url);
-		if (url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
+		if (url == null
+				|| (!useProxy && (url.indexOf(";tw=") == -1 || !onlineResize))
+				|| proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
 		return proxyUrl + url(url);
