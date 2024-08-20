@@ -867,13 +867,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// открыть выбор папки скачивания
 				fileList = new List("", List.IMPLICIT);
 				
-				if(rootsList == null) {
+				if (rootsList == null) {
 					rootsList = new Vector();
 					try {
 						Enumeration roots = FileSystemRegistry.listRoots();
-						while(roots.hasMoreElements()) {
+						while (roots.hasMoreElements()) {
 							String s = (String) roots.nextElement();
-							if(s.startsWith("file:///")) s = s.substring(8);
+							if (s.startsWith("file:///")) s = s.substring(8);
 							rootsList.addElement(s);
 						}
 					} catch (Exception e) {}
@@ -881,8 +881,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				
 				for(int i = 0; i < rootsList.size(); i++) {
 					String s = (String) rootsList.elementAt(i);
-					if(s.startsWith("file:///")) s = s.substring(8);
-					if(s.endsWith("/")) s = s.substring(0, s.length() - 1);
+					if (s.startsWith("file:///")) s = s.substring(8);
+					if (s.endsWith("/")) s = s.substring(0, s.length() - 1);
 					fileList.append(s, null);
 				}
 				fileList.addCommand(List.SELECT_COMMAND);
@@ -2558,12 +2558,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						.append("&password=")
 						.append(url(password = passwordField.getString()))
 						;
-					} else if(refreshToken != null && accessToken == null) {
+					} else if (refreshToken != null && accessToken == null) {
 						// refresh
 						p.append("&grant_type=refresh_token&refresh_token=")
 						.append(url(refreshToken))
 						;
-					} else if(accessToken == null && username != null && password != null) {
+					} else if (accessToken == null && username != null && password != null) {
 						// рефреш токен умер, перелогиниваемся заново
 						p.append("&grant_type=password&username=")
 						.append(url(username))
@@ -3228,9 +3228,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		try {
 			FileConnection fc = (FileConnection) Connector.open("file:///".concat(f), Connector.READ);
 			Enumeration list = fc.list();
-			while(list.hasMoreElements()) {
+			while (list.hasMoreElements()) {
 				String s = (String) list.nextElement();
-				if(!s.endsWith("/")) continue; // только папки
+				if (!s.endsWith("/")) continue; // только папки
 				fileList.append(s.substring(0, s.length() - 1), null);
 			}
 			fc.close();
@@ -3616,7 +3616,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		byte[] buf = new byte[i <= 0 ? 1024 : i];
 		i = 0;
 		int j;
-		while((j = in.read(buf, i, buf.length - i)) != -1) {
+		while ((j = in.read(buf, i, buf.length - i)) != -1) {
 			if ((i += j) >= buf.length) {
 				System.arraycopy(buf, 0, buf = new byte[i + 2048], 0, i);
 			}
@@ -3825,7 +3825,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return new String[] {str};
 		Vector v = new Vector();
 		v.addElement(str.substring(0, i));
-		while(i != -1) {
+		while (i != -1) {
 			str = str.substring(i + 1);
 			if ((i = str.indexOf(d)) != -1)
 				v.addElement(str.substring(0, i));
