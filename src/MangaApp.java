@@ -976,13 +976,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				// прокси
-				
-				proxyChoice = new ChoiceGroup(L[UseProxy], ChoiceGroup.POPUP, on_off, null);
-				proxyChoice.setSelectedIndex(useProxy ? 0 : 1, true);
-				f.append(proxyChoice);
-				
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.NON_PREDICTIVE);
 				f.append(proxyField);
+				
+				proxyChoice = new ChoiceGroup("", ChoiceGroup.MULTIPLE, new String[] { L[UseProxy] }, null);
+				proxyChoice.setSelectedIndex(0, useProxy);
+				f.append(proxyChoice);
 				
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
 						"JPEG", "PNG"
