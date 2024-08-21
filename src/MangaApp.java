@@ -181,7 +181,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup cachingPolicyChoice;
 	private static ChoiceGroup keepBitmapChoice;
 	private static ChoiceGroup jpegChoice;
-	private static ChoiceGroup onlineChoice;
 	private static TextField tagsFilterField;
 	private static ChoiceGroup readChoice;
 	private static ChoiceGroup proxyChoice;
@@ -821,7 +820,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chapterFileCache = chapterCacheChoice.isSelected(0);
 				keepBitmap = keepBitmapChoice.isSelected(0);
 				dataSaver = jpegChoice.isSelected(0);
-				onlineResize = onlineChoice.isSelected(0);
+				onlineResize = proxyChoice.isSelected(1);
 				tagsFilter = tagsFilterField.getString();
 				showRead = readChoice.isSelected(0);
 				useProxy = proxyChoice.isSelected(0);
@@ -979,8 +978,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.NON_PREDICTIVE);
 				f.append(proxyField);
 				
-				proxyChoice = new ChoiceGroup("", ChoiceGroup.MULTIPLE, new String[] { L[UseProxy] }, null);
+				proxyChoice = new ChoiceGroup("", ChoiceGroup.MULTIPLE, new String[] { L[UseProxy], L[ServerSideResize] }, null);
 				proxyChoice.setSelectedIndex(0, useProxy);
+				proxyChoice.setSelectedIndex(1, onlineResize);
 				f.append(proxyChoice);
 				
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
@@ -988,10 +988,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}, null);
 				jpegChoice.setSelectedIndex(dataSaver ? 0 : 1, true);
 				f.append(jpegChoice);
-				
-				onlineChoice = new ChoiceGroup(L[ServerSideResize], ChoiceGroup.POPUP, on_off, null);
-				onlineChoice.setSelectedIndex(onlineResize ? 0 : 1, true);
-				f.append(onlineChoice);
 				
 				// режим просмотра
 				viewModeChoice = new ChoiceGroup(L[ViewMode], ChoiceGroup.POPUP, new String[] {
