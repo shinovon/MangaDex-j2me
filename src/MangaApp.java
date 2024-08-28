@@ -2933,7 +2933,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterGroup = r.getString("id");
 					continue;
 				}
-				if (mangaId == null && "manga".equals(type)) {
+				if ("manga".equals(type)) {
 					mangaId = r.getString("id");
 					continue;
 				}
