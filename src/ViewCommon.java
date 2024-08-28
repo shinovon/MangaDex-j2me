@@ -664,8 +664,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 					zoom++;
 					if (zoom > 3)
 						zoom = 1;
-	
-					resize((int) zoom);
+
+					MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
 				} else if (k == -3 || k == KEY_NUM4 || k == 'a') {
 					x += getWidth() * panDeltaMul() / 4;
 				} else if (k == -4 || k == KEY_NUM6 || k == 'd') {
