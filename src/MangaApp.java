@@ -688,7 +688,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						view.cover = true;
 						view.cache = null;
 						view.longscroll = false;
-						view.reload();
+						view.reload(0);
 					} else if (viewMode == 1) {
 						view = new ViewCommon(-2, false);
 					} else if (viewMode == 2) {
@@ -2289,7 +2289,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					view.cover = false;
 					view.cache = null;
 					view.longscroll = false;
-					view.reload();
+					view.reload(0);
 				} else if (viewMode == 1) {
 					view = new ViewCommon(n, false);
 				} else if (viewMode == 2) {

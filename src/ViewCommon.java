@@ -51,6 +51,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	private long chapterShown;
 	private boolean resizing;
+	
+	int loaderAction;
 
 
 	/**
@@ -67,7 +69,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		nokiaRam = (System.getProperty("microedition.platform").indexOf("sw_platform_version=5.") == -1)
 				? (15 * 1024 * 1024)
 				: (40 * 1024 * 1024);
-		reload();
+		reload(0);
 		setFullScreenMode(true);
 		if (slider == null) {
 			try {
@@ -264,6 +266,9 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	public final void run() {
 		try {
+			if (loaderAction == 1) {
+				Thread.sleep(500);
+			}
 			synchronized (this) {
 				error = false;
 				zoom = 1;
@@ -293,7 +298,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			MangaApp.display(new Alert("Error", "Not enough memory to continue viewing. Try to disable caching.", null,
 					AlertType.ERROR));
 			return;
-		}
+		} catch (Exception e) {}
 	}
 
 	private final void runPreloader() {
@@ -483,7 +488,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				int w = (int) (((float) h / origImg.getHeight()) * origImg.getWidth());
 	
 				if ((!cover && MangaApp.enableLongScroll &&
-						(longscroll || origImg.getHeight() / origImg.getWidth() > 2)) ||
+						(longscroll || (origImg.getHeight() / origImg.getWidth() > 2 && origImg.getHeight() > h))) ||
 						w > getWidth()) {
 					longscroll = true;
 					w = getWidth();
@@ -567,11 +572,18 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	boolean touchCtrlShown = true;
 
-	protected void reload() {
+	protected void reload(int i) {
 		if (hwa) return;
 		toDraw = null;
 		System.gc();
+		if (i == 1) {
+			if (loader != null) {
+				loader.interrupt();
+			}
+		}
+		loaderAction = i;
 		loader = new Thread(this);
+		loader.setPriority(9);
 		loader.start();
 	}
 
@@ -703,13 +715,13 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			if (page > 0) {
 				page--;
 				checkCacheAfterPageSwitch();
-				reload();
+				reload(1);
 			} else MangaApp.changeChapter(delta);
 		} else if (delta > 0) {
 			if (page < MangaApp.chapterPages - 1) {
 				page++;
 				checkCacheAfterPageSwitch();
-				reload();
+				reload(1);
 			} else MangaApp.changeChapter(delta);
 		}
 	}
@@ -874,7 +886,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				}
 				page = n - 1;
 				checkCacheAfterPageSwitch();
-				reload();
+				reload(2);
 			} catch (Exception e) {
 				MangaApp.display(new Alert("", e.toString(), null, AlertType.ERROR), this);
 			}
