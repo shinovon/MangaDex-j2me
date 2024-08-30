@@ -2168,15 +2168,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						String mangaId = (String) o[0];
 						ImageItem item = (ImageItem) o[1];
 						
-						try { 
+						try {
 							String filename = getCover((String) mangaCoversCache.get(mangaId), false);
 							
 							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
 							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
 
 							// ресайз обложки
-							int h = coverHeight = (int) (getHeight() * coverSize / 25F);
-							if (mangaForm == null && listForm != null && listMode == LIST_FEED) {
+							int h = (int) (getHeight() * coverSize / 25F);
+							if (mangaForm == null && listForm != null && feedChapterIds.contains(item)) {
 								// уменьшить обложки в фиде
 								h >>= 1;
 							}
@@ -2947,6 +2947,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						img.addCommand(mangaItemCmd);
 						img.setDefaultCommand(mangaItemCmd);
 						img.setItemCommandListener(this);
+						feedChapterIds.put(img, id);
 						scheduleCover(img, id);
 						f.append(img);
 						
