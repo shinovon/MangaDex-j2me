@@ -2927,7 +2927,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setFont(smallboldfont);
 						if (coverLoading != 3) s.setPreferredSize(w, (coverHeight >> 1) + 4);
 						f.append(s);
-						feedChapterIds.put(s, id);
 						
 						if (coverLoading != 3) try {
 							LCDUIExtensions.setButtonText(s, n);
@@ -2935,8 +2934,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 									-1, -1, -1, -1);
 							LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
 							LCDUIExtensions.setButtonIcon(s, coverPlaceholder2);
-
-							scheduleCover(LCDUIExtensions.getButtonIconItem(s), id);
+							
+							feedChapterIds.put(img = LCDUIExtensions.getButtonIconItem(s), id);
+							scheduleCover(img, id);
 						} catch (Throwable e) {
 							e.printStackTrace();
 						}
