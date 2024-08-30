@@ -547,7 +547,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						-1, -1, -1, -1);
 			}
 			
-			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Title]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
+			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Titles]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
 			s.setFont(smallboldfont);
 			s.setLayout(lcduiExtensions ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND :
 				Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
