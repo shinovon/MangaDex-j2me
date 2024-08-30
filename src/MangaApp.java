@@ -2925,11 +2925,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setItemCommandListener(this);
 						s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_EXPAND);
 						s.setFont(smallboldfont);
-						s.setPreferredSize(w, (coverHeight >> 1) + 4);
+						if (coverLoading != 3) s.setPreferredSize(w, (coverHeight >> 1) + 4);
 						f.append(s);
 						feedChapterIds.put(s, id);
 						
-						try {
+						if (coverLoading != 3) try {
 							LCDUIExtensions.setButtonText(s, n);
 							LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
 									-1, -1, -1, -1);
