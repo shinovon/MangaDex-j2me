@@ -2066,7 +2066,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 							// ресайз обложки
 							int h = (int) (getHeight() * coverSize / 25F);
-							if (mangaForm == null && listForm != null && feedChapterIds.contains(item)) {
+							if (mangaForm == null && listForm != null && feedChapterIds.containsKey(item)) {
 								// уменьшить обложки в фиде
 								h >>= 1;
 							}
