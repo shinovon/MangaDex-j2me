@@ -651,14 +651,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				if (running) return; // игнорировать запросы, пока что-то еще грузится
 				coversToLoad.removeAllElements();
 				
+				listOffset = 0;
+				if (c == searchCmd) {
+					query = searchField.getString().trim();
+					if (query.length() == 0) return;
+				} else query = null;
+				
 				// поиск и список манг
 				Form f = new Form(L[0]);
 				f.addCommand(backCmd);
 				f.setCommandListener(this);
 				f.setTicker(new Ticker(L[Loading]));
-				
-				listOffset = 0;
-				query = c == searchCmd ? searchField.getString().trim() : null;
 				
 				display(listForm = f);
 				
