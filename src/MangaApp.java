@@ -193,9 +193,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static ChoiceGroup cachingPolicyChoice;
 	private static ChoiceGroup keepBitmapChoice;
 	private static ChoiceGroup jpegChoice;
-	private static ChoiceGroup onlineChoice;
 	private static TextField tagsFilterField;
 	private static ChoiceGroup readChoice;
+	private static ChoiceGroup proxyChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -291,6 +291,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String tagsFilter = "";
 	private static boolean showRead;
 	static boolean enableLongScroll;
+	private static boolean useProxy = true;
 
 	// platform
 	private static boolean symbianJrt;
@@ -379,6 +380,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			onlineResize = j.getBoolean("onlineResize", onlineResize);
 			tagsFilter = j.getString("tagsFilter", tagsFilter);
 			showRead = j.getBoolean("showRead", showRead);
+			useProxy = j.getBoolean("useProxy", useProxy);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -764,7 +766,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						view.cover = true;
 						view.cache = null;
 						view.longscroll = false;
-						view.reload();
+						view.reload(0);
 					} else if (viewMode == 1) {
 						view = new ViewCommon(-2, false);
 					} else if (viewMode == 2) {
@@ -896,9 +898,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				chapterFileCache = chapterCacheChoice.isSelected(0);
 				keepBitmap = keepBitmapChoice.isSelected(0);
 				dataSaver = jpegChoice.isSelected(0);
-				onlineResize = onlineChoice.isSelected(0);
+				onlineResize = proxyChoice.isSelected(1);
 				tagsFilter = tagsFilterField.getString();
 				showRead = readChoice.isSelected(0);
+				useProxy = proxyChoice.isSelected(0);
 				
 				try {
 					RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -928,6 +931,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j.put("onlineResize", onlineResize);
 					j.put("tagsFilter", tagsFilter);
 					j.put("showRead", showRead);
+					j.put("useProxy", useProxy);
 					
 					byte[] b = j.toString().getBytes("UTF-8");
 					RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -949,7 +953,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					rootsList = new Vector();
 					try {
 						Enumeration roots = FileSystemRegistry.listRoots();
-						while(roots.hasMoreElements()) {
+						while (roots.hasMoreElements()) {
 							String s = (String) roots.nextElement();
 							if (s.startsWith("file:///")) s = s.substring(8);
 							rootsList.addElement(s);
@@ -1052,15 +1056,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				proxyField = new TextField(L[ProxyURL], proxyUrl, 200, TextField.NON_PREDICTIVE);
 				f.append(proxyField);
 				
+				proxyChoice = new ChoiceGroup("", ChoiceGroup.MULTIPLE, new String[] { L[UseProxy], L[ServerSideResize] }, null);
+				proxyChoice.setSelectedIndex(0, useProxy);
+				proxyChoice.setSelectedIndex(1, onlineResize);
+				f.append(proxyChoice);
+				
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
 						"JPEG", "PNG"
 				}, null);
 				jpegChoice.setSelectedIndex(dataSaver ? 0 : 1, true);
 				f.append(jpegChoice);
-				
-				onlineChoice = new ChoiceGroup(L[ServerSideResize], ChoiceGroup.POPUP, on_off, null);
-				onlineChoice.setSelectedIndex(onlineResize ? 0 : 1, true);
-				f.append(onlineChoice);
 				
 				// режим просмотра
 				viewModeChoice = new ChoiceGroup(L[ViewMode], ChoiceGroup.POPUP, new String[] {
@@ -2400,7 +2405,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					view.cover = false;
 					view.cache = null;
 					view.longscroll = false;
-					view.reload();
+					view.reload(0);
 				} else if (viewMode == 1) {
 					view = new ViewCommon(n, false);
 				} else if (viewMode == 2) {
@@ -3075,7 +3080,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					chapterGroup = r.getString("id");
 					continue;
 				}
-				if (mangaId == null && "manga".equals(type)) {
+				if ("manga".equals(type)) {
 					mangaId = r.getString("id");
 					continue;
 				}
@@ -3738,7 +3743,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static String proxyUrl(String url) {
 		System.out.println(url);
-		if (url == null || proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
+		if (url == null
+				|| (!useProxy && (url.indexOf(";tw=") == -1 || !onlineResize))
+				|| proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
 		return proxyUrl + url(url);
@@ -3775,7 +3782,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		byte[] buf = new byte[i <= 0 ? 1024 : i];
 		i = 0;
 		int j;
-		while((j = in.read(buf, i, buf.length - i)) != -1) {
+		while ((j = in.read(buf, i, buf.length - i)) != -1) {
 			if ((i += j) >= buf.length) {
 				System.arraycopy(buf, 0, buf = new byte[i + 2048], 0, i);
 			}
@@ -3984,7 +3991,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return new String[] {str};
 		Vector v = new Vector();
 		v.addElement(str.substring(0, i));
-		while(i != -1) {
+		while (i != -1) {
 			str = str.substring(i + 1);
 			if ((i = str.indexOf(d)) != -1)
 				v.addElement(str.substring(0, i));
