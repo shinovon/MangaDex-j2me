@@ -324,7 +324,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	private final void runPreloader() {
 		if (preloaders == null && MangaApp.cachingPolicy == 2) {
-			int count = MangaApp.multiPreloader ? 3 : 1; // TODO
+			int count = MangaApp.multiPreloader ? 3 : 1;
 			preloaders = new Thread[count];
 			preloaderQueue = new Vector();
 			
@@ -667,14 +667,14 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			cache = null;
 			return;
 		}
-		if (k == -6) {
-			menu = !menu;
-			repaint();
-			return;
-		}
-		if (menu) {
-			return;
-		}
+//		if (k == -6) {
+//			menu = !menu;
+//			repaint();
+//			return;
+//		}
+//		if (menu) {
+//			return;
+//		}
 //		if (!canDraw()) {
 //			repaint();
 //			return;
@@ -812,12 +812,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (!touchCtrlShown)
 			return;
 		if (ty < 50 && hwa) {
-			if (tx > w * 3 / 4) {
-				touchHoldPos = 9;
-			} else {
-				setSmoothZoom(tx, w * 3 / 4);
-				touchHoldPos = 8;
-			}
+//			if (tx > w * 3 / 4) {
+//				touchHoldPos = 9;
+//			} else {
+			setSmoothZoom(tx, w/* * 3 / 4*/);
+			touchHoldPos = 8;
+//			}
 		} else if (ty < 50) {
 			int b;
 			if (tx < w / 4) {
@@ -865,7 +865,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected final void pointerDragged(int tx, int ty) {
 		if (touchHoldPos == 8) {
-			setSmoothZoom(tx, getWidth() * 3 / 4);
+			setSmoothZoom(tx, getWidth()/* * 3 / 4*/);
 			repaint();
 			return;
 		}
@@ -966,10 +966,9 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		int w = getWidth(), h = getHeight();
 		int fh = f.getHeight();
 		
-		if (menu) {
-			g.setColor(0);
-			return;
-		}
+//		if (menu) {
+//			return;
+//		}
 		
 		String pageNum = (page + 1) + "/" + MangaApp.chapterPages;
 		String zoomN = hwa ? String.valueOf(zoom) : Integer.toString((int) zoom);
@@ -1066,18 +1065,19 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			g.drawLine(w * 3 / 4, h - 50, w, h - 50);
 		}
 		g.drawLine(w * 3 / 4, h - 50, w * 3 / 4, h);
-		
-		// menu button
-		fillGrad(g, w * 3 / 4, 0, w / 4 + 1, 50, touchHoldPos == 9 ? 0xFF6740 : 0x222222, 0);
-		g.setColor(-1);
-		g.drawString(touchCaps[7], w * 7 / 8, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
-		g.drawLine(w * 3 / 4, 0, w * 3 / 4, 50);
-		g.drawLine(w * 3 / 4, 50, w, 50);
 
 		if (hwa) {
 			drawZoomSlider(g, f);
 			return;
 		}
+		
+//		// menu button TODO
+		fillGrad(g, w * 3 / 4, 0, w / 4 + 1, 50, /*touchHoldPos == 9 ? 0xFF6740 : */0x222222, 0);
+		g.setColor(-1);
+//		g.drawString(touchCaps[7], w * 7 / 8, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+		g.drawLine(w * 3 / 4, 0, w * 3 / 4, 50);
+		g.drawLine(w * 3 / 4, 50, w, 50);
+		
 		for (int i = 0; i < 3; i++) {
 			fillGrad(g, w * i / 4, 0, w / 4 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222, 0);
 			g.setColor(-1);
@@ -1094,7 +1094,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 
 	private final void drawZoomSlider(Graphics g, Font f) {
-		int w = getWidth() * 3 / 4;
+		int w = getWidth()/* * 3 / 4*/;
 		int px = (int) (25 + ((w - 50) * (zoom - 1) / 4));
 
 		// slider's body
