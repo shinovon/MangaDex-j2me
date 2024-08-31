@@ -113,13 +113,6 @@ public class ViewHWA extends ViewCommon {
 		// do nothing for now
 	}
 
-	protected void reload() {
-		reset();
-		System.gc();
-		loader = new Thread(this);
-		loader.start();
-	}
-
 	public boolean canDraw() {
 		return p != null;
 	}
@@ -177,10 +170,10 @@ public class ViewHWA extends ViewCommon {
 	protected void limitOffset() {
 		if (x < 0)
 			x = 0;
-		if (x > iw)
-			x = iw;
 		if (y < 0)
 			y = 0;
+		if (x > iw)
+			x = iw;
 		if (y > ih)
 			y = ih;
 	}

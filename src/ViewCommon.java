@@ -384,14 +384,19 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (hwa) return;
 		if (zoom == 1) {
 			x = 0;
-			int qh = (toDraw.getHeight() - getHeight()) / 2;
-			if (y < -qh) y = -qh;
-			if (y > qh) y = qh;
+			y = 0;
+			if (longscroll) {
+				int qh = (toDraw.getHeight() - getHeight()) / 2;
+				if (y < -qh) y = -qh;
+				if (y > qh) y = qh;
+			}
 			return;
 		}
 		
 		int hw = (toDraw.getWidth() - getWidth()) / 2;
 		int hh = (toDraw.getHeight() - getHeight()) / 2;
+		if (hw < 0) hw = 0;
+		if (hh < 0) hh = 0;
 		if (x < -hw) x = -hw;
 		if (x > hw) x = hw;
 		if (y < -hh) y = -hh;
@@ -484,15 +489,18 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				return;
 			}
 			if (!MangaApp.onlineResize) {
+				int oh = origImg.getHeight(), ow = origImg.getWidth();
 				int h = getHeight();
-				int w = (int) (((float) h / origImg.getHeight()) * origImg.getWidth());
+				int w = (int) (((float) h / oh) * ow);
+				if (w > getWidth()) {
+					w = getWidth();
+					h = (int) (((float) w / ow) * oh);
+				}
 	
-				if ((!cover && MangaApp.enableLongScroll &&
-						(longscroll || (origImg.getHeight() / origImg.getWidth() > 2 && origImg.getHeight() > h))) ||
-						w > getWidth()) {
+				if (!cover && MangaApp.enableLongScroll && (longscroll || oh / ow > 2)) {
 					longscroll = true;
 					w = getWidth();
-					h = (int) (((float) w / origImg.getWidth()) * origImg.getHeight());
+					h = (int) (((float) w / ow) * oh);
 					if (size == 1 && y == 0)
 						y = h / 2;
 				}
@@ -573,8 +581,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	boolean touchCtrlShown = true;
 
 	protected void reload(int i) {
-		if (hwa) return;
-		toDraw = null;
+		reset();
 		System.gc();
 		if (i == 1) {
 			if (loader != null) {

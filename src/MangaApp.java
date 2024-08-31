@@ -689,7 +689,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// открыть вью с обложкой
 				if (running) return;
 				try {
-					if (view != null) {
+					if (view != null && (viewMode == 0 || (view instanceof ViewHWA && viewMode == 2))) {
 						view.page = -2;
 						view.cover = true;
 						view.cache = null;
@@ -1342,7 +1342,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 
-			Alert a = new Alert(mangaForm.getTitle(), L[Initializing], null, null);
+			Alert a = new Alert(mangaForm != null ? mangaForm.getTitle() : null, L[Initializing], null, null);
 			a.setIndicator(downloadIndicator = new Gauge(null, false, 100, 0));
 			a.setTimeout(Alert.FOREVER);
 			a.addCommand(cancelCmd);
@@ -2298,7 +2298,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					n = Math.min(n, chapterPages) - 1;
 				}
-				if (view != null) {
+				if (view != null && (viewMode == 0 || (view instanceof ViewHWA && viewMode == 2))) {
 					view.page = n;
 					view.cover = false;
 					view.cache = null;
@@ -2370,7 +2370,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 
 				fc = (FileConnection) Connector.open(folder = folder
-						.concat(safeFileName(mangaForm.getTitle(), mangaId).concat("/")));
+						.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId).concat("/")));
 				try {
 					fc.mkdir();
 				} catch (IOException e) {
@@ -3491,7 +3491,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		try {
 			fc = (FileConnection) Connector.open(folder = folder
-					.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
+					.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId)).concat("/"));
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
@@ -3514,7 +3514,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	private static String getFolderName() {
 		return "file:///".concat(downloadPath).concat("/")
-				.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/")
+				.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId)).concat("/")
 				.concat(chapterId).concat("/");
 	}
 	
