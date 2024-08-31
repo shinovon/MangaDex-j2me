@@ -3,6 +3,7 @@
  * Copyright (c) 2024 Arman Jussupgaliyev
  */
 import java.io.IOException;
+import java.util.Vector;
 
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.AlertType;
@@ -23,13 +24,15 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	protected int page;
 
 	protected byte[][] cache;
+	private int[] cacheProgress;
 
 	protected float zoom = 1;
 	protected float x = 0;
 	protected float y = 0;
 
 	protected Thread loader;
-	protected Thread preloader;
+	protected Thread[] preloaders;
+	private Vector preloaderQueue;
 	protected boolean error;
 
 	int nokiaRam;
@@ -53,6 +56,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	private boolean resizing;
 	
 	int loaderAction;
+	
+	boolean menu;
 
 
 	/**
@@ -99,8 +104,14 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 		}
 		if (MangaApp.chapterFileCache && !forceCacheIgnore) {
+			if (cacheProgress == null) {
+				cacheProgress = new int[MangaApp.chapterPages];
+			}
 			byte[] a = MangaApp.readCachedPage(n);
-			if (a != null) return a;
+			if (a != null) {
+				cacheProgress[n] = 1;
+				return a;
+			}
 			try {
 				a = MangaApp.getPage(n, "");
 				if (a == null) {
@@ -116,8 +127,10 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				}
 				
 				MangaApp.cachePage(a, n);
+				cacheProgress[n] = 1;
 				return a;
 			} catch (IOException e) {
+				cacheProgress[n] = 2;
 				e.printStackTrace();
 				return null;
 			}
@@ -126,6 +139,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		try {
 			if (cache == null) {
 				cache = new byte[MangaApp.chapterPages][];
+				cacheProgress = new int[MangaApp.chapterPages];
 			}
 			if (forceCacheIgnore) {
 				cache[n] = null;
@@ -141,13 +155,15 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				try {
 					byte[] b = MangaApp.getPage(n, "");
 					if (b == null) {
+						cacheProgress[n] = 2;
 						error = true;
 						repaint();
 						return null;
 					}
-
+					cacheProgress[n] = 1;
 					return cache[n] = b;
 				} catch (IOException e) {
+					cacheProgress[n] = 2;
 					e.printStackTrace();
 					return null;
 				}
@@ -190,10 +206,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 			for (int i = 0; i < page - 1; i++) {
 				cache[i] = null;
+				cacheProgress[i] = 0;
 			}
 			for (int i = MangaApp.chapterPages - 1; i > page; i--) {
 				if (cache[i] != null) {
 					cache[i] = null;
+					cacheProgress[i] = 0;
 					break;
 				}
 			}
@@ -238,6 +256,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			for (int i = 0; i < cache.length; i++) {
 				if (i != page) {
 					cache[i] = null;
+					cacheProgress[i] = 0;
 				}
 			}
 		} else {
@@ -245,11 +264,13 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				for (int i = 0; i < page - 1; i++) {
 					if (canStorePages() <= 2) {
 						cache[i] = null;
+						cacheProgress[i] = 0;
 					}
 				}
 				for (int i = MangaApp.chapterPages - 1; i > page; i--) {
 					if (canStorePages() == 0) {
 						cache[i] = null;
+						cacheProgress[i] = 0;
 					} else {
 						break;
 					}
@@ -267,7 +288,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	public final void run() {
 		try {
 			if (loaderAction == 1) {
-				Thread.sleep(500);
+				Thread.sleep(100);
 			}
 			synchronized (this) {
 				error = false;
@@ -302,82 +323,95 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 
 	private final void runPreloader() {
-		if (preloader == null && MangaApp.cachingPolicy == 2) {
-			preloader = MangaApp.midlet.start(MangaApp.RUN_PRELOADER);
+		if (preloaders == null && MangaApp.cachingPolicy == 2) {
+			int count = MangaApp.multiPreloader ? 3 : 1; // TODO
+			preloaders = new Thread[count];
+			preloaderQueue = new Vector();
+			
+			int pages = MangaApp.chapterPages;
+			for (int i = 0; i < pages; i++) {
+				preloaderQueue.addElement(new Integer(i));
+			}
+			if (cacheProgress == null) {
+				cacheProgress = new int[pages];
+			}
+			if (!MangaApp.chapterFileCache && cache == null) {
+				cache = new byte[pages][];
+			}
+			for (int i = 0; i < count; i++) {
+				preloaders[i] = MangaApp.midlet.start(MangaApp.RUN_PRELOADER);
+			}
 		}
 	}
 
 	int preloadProgress = 101;
 
 	public final void preload() throws InterruptedException {
-		Thread.sleep(1000);
-		if (MangaApp.chapterFileCache) {
-			for (int i = 0; i < MangaApp.chapterPages; i++) {
-				try {
-					getImage(i, false);
-					if (preloadProgress != 100) {
-						preloadProgress = i * 100 / MangaApp.chapterPages;
-					}
-					repaint();
-					Thread.sleep(300);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-					preloadProgress = 103;
-					repaint();
-					return;
-				} catch (OutOfMemoryError e) {
-					preloadProgress = 104;
-					repaint();
-					return;
-				} catch (Throwable e) {
-					error = true;
-					repaint();
-				}
-			}
-			preloadProgress = 100;
-			return;
-		}
-		for (int i = page; i < MangaApp.chapterPages; i++) {
-			if (cache == null) {
-				return;
-			}
+		Thread.sleep(500);
+		while (preloaderQueue.size() > 0) {
+			int i = -1;
 			try {
-				if (cache[i] != null) {
-					continue;
+				if (preloadProgress > 101) return;
+				synchronized (preloaderQueue) {
+					i = ((Integer) preloaderQueue.elementAt(0)).intValue();
+					preloaderQueue.removeElementAt(0);
 				}
-				if (canStorePages() < 1) {
-					preloadProgress = 102;
-					preloader = null;
-					return;
+				if (i < 0) continue;
+				if (MangaApp.chapterFileCache) {
+					try {
+						getImage(i, false);
+						repaint();
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						preloadProgress = 103;
+						repaint();
+						return;
+					} catch (OutOfMemoryError e) {
+						cacheProgress[i] = 2;
+						preloadProgress = 104;
+						repaint();
+						return;
+					} catch (Throwable e) {
+						cacheProgress[i] = 2;
+						error = true;
+						repaint();
+					}
+				} else {
+					if (cache == null) return;
+					if (cache[i] != null) continue;
+					try {
+						if (cache[i] != null) {
+							continue;
+						}
+						if (canStorePages() < 1) {
+							preloadProgress = 102;
+							return;
+						}
+						getImage(i, false);
+						Thread.sleep(200);
+						repaint();
+						Thread.sleep(50);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						preloadProgress = 103;
+						repaint();
+						return;
+					} catch (OutOfMemoryError e) {
+						emergencyCacheClear();
+						preloadProgress = 104;
+						repaint();
+						return;
+					} catch (NullPointerException e) {
+						preloadProgress = 100;
+						repaint();
+					}
 				}
-				getImage(i, false);
-				Thread.sleep(300);
-				if (preloadProgress != 100) {
-					preloadProgress = i * 100 / MangaApp.chapterPages;
-				}
-				repaint();
-				Thread.sleep(50);
-			} catch (InterruptedException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
-				preloadProgress = 103;
-				repaint();
-				preloader = null;
-				return;
-			} catch (OutOfMemoryError e) {
-				emergencyCacheClear();
-				preloadProgress = 104;
-				preloader = null;
-				repaint();
-				return;
-			} catch (NullPointerException e) {
-				preloadProgress = 100;
-				preloader = null;
-				repaint();
+				continue;
 			}
 		}
-		preloadProgress = 100;
-		preloader = null;
-		repaint();
 	}
 
 	protected void limitOffset() {
@@ -576,7 +610,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		}
 	}
 
-	String[] touchCaps = new String[] { "x1", "x2", "x3", "<-", "goto", "->", MangaApp.L[Back] };
+	String[] touchCaps = new String[] { "x1", "x2", "x3", "<-", "goto", "->", MangaApp.L[Back], MangaApp.L[Menu] };
 
 	boolean touchCtrlShown = true;
 
@@ -592,6 +626,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		loader = new Thread(this);
 		loader.setPriority(9);
 		loader.start();
+		menu = false;
 	}
 
 	/**
@@ -606,6 +641,11 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	protected final void keyPressed(int k) {
 		k = qwertyToNum(k);
 		if (k == -7 || k == KEY_NUM9) {
+			if (menu) {
+				menu = false;
+				repaint();
+				return;
+			}
 			try {
 				if (loader != null && loader.isAlive()) {
 					loader.interrupt();
@@ -614,8 +654,10 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				e.printStackTrace();
 			}
 			try {
-				if (preloader != null && preloader.isAlive()) {
-					preloader.interrupt();
+				if (preloaders != null) {
+					for (int i = 0; i < preloaders.length; i++) {
+						if (preloaders[i] != null) preloaders[i].interrupt();
+					}
 				}
 			} catch (RuntimeException e) {
 				e.printStackTrace();
@@ -623,6 +665,14 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			MangaApp.display(null, true);
 			toDraw = orig = null;
 			cache = null;
+			return;
+		}
+		if (k == -6) {
+			menu = !menu;
+			repaint();
+			return;
+		}
+		if (menu) {
 			return;
 		}
 //		if (!canDraw()) {
@@ -751,7 +801,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	int sx, sy;
 
 	protected final void pointerPressed(int tx, int ty) {
-		if (!canDraw() && ty > getHeight() - 50 && tx > getWidth() * 2 / 3) {
+		int w = getWidth();
+		if (!canDraw() && ty > getHeight() - 50 && tx > w * 2 / 3) {
 			keyPressed(-7);
 			return;
 		}
@@ -761,25 +812,31 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (!touchCtrlShown)
 			return;
 		if (ty < 50 && hwa) {
-			setSmoothZoom(tx, getWidth());
-			touchHoldPos = 8;
+			if (tx > w * 3 / 4) {
+				touchHoldPos = 9;
+			} else {
+				setSmoothZoom(tx, w * 3 / 4);
+				touchHoldPos = 8;
+			}
 		} else if (ty < 50) {
 			int b;
-			if (tx < getWidth() / 3) {
+			if (tx < w / 4) {
 				b = 1;
-			} else if (tx < getWidth() * 2 / 3) {
+			} else if (tx < w * 2 / 4) {
 				b = 2;
-			} else {
+			} else if (tx < w * 3 / 4) {
 				b = 3;
+			} else {
+				b = 9;
 			}
 			touchHoldPos = b;
 		} else if (ty > getHeight() - 50) {
 			int b;
-			if (tx < getWidth() / 4) {
+			if (tx < w / 4) {
 				b = 4;
-			} else if (tx < getWidth() * 2 / 4) {
+			} else if (tx < w * 2 / 4) {
 				b = 5;
-			} else if (tx < getWidth() * 3 / 4) {
+			} else if (tx < w * 3 / 4) {
 				b = 6;
 			} else {
 				b = 7;
@@ -808,7 +865,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected final void pointerDragged(int tx, int ty) {
 		if (touchHoldPos == 8) {
-			setSmoothZoom(tx, getWidth());
+			setSmoothZoom(tx, getWidth() * 3 / 4);
 			repaint();
 			return;
 		}
@@ -835,12 +892,14 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		int zone = 0;
 		if (ty < 50) {
 			int b;
-			if (tx < getWidth() / 3) {
+			if (tx < getWidth() / 4) {
 				b = 1;
-			} else if (tx < getWidth() * 2 / 3) {
+			} else if (tx < getWidth() * 2 / 4) {
 				b = 2;
-			} else {
+			} else if (tx < getWidth() * 3 / 4) {
 				b = 3;
+			} else {
+				b = 9;
 			}
 			zone = b;
 		} else if (ty > getHeight() - 50) {
@@ -868,6 +927,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				changePage(1);
 			} else if (zone == 7) {
 				keyPressed(-7);
+			} else if (zone == 9) {
+				keyPressed(-6);
 			}
 		}
 		touchHoldPos = 0;
@@ -904,18 +965,24 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	protected final void paintHUD(Graphics g, Font f, boolean drawZoom, boolean drawPages) {
 		int w = getWidth(), h = getHeight();
 		int fh = f.getHeight();
+		
+		if (menu) {
+			g.setColor(0);
+			return;
+		}
+		
 		String pageNum = (page + 1) + "/" + MangaApp.chapterPages;
 		String zoomN = hwa ? String.valueOf(zoom) : Integer.toString((int) zoom);
 		if (zoomN.length() > 3)
 			zoomN = zoomN.substring(0, 3);
 		zoomN = "x" + zoomN;
-		String prefetch = null;
+//		String prefetch = null;
 		// if (preloadProgress == 101) {
-		if (MangaApp.cachingPolicy == 2) {
-			prefetch = (preloadProgress > 0 && preloadProgress < 100)
-					? ((MangaApp.chapterFileCache ? "downloading " : "caching ") + preloadProgress + "%")
-					: null;
-		}
+//		if (MangaApp.cachingPolicy == 2) {
+//			prefetch = (preloadProgress > 0 && preloadProgress < 100)
+//					? ((MangaApp.chapterFileCache ? "downloading " : "caching ") + preloadProgress + "%")
+//					: null;
+//		}
 
 		// BGs
 		g.setColor(0);
@@ -925,9 +992,9 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (drawZoom) {
 			g.fillRect(w - f.stringWidth(zoomN), 0, f.stringWidth(zoomN), fh);
 		}
-		if (prefetch != null) {
-			g.fillRect(0, h - fh, f.stringWidth(prefetch), fh);
-		}
+//		if (prefetch != null) {
+//			g.fillRect(0, h - fh, f.stringWidth(prefetch), fh);
+//		}
 
 		// texts
 		g.setColor(-1);
@@ -937,9 +1004,9 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (drawZoom) {
 			g.drawString(zoomN, w - f.stringWidth(zoomN), 0, 0);
 		}
-		if (prefetch != null) {
-			g.drawString(prefetch, 0, h - fh, 0);
-		}
+//		if (prefetch != null) {
+//			g.drawString(prefetch, 0, h - fh, 0);
+//		}
 		
 		if (!cover && chapterShown != 0 && (page == 0 || page == MangaApp.chapterPages - 1)) {
 			if (System.currentTimeMillis() - chapterShown > 3000L) {
@@ -956,6 +1023,23 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			g.setColor(0xFF6740);
 			g.drawString(sb.toString(), w >> 1, drawPages ? 4 : 50, Graphics.HCENTER | Graphics.TOP);
 		}
+		// progress
+		if (!cover && MangaApp.chapterPages > 0) {
+			g.setColor(0x2C2C2C);
+			g.fillRect(0, h-2, w, 2);
+			if (cacheProgress != null) {
+				int tw = w / MangaApp.chapterPages;
+				synchronized (cacheProgress) {
+					for (int i = 0; i < cacheProgress.length; i++) {
+						if (cacheProgress[i] == 0) continue;
+						g.setColor(cacheProgress[i] == 1 ? 0x4F4F4F : 0xFF2C2C);
+						g.fillRect(w * i / MangaApp.chapterPages, h-2, tw, 2);
+					}
+				}
+			}
+			g.setColor(0xFF6740);
+			g.fillRect(0, h-2, w * (page + 1) / MangaApp.chapterPages, 2);
+		}
 	}
 
 	protected final void drawTouchControls(Graphics g, Font f) {
@@ -971,7 +1055,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			g.drawString(i == 4 ? ((page + 1) + "/" + MangaApp.chapterPages) : touchCaps[i], w * (1 + (i - 3) * 2) / 8,
 					h - 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
-		g.setGrayScale(255);
+		g.setColor(-1);
 		if (!cover) {
 			// hor lines
 			g.drawLine(0, h - 50, w, h - 50);
@@ -982,44 +1066,52 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			g.drawLine(w * 3 / 4, h - 50, w, h - 50);
 		}
 		g.drawLine(w * 3 / 4, h - 50, w * 3 / 4, h);
+		
+		// menu button
+		fillGrad(g, w * 3 / 4, 0, w / 4 + 1, 50, touchHoldPos == 9 ? 0xFF6740 : 0x222222, 0);
+		g.setColor(-1);
+		g.drawString(touchCaps[7], w * 7 / 8, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+		g.drawLine(w * 3 / 4, 0, w * 3 / 4, 50);
+		g.drawLine(w * 3 / 4, 50, w, 50);
 
 		if (hwa) {
 			drawZoomSlider(g, f);
 			return;
 		}
 		for (int i = 0; i < 3; i++) {
-			fillGrad(g, w * i / 3, 0, w / 3 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222,
-					0);
-			g.setGrayScale(255);
-			g.drawString(touchCaps[i], w * (1 + i * 2) / 6, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
+			fillGrad(g, w * i / 4, 0, w / 4 + 1, 50, touchHoldPos == (i + 1) ? 0xFF6740 : 0x222222, 0);
+			g.setColor(-1);
+			g.drawString(touchCaps[i], w * (1 + i * 2) / 8, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);
 		}
 		// bottom hor line
-		g.setGrayScale(255);
+		g.setColor(-1);
 		g.drawLine(0, 50, w, 50);
 		// vert lines between btns
-		g.drawLine(w / 3, 0, w / 3, 50);
-		g.drawLine(w * 2 / 3, 0, w * 2 / 3, 50);
+		g.drawLine(w / 4, 0, w / 4, 50);
+		g.drawLine(w * 2 / 4, 0, w * 2 / 4, 50);
+		g.drawLine(w * 3 / 4, 0, w * 3 / 4, 50);
 
 	}
 
 	private final void drawZoomSlider(Graphics g, Font f) {
-		int px = (int) (25 + ((getWidth() - 50) * (zoom - 1) / 4));
+		int w = getWidth() * 3 / 4;
+		int px = (int) (25 + ((w - 50) * (zoom - 1) / 4));
 
 		// slider's body
 		if (slider == null) {
 			for (int i = 0; i < 10; i++) {
 				g.setColor(MangaApp.blend(touchHoldPos == 8 ? 0xFF6740 : 0x444444, 0xffffff, i * 255 / 9));
-				g.drawRoundRect(25 - i, 25 - i, getWidth() - 50 + (i * 2), i * 2, i, i);
+				g.drawRoundRect(25 - i, 25 - i, w - 50 + (i * 2), i * 2, i, i);
 			}
 		} else {
 			int spy = touchHoldPos == 8 ? 20 : 0;
 			g.drawRegion(slider, 0, spy, 35, 20, 0, 0, 15, 0);
-			g.drawRegion(slider, 35, spy, 35, 20, 0, getWidth() - 35, 15, 0);
-			g.setClip(35, 0, getWidth() - 70, 50);
-			for (int i = 35; i < getWidth() - 34; i += 20) {
+			g.drawRegion(slider, 35, spy, 35, 20, 0, w - 35, 15, 0);
+			g.setClip(35, 0, w - 70, 50);
+			for (int i = 35; i < w - 34; i += 20) {
 				g.drawRegion(slider, 25, spy, 20, 20, 0, i, 15, 0);
 			}
-			g.setClip(0, 0, getWidth(), getHeight());
+			g.setClip(0, 0, w, getHeight());
 		}
 
 		// slider's pin

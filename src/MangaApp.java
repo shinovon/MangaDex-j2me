@@ -282,6 +282,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean enableLongScroll;
 	private static boolean useProxy = true;
 	private static boolean mipmap;
+	static boolean multiPreloader;
 
 	// auth
 	private static String clientId;
@@ -330,6 +331,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		onlineResize = loadingForm.getWidth() < 320;
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
+		multiPreloader = symbianJrt;
 		
 		// загрузка настроек
 		try {
@@ -360,6 +362,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			showRead = j.getBoolean("showRead", showRead);
 			useProxy = j.getBoolean("useProxy", useProxy);
 			mipmap = j.getBoolean("mipmap", mipmap);
+			multiPreloader = j.getBoolean("multiPreloader", multiPreloader);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -862,6 +865,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j.put("showRead", showRead);
 					j.put("useProxy", useProxy);
 					j.put("mipmap", mipmap);
+					j.put("multiPreloader", multiPreloader);
 					
 					byte[] b = j.toString().getBytes("UTF-8");
 					RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
