@@ -1071,7 +1071,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			return;
 		}
 		
-//		// menu button TODO
+//		// menu button
 		fillGrad(g, w * 3 / 4, 0, w / 4 + 1, 50, /*touchHoldPos == 9 ? 0xFF6740 : */0x222222, 0);
 		g.setColor(-1);
 //		g.drawString(touchCaps[7], w * 7 / 8, 25 - fh / 2, Graphics.TOP | Graphics.HCENTER);

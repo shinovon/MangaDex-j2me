@@ -2551,9 +2551,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		case RUN_AUTH: { // авторизация
 			auth: {
-				Displayable f = view != null ? view :
-					mangaForm != null ? mangaForm :
-					listForm != null ? listForm : display.getCurrent();
+				Displayable f = display.getCurrent();
+//				f = view != null && f == view ? view :
+//					mangaForm != null ? mangaForm :
+//					listForm != null ? listForm : f;
 				
 				try {
 					// проверка времени жизни токенов
