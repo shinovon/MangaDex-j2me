@@ -196,6 +196,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static TextField tagsFilterField;
 	private static ChoiceGroup readChoice;
 	private static ChoiceGroup proxyChoice;
+	private static ChoiceGroup mipmapChoice;
 	
 	private static Alert downloadAlert;
 	private static Gauge downloadIndicator;
@@ -292,6 +293,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean showRead;
 	static boolean enableLongScroll;
 	private static boolean useProxy = true;
+	private static boolean mipmap;
+	static boolean multiPreloader;
 
 	// platform
 	private static boolean symbianJrt;
@@ -345,6 +348,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		onlineResize = loadingForm.getWidth() < 320;
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
+		multiPreloader = symbianJrt;
 		
 		if (symbianJrt) {
 			try {
@@ -381,6 +385,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			tagsFilter = j.getString("tagsFilter", tagsFilter);
 			showRead = j.getBoolean("showRead", showRead);
 			useProxy = j.getBoolean("useProxy", useProxy);
+			mipmap = j.getBoolean("mipmap", mipmap);
+			multiPreloader = j.getBoolean("multiPreloader", multiPreloader);
 		} catch (Exception e) {}
 		
 		// загрузка локализации
@@ -764,7 +770,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				// открыть вью с обложкой
 				if (running) return;
 				try {
-					if (view != null) {
+					if (view != null && (viewMode == 0 || (view instanceof ViewHWA && viewMode == 2))) {
 						view.page = -2;
 						view.cover = true;
 						view.cache = null;
@@ -905,6 +911,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				tagsFilter = tagsFilterField.getString();
 				showRead = readChoice.isSelected(0);
 				useProxy = proxyChoice.isSelected(0);
+				mipmap = mipmapChoice.isSelected(0);
 				
 				try {
 					RecordStore.deleteRecordStore(SETTINGS_RECORDNAME);
@@ -935,6 +942,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					j.put("tagsFilter", tagsFilter);
 					j.put("showRead", showRead);
 					j.put("useProxy", useProxy);
+					j.put("mipmap", mipmap);
+					j.put("multiPreloader", multiPreloader);
 					
 					byte[] b = j.toString().getBytes("UTF-8");
 					RecordStore r = RecordStore.openRecordStore(SETTINGS_RECORDNAME, true);
@@ -1064,6 +1073,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				proxyChoice.setSelectedIndex(1, onlineResize);
 				f.append(proxyChoice);
 				
+				// качество
 				jpegChoice = new ChoiceGroup(L[ImageQuality], ChoiceGroup.POPUP, new String[] {
 						"JPEG", "PNG"
 				}, null);
@@ -1077,10 +1087,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				viewModeChoice.setSelectedIndex(viewMode, true);
 				f.append(viewModeChoice);
 				
-				// хранить обложки
-				keepCoversChoice = new ChoiceGroup(L[KeepCoversInLists], ChoiceGroup.POPUP, on_off, null);
-				keepCoversChoice.setSelectedIndex(keepListCovers ? 0 : 1, true);
-				f.append(keepCoversChoice);
+				// мипмаппинг
+				mipmapChoice = new ChoiceGroup("Mipmapping", ChoiceGroup.POPUP, on_off, null);
+				mipmapChoice.setSelectedIndex(mipmap ? 0 : 1, true);
+				f.append(mipmapChoice);
 				
 				// поведение кэширования
 				cachingPolicyChoice = new ChoiceGroup(L[ChapterCaching], ChoiceGroup.POPUP, new String[] {
@@ -1098,6 +1108,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				keepBitmapChoice = new ChoiceGroup(L[KeepOriginalPages], ChoiceGroup.POPUP, on_off, null);
 				keepBitmapChoice.setSelectedIndex(keepBitmap ? 0 : 1, true);
 				f.append(keepBitmapChoice);
+				
+				// хранить обложки
+				keepCoversChoice = new ChoiceGroup(L[KeepCoversInLists], ChoiceGroup.POPUP, on_off, null);
+				keepCoversChoice.setSelectedIndex(keepListCovers ? 0 : 1, true);
+				f.append(keepCoversChoice);
 				
 				readChoice = new ChoiceGroup(L[ShowReadStatus], ChoiceGroup.POPUP, on_off, null);
 				readChoice.setSelectedIndex(showRead ? 0 : 1, true);
@@ -1411,7 +1426,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				return;
 			}
 
-			Alert a = new Alert(mangaForm.getTitle(), L[Initializing], null, null);
+			Alert a = new Alert(mangaForm != null ? mangaForm.getTitle() : null, L[Initializing], null, null);
 			a.setIndicator(downloadIndicator = new Gauge(null, false, 100, 0));
 			a.setTimeout(Alert.FOREVER);
 			a.addCommand(cancelCmd);
@@ -2403,7 +2418,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				} else {
 					n = Math.min(n, chapterPages) - 1;
 				}
-				if (view != null) {
+				if (view != null && (viewMode == 0 || (view instanceof ViewHWA && viewMode == 2))) {
 					view.page = n;
 					view.cover = false;
 					view.cache = null;
@@ -2475,7 +2490,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 
 				fc = (FileConnection) Connector.open(folder = folder
-						.concat(safeFileName(mangaForm.getTitle(), mangaId).concat("/")));
+						.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId).concat("/")));
 				try {
 					fc.mkdir();
 				} catch (IOException e) {
@@ -2652,9 +2667,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		case RUN_AUTH: { // авторизация
 			auth: {
-				Displayable f = view != null ? view :
-					mangaForm != null ? mangaForm :
-					listForm != null ? listForm : display.getCurrent();
+				Displayable f = display.getCurrent();
+//				f = view != null && f == view ? view :
+//					mangaForm != null ? mangaForm :
+//					listForm != null ? listForm : f;
 				
 				try {
 					// проверка времени жизни токенов
@@ -3639,7 +3655,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		}
 		try {
 			fc = (FileConnection) Connector.open(folder = folder
-					.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/"));
+					.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId)).concat("/"));
 			fc.mkdir();
 		} catch (IOException e) {
 		} finally {
@@ -3662,7 +3678,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	private static String getFolderName() {
 		return "file:///".concat(downloadPath).concat("/")
-				.concat(safeFileName(mangaForm.getTitle(), mangaId)).concat("/")
+				.concat(safeFileName(mangaForm != null ? mangaForm.getTitle() : null, mangaId)).concat("/")
 				.concat(chapterId).concat("/");
 	}
 	
@@ -3746,7 +3762,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static String proxyUrl(String url) {
-		System.out.println(url);
+//		System.out.println(url);
 		if (url == null
 				|| (!useProxy && (url.indexOf(";tw=") == -1 || !onlineResize))
 				|| proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
@@ -4059,6 +4075,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		// no change??
 		if (size_w == w && size_h == h)
 			return src_i;
+		
+		if (MangaApp.mipmap) {
+			while (w > size_w * 3 && h > size_h * 3) {
+				src_i = halve(src_i);
+				w /= 2;
+				h /= 2;
+			}
+		}
 
 		int[] dst = new int[size_w * size_h];
 
@@ -4069,13 +4093,50 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 		return Image.createRGBImage(dst, size_w, size_h, true);
 	}
+	
+	public static Image halve(Image org) {
+		int w1 = org.getWidth();
+		int h1 = org.getHeight();
+		
+		int w2 = w1 / 2;
+		int h2 = h1 / 2;				
+		
+		int [] data = new int[w2 * h2];
+		int [] buffer = new int[w1 * 2];
+		
+		for(int offset = 0, i = 0; i < h2; i++) {
+			org.getRGB( buffer, 0, w1, 0, i * 2, w1, 2); // get two lines from the original
+			
+			int o1 = 0, o2 = 1;
+			int o3 = w1, o4 = w1 + 1;
+			
+			for(int j = 0; j < w2; j++) {
+				data[offset ++] = ((
+						((buffer[o1] & 0x00FF00FF) + (buffer[o2] & 0x00FF00FF) + (buffer[o3] & 0x00FF00FF) + (buffer[o4] & 0x00FF00FF)) >> 2
+						) & 0x00FF00FF) | ((
+						((buffer[o1] & 0xFF00FF00) >>> 2) + ((buffer[o2] & 0xFF00FF00) >>> 2) + 
+						((buffer[o3] & 0xFF00FF00) >>> 2) + ((buffer[o4] & 0xFF00FF00) >>> 2) 
+						) & 0xFF00FF00);
+						//mix( buffer[o1], buffer[o2], buffer[o3], buffer[o4]);			
+				o1 += 2;
+				o2 += 2;
+				o3 += 2;
+				o4 += 2;
+			}
+		}
+		
+		Image tmp = Image.createRGBImage(data, w2, h2, true);
+		data = null; // can this help GC at this point?
+		
+		return tmp;
+	}
 
 	private static final void resize_rgb_filtered(Image src_i, int[] dst, int w0, int h0, int w1, int h1) {
 		int[] buffer1 = new int[w0];
 		int[] buffer2 = new int[w0];
 
-		// UNOPTIMIZED bilinear filtering:               
-		//         
+		// UNOPTIMIZED bilinear filtering:
+		//
 		// The pixel position is defined by y_a and y_b,
 		// which are 24.8 fixed point numbers
 		// 
