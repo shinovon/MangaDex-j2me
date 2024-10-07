@@ -2559,9 +2559,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				try {
 					// проверка времени жизни токенов
 					long now = System.currentTimeMillis();
-					if (now - accessTokenTime > 900 * 1000L)
+					if (now - accessTokenTime >= 900 * 1000L - 2000L)
 						accessToken = null;
-					if (now - refreshTokenTime > 7776000 * 1000L)
+					if (now - refreshTokenTime >= 7776000 * 1000L - 2000L)
 						refreshToken = null;
 					
 					if (clientField != null) {
