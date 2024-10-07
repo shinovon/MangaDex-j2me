@@ -3049,6 +3049,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_EXPAND);
 						s.setFont(smallboldfont);
 						if (coverLoading != 3) s.setPreferredSize(w, (coverHeight >> 1) + 4);
+						feedChapterIds.put(s, id);
 						f.append(s);
 						
 						if (coverLoading != 3) try {
@@ -3059,6 +3060,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							LCDUIExtensions.setButtonIcon(s, coverPlaceholder2);
 							
 							feedChapterIds.put(img = LCDUIExtensions.getButtonIconItem(s), id);
+							img.setAltText(id);
 							scheduleCover(img, id);
 						} catch (Throwable e) {
 							e.printStackTrace();
