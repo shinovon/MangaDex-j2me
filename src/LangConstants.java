@@ -143,4 +143,5 @@ public interface LangConstants {
 	static final int ShowReadStatus = 142;
 	static final int UseProxy = 143;
 	static final int Menu = 144;
+	static final int Group = 145;
 }

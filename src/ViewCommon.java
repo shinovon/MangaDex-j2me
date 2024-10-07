@@ -418,12 +418,11 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (hwa) return;
 		if (zoom == 1) {
 			x = 0;
-			y = 0;
 			if (longscroll) {
 				int qh = (toDraw.getHeight() - getHeight()) / 2;
 				if (y < -qh) y = -qh;
 				if (y > qh) y = qh;
-			}
+			} else y = 0;
 			return;
 		}
 		
