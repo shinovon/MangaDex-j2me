@@ -42,7 +42,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_FEED = 12;
 	static final int RUN_ZOOM_VIEW = 13;
 	private static final int RUN_GROUP = 14;
-	private static final int RUN_GROUPS = 15;
+//	private static final int RUN_GROUPS = 15;
 	
 	// list types
 	private static final int LIST_UPDATES = 1;
@@ -55,12 +55,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_AUTHOR_TITLES = 8;
 	private static final int LIST_ARTIST_TITLES = 9;
 	private static final int LIST_GROUP_TITLES = 10;
-	private static final int LIST_MDLIST = 11;
+//	private static final int LIST_MDLIST = 11;
 	
 	// list2 types TODO
-	private static final int LIST2_FOLLOWED_GROUPS = 1;
-	private static final int LIST2_MY_LISTS = 1;
-	private static final int LIST2_FOLLOWED_LISTS = 1;
+//	private static final int LIST2_FOLLOWED_GROUPS = 1;
+//	private static final int LIST2_MY_LISTS = 1;
+//	private static final int LIST2_FOLLOWED_LISTS = 1;
 	// rms
 	private static final String SETTINGS_RECORDNAME = "mangaDsets";
 	private static final String AUTH_RECORDNAME = "mangaDauth";
@@ -118,9 +118,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command authCmd;
 	private static Command libraryCmd;
 	private static Command feedCmd;
-	private static Command groupsCmd; // TODO
-	private static Command listsCmd;
-	private static Command historyCmd;
+//	private static Command groupsCmd; // TODO
 	
 	private static Command advSubmitCmd;
 	private static Command authSubmitCmd;
@@ -164,10 +162,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form settingsForm;
 	private static Form tempListForm;
 	private static Form loadingForm;
-	private static List list2;
+//	private static List list2;
 	private static ViewCommon view;
-	
-//	private static Vector navHistory; // TODO
 	
 	private static TextField searchField;
 
@@ -432,6 +428,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		randomCmd = new Command(L[Random], Command.ITEM, 1);
 		libraryCmd = new Command(L[Library], Command.ITEM, 1);
 		feedCmd = new Command(L[Feed], Command.ITEM, 1);
+//		groupsCmd = new Command(L[Groups], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
 		authSubmitCmd = new Command(L[Login], Command.OK, 1);
@@ -527,12 +524,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			f.append(s);
 			
 			// groups
-			s = new StringItem(null, L[Groups], Item.BUTTON);
-			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
-			s.addCommand(groupsCmd);
-			s.setDefaultCommand(groupsCmd);
-			s.setItemCommandListener(this);
-			f.append(s);
+//			s = new StringItem(null, L[Groups], Item.BUTTON);
+//			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
+//			s.addCommand(groupsCmd);
+//			s.setDefaultCommand(groupsCmd);
+//			s.setItemCommandListener(this);
+//			f.append(s);
 			
 			s = new StringItem(null, L[Titles]);
 			s.setFont(smallboldfont);

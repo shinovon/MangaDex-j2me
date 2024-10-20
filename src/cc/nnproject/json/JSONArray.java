@@ -47,7 +47,7 @@ public class JSONArray {
 	 * @deprecated Compatibility with org.json
 	 */
 	public JSONArray(String str) {
-		JSONArray tmp = JSONObject.parseArray(str); // FIXME
+		JSONArray tmp = JSONObject.parseArray(str);
 		elements = tmp.elements;
 		count = tmp.count;
 	}
@@ -432,6 +432,8 @@ public class JSONArray {
 				s.append(((JSONArray) v).build());
 			} else if (v instanceof String) {
 				s.append("\"").append(JSONObject.escape_utf8((String) v)).append("\"");
+			} else if (v instanceof String[]){
+				s.append(((String[]) v)[0]);
 			} else if (v == JSONObject.json_null) {
 				s.append((String) null);
 			} else {
