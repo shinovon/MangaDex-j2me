@@ -1362,6 +1362,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				display(a);
 				return;
 			}
+			coversToLoad.removeAllElements();
 			
 			chapterPage = 1;
 			
@@ -3488,10 +3489,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			JSONObject chapters = volumes.getObject(volume).getObject("chapters");
 			for (Enumeration e2 = chapters.keys(); e2.hasMoreElements(); ) {
 				String ch = (String) e2.nextElement();
+				String t = null;
+				int i = ch.indexOf('.');
+				if (i != -1) {
+					t = ch.substring(i);
+					ch = ch.substring(0, i);
+				}
 				JSONObject chapter = chapters.getObject(ch);
 				if ("none".equals(ch)) {
 					ch = "000";
 				} else while (ch.length() < 3) ch = "0".concat(ch);
+				
+				if (t == null) ch = ch.concat(".0");
+				else ch = ch.concat(t);
+				
 				allChapters.addElement(ch);
 				table.put(ch, chapter);
 			}
@@ -3511,7 +3522,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		int i = allChapters.indexOf(curCh);
 		if (i == -1) {
 			System.out.println("not found: " + curCh);
-			return -1;
+			return 0;
 		}
 		
 		if (i == l - 1 && dir)
