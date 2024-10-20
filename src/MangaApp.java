@@ -2354,8 +2354,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					
 					// группировка по главам
-					if (i == 0 || vol || chapter != lastChapter || (chapter != null && !chapter.equals(lastChapter))) {
-			
+					if (i == 0 || vol || (chapter != null && !chapter.equals(lastChapter))) {
 						s = new StringItem(null, (vol ? "" : "\n").concat(L[ChapterNo]).concat(" ")
 								.concat(chapter).concat(chapter.equals(mangaLastChapter) ? L[END] : ""));
 						s.setFont(smallboldfont);
@@ -3479,8 +3478,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (!dir && curCh == null)
 			return 0;
 		if (curCh == null)
-			curCh = "000";
-		else while (curCh.length() < 3) curCh = "0".concat(curCh);
+			curCh = "000.0";
+		else {
+			String t = null;
+			int idx = curCh.indexOf('.');
+			if (idx != -1) {
+				t = curCh.substring(idx);
+				curCh = curCh.substring(0, idx);
+			}
+			while (curCh.length() < 3) curCh = "0".concat(curCh);
+			
+			if (t == null) curCh = curCh.concat(".0");
+			else curCh = curCh.concat(t);
+		}
 		
 		Vector allChapters = new Vector();
 		Hashtable table = new Hashtable();
@@ -3490,10 +3500,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			for (Enumeration e2 = chapters.keys(); e2.hasMoreElements(); ) {
 				String ch = (String) e2.nextElement();
 				String t = null;
-				int i = ch.indexOf('.');
-				if (i != -1) {
-					t = ch.substring(i);
-					ch = ch.substring(0, i);
+				int idx = ch.indexOf('.');
+				if (idx != -1) {
+					t = ch.substring(idx);
+					ch = ch.substring(0, idx);
 				}
 				JSONObject chapter = chapters.getObject(ch);
 				if ("none".equals(ch)) {
