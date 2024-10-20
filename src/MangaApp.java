@@ -1175,6 +1175,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						notifyDestroyed();
 				} catch (Exception e) {}
 			}
+			if (c == Alert.DISMISS_COMMAND) return;
 			// все остальное отмена
 			if (view != null) {
 				display(view);
@@ -3379,6 +3380,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Alert loadingAlert() {
 		Alert a = new Alert("", L[Loading], null, null);
+		a.setCommandListener(midlet);
+		a.addCommand(Alert.DISMISS_COMMAND);
 		a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
 		a.setTimeout(30000);
 		return a;
