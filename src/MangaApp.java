@@ -43,6 +43,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int RUN_FEED = 12;
 	static final int RUN_ZOOM_VIEW = 13;
 	private static final int RUN_GROUP = 14;
+//	private static final int RUN_GROUPS = 15;
 	
 	// list types
 	private static final int LIST_UPDATES = 1;
@@ -55,7 +56,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_AUTHOR_TITLES = 8;
 	private static final int LIST_ARTIST_TITLES = 9;
 	private static final int LIST_GROUP_TITLES = 10;
+//	private static final int LIST_MDLIST = 11;
 	
+	// list2 types TODO
+//	private static final int LIST2_FOLLOWED_GROUPS = 1;
+//	private static final int LIST2_MY_LISTS = 1;
+//	private static final int LIST2_FOLLOWED_LISTS = 1;
 	// rms
 	private static final String SETTINGS_RECORDNAME = "mangaDsets";
 	private static final String AUTH_RECORDNAME = "mangaDauth";
@@ -122,6 +128,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command authCmd;
 	private static Command libraryCmd;
 	private static Command feedCmd;
+//	private static Command groupsCmd; // TODO
 	
 	private static Command advSubmitCmd;
 	private static Command authSubmitCmd;
@@ -167,6 +174,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form settingsForm;
 	private static Form tempListForm;
 	private static Form loadingForm;
+//	private static List list2;
 	private static ViewCommon view;
 	
 	private static TextField searchField;
@@ -400,7 +408,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		} catch (Exception e) {}
 		
 		// загрузка локализации
-		(L = new String[150])[0] = "MangaDex";
+		(L = new String[160])[0] = "MangaDex";
 		try {
 			loadLocale(lang);
 		} catch (Exception e) {
@@ -444,6 +452,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		randomCmd = new Command(L[Random], Command.ITEM, 1);
 		libraryCmd = new Command(L[Library], Command.ITEM, 1);
 		feedCmd = new Command(L[Feed], Command.ITEM, 1);
+//		groupsCmd = new Command(L[Groups], Command.ITEM, 1);
 		
 		advSubmitCmd = new Command(L[Search], Command.OK, 1);
 		authSubmitCmd = new Command(L[Login], Command.OK, 1);
@@ -565,6 +574,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
 						-1, -1, -1, -1);
 			}
+			
+			// groups
+//			s = new StringItem(null, L[Groups], Item.BUTTON);
+//			s.setLayout(Item.LAYOUT_EXPAND | Item.LAYOUT_NEWLINE_AFTER);
+//			s.addCommand(groupsCmd);
+//			s.setDefaultCommand(groupsCmd);
+//			s.setItemCommandListener(this);
+//			f.append(s);
 			
 			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Titles]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
 			s.setFont(smallboldfont);
@@ -1236,6 +1253,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						notifyDestroyed();
 				} catch (Exception e) {}
 			}
+			if (c == Alert.DISMISS_COMMAND) return;
 			// все остальное отмена
 			if (view != null) {
 				display(view);
@@ -1424,6 +1442,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				display(a);
 				return;
 			}
+			coversToLoad.removeAllElements();
 			
 			chapterPage = 1;
 			
@@ -3523,6 +3542,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Alert loadingAlert() {
 		Alert a = new Alert("", L[Loading], null, null);
+		a.setCommandListener(midlet);
+		a.addCommand(Alert.DISMISS_COMMAND);
 		a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
 		a.setTimeout(30000);
 		return a;
@@ -3629,10 +3650,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			JSONObject chapters = volumes.getObject(volume).getObject("chapters");
 			for (Enumeration e2 = chapters.keys(); e2.hasMoreElements(); ) {
 				String ch = (String) e2.nextElement();
+				String t = null;
+				int i = ch.indexOf('.');
+				if (i != -1) {
+					t = ch.substring(i);
+					ch = ch.substring(0, i);
+				}
 				JSONObject chapter = chapters.getObject(ch);
 				if ("none".equals(ch)) {
 					ch = "000";
 				} else while (ch.length() < 3) ch = "0".concat(ch);
+				
+				if (t == null) ch = ch.concat(".0");
+				else ch = ch.concat(t);
+				
 				allChapters.addElement(ch);
 				table.put(ch, chapter);
 			}
@@ -3652,7 +3683,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		int i = allChapters.indexOf(curCh);
 		if (i == -1) {
 			System.out.println("not found: " + curCh);
-			return -1;
+			return 0;
 		}
 		
 		if (i == l - 1 && dir)

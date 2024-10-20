@@ -144,4 +144,8 @@ public interface LangConstants {
 	static final int UseProxy = 143;
 	static final int Menu = 144;
 	static final int Group = 145;
+	static final int Groups = 146;
+	static final int Followed = 147;
+	static final int MDLists = 148;
+	static final int MyMDLists = 149;
 }

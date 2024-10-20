@@ -216,9 +216,6 @@ public class JSONObject {
 		return table.get(name) == json_null;
 	}
 	
-	/**
-	 * @deprecated
-	 */
 	public void put(String name, Object obj) {
 		table.put(name, getJSON(obj));
 	}
@@ -427,8 +424,10 @@ public class JSONObject {
 
 	static Object parseJSON(String str) {
 		char first = str.charAt(0);
-		int length = str.length() - 1;
-		char last = str.charAt(length);
+		int length;
+		char last = str.charAt(length = str.length() - 1);
+		if (last <= ' ')
+			last = (str = str.trim()).charAt(length = str.length() - 1);
 		switch(first) {
 		case '"': { // string
 			if (last != '"')
