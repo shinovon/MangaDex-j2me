@@ -2364,7 +2364,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					// внешний источник?
 					boolean ext = a.has("externalUrl") && !a.isNull("externalUrl");
-					boolean read = showRead && readChapters.contains(c.get("id"));
+					boolean read = showRead && readChapters != null && readChapters.contains(c.get("id"));
 
 					// текст ссылки на главу: язык, название, время загрузки
 					sb.setLength(0);
