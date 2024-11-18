@@ -2457,7 +2457,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			break;
 		}
 		case RUN_DOWNLOAD_CHAPTER: { // скачать главу
-			Form f = chaptersForm;
+			Form f = chaptersForm != null ? chaptersForm : listForm;
 			
 			if (downloadPath == null || downloadPath.trim().length() == 0) {
 				display(errorAlert(L[NoDownloadPath]), f);
@@ -2540,7 +2540,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					try {
 						if (!fc.exists()) fc.create();
 						Thread.sleep(100);
-						hc = open(proxyUrl(chapterBaseUrl + "/data-saver/" + chapterHash + '/' + n));
+						hc = open(proxyUrl(chapterBaseUrl + (dataSaver ? "/data-saver/" : "/data/") +
+								chapterHash + '/' + n));
 						try {
 							if (hc.getResponseCode() != 200) {
 								throw new IOException("Bad response");
@@ -3499,13 +3500,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			JSONObject chapters = volumes.getObject(volume).getObject("chapters");
 			for (Enumeration e2 = chapters.keys(); e2.hasMoreElements(); ) {
 				String ch = (String) e2.nextElement();
+				JSONObject chapter = chapters.getObject(ch);
 				String t = null;
 				int idx = ch.indexOf('.');
 				if (idx != -1) {
 					t = ch.substring(idx);
 					ch = ch.substring(0, idx);
 				}
-				JSONObject chapter = chapters.getObject(ch);
 				if ("none".equals(ch)) {
 					ch = "000";
 				} else while (ch.length() < 3) ch = "0".concat(ch);
