@@ -2335,6 +2335,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							lang = a.getString("translatedLanguage");
 					
 					boolean vol = false;
+					sb.setLength(0);
 					
 					// группировка по томам
 					if (i == 0 && (lastVolume == null && volume == null)) {
@@ -2346,17 +2347,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					} else if ((volume == null && lastVolume != null) ||
 							(volume != null && !volume.equals(lastVolume))) {
 						s = new StringItem(null, "\n"
-								.concat(volume == null ? L[NoVolume] : L[VolumeNo].concat(" ").concat(volume)));
+								.concat(volume == null ? L[NoVolume] :
+									sb.append(L[VolumeNo]).append(" ").append(volume).toString()));
 						s.setFont(medfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
 						vol = true;
 					}
+					sb.setLength(0);
 					
 					// группировка по главам
 					if (i == 0 || vol || (chapter != null && !chapter.equals(lastChapter))) {
-						s = new StringItem(null, (vol ? "" : "\n").concat(L[ChapterNo]).concat(" ")
-								.concat(chapter).concat(chapter.equals(mangaLastChapter) ? L[END] : ""));
+						if (vol) sb.append("\n");
+						if (chapter == null) sb.append("Oneshot");
+						else {
+							sb.append(L[ChapterNo]).append(' ').append(chapter);
+							if (chapter.equals(mangaLastChapter)) sb.append(L[END]);
+						}
+						s = new StringItem(null, sb.toString());
 						s.setFont(smallboldfont);
 						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 						f.append(s);
