@@ -2694,69 +2694,77 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				f = view != null && f == view ? view :
 //					mangaForm != null ? mangaForm :
 //					listForm != null ? listForm : f;
-				
-				try {
-					// проверка времени жизни токенов
-					long now = System.currentTimeMillis();
-					if (now - accessTokenTime >= 900 * 1000L - 2000L)
-						accessToken = null;
-					if (now - refreshTokenTime >= 7776000 * 1000L - 2000L)
-						refreshToken = null;
-					
-					if (clientField != null) {
-						clientId = clientField.getString();
-						clientSecret = clientSecretField.getString();
-					}
-					
-					StringBuffer p = new StringBuffer("client_id=")
-							.append(url(clientId))
-							.append("&client_secret=")
-							.append(url(clientSecret))
+				boolean again = false;
+				do {
+					try {
+						// проверка времени жизни токенов
+						long now = System.currentTimeMillis();
+						if (now - accessTokenTime >= 900 * 1000L - 2000L)
+							accessToken = null;
+						if (now - refreshTokenTime >= 7776000 * 1000L - 2000L)
+							refreshToken = null;
+						
+						if (clientField != null) {
+							clientId = clientField.getString();
+							clientSecret = clientSecretField.getString();
+						}
+						
+						StringBuffer p = new StringBuffer("client_id=")
+								.append(url(clientId))
+								.append("&client_secret=")
+								.append(url(clientSecret))
+								;
+						
+						if (loginField != null && loginField.getString().trim().length() > 0) {
+							// первый логин или перелогин
+							p.append("&grant_type=password&username=")
+							.append(url(username = loginField.getString()))
+							.append("&password=")
+							.append(url(password = passwordField.getString()))
 							;
-					
-					if (loginField != null && loginField.getString().trim().length() > 0) {
-						// первый логин или перелогин
-						p.append("&grant_type=password&username=")
-						.append(url(username = loginField.getString()))
-						.append("&password=")
-						.append(url(password = passwordField.getString()))
-						;
-					} else if (refreshToken != null && accessToken == null) {
-						// refresh
-						p.append("&grant_type=refresh_token&refresh_token=")
-						.append(url(refreshToken))
-						;
-					} else if (accessToken == null && username != null && password != null) {
-						// рефреш токен умер, перелогиниваемся заново
-						p.append("&grant_type=password&username=")
-						.append(url(username))
-						.append("&password=")
-						.append(url(password))
-						;
-					} else break auth;
-					
-					Alert a = loadingAlert();
-					a.setString(L[Authorizing]);
-					display(a, f);
-					
-					JSONObject j = apiPost(AUTHURL, p.toString().getBytes(), "application/x-www-form-urlencoded");
-					if (j.has("access_token")) {
-						accessToken = j.getString("access_token");
-						accessTokenTime = System.currentTimeMillis();
+						} else if (refreshToken != null && accessToken == null) {
+							// refresh
+							p.append("&grant_type=refresh_token&refresh_token=")
+							.append(url(refreshToken))
+							;
+						} else if (accessToken == null && username != null && password != null) {
+							// рефреш токен умер, перелогиниваемся заново
+							p.append("&grant_type=password&username=")
+							.append(url(username))
+							.append("&password=")
+							.append(url(password))
+							;
+						} else break auth;
+						
+						Alert a = loadingAlert();
+						a.setString(L[Authorizing]);
+						display(a, f);
+						
+						JSONObject j = apiPost(AUTHURL, p.toString().getBytes(), "application/x-www-form-urlencoded");
+						if (j.has("access_token")) {
+							accessToken = j.getString("access_token");
+							accessTokenTime = System.currentTimeMillis();
+						}
+						if (j.has("refresh_token")) {
+							refreshToken = j.getString("refresh_token");
+							refreshTokenTime = System.currentTimeMillis();
+						}
+						if (j.has("error")) {
+							if (refreshToken != null) {
+								refreshToken = null;
+								again = true;
+								continue;
+							}
+							throw new Exception("Auth error: ".concat(j.getString("error")));
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+						display(errorAlert(e.toString()), f);
+						writeAuth();
+						runAfterAuth = 0;
+						break;
 					}
-					if (j.has("refresh_token")) {
-						refreshToken = j.getString("refresh_token");
-						refreshTokenTime = System.currentTimeMillis();
-					}
-					if (j.has("error")) {
-						throw new Exception("Auth error: ".concat(j.getString("error")));
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-					display(errorAlert(e.toString()), f);
-					writeAuth();
-					break;
-				}
+				} while (again);
 				writeAuth();
 				display(f);
 			}
