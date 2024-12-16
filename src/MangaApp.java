@@ -2810,15 +2810,23 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //				f = view != null && f == view ? view :
 //					mangaForm != null ? mangaForm :
 //					listForm != null ? listForm : f;
-				boolean again = false;
+				boolean again;
 				do {
+					again = false;
 					try {
 						// проверка времени жизни токенов
 						long now = System.currentTimeMillis();
-						if (now - accessTokenTime >= 900 * 1000L - 2000L)
+						if (accessTokenTime > now || refreshTokenTime > now) {
+							accessTokenTime = 0;
+							refreshTokenTime = 0;
 							accessToken = null;
-						if (now - refreshTokenTime >= 7776000 * 1000L - 2000L)
 							refreshToken = null;
+						} else {
+							if (now - accessTokenTime >= 900 * 1000L - 2000L)
+								accessToken = null;
+							if (now - refreshTokenTime >= 7776000 * 1000L - 2000L)
+								refreshToken = null;
+						}
 						
 						if (clientField != null) {
 							clientId = clientField.getString();
@@ -2878,8 +2886,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						display(errorAlert(e.toString()), f);
 						writeAuth();
 						runAfterAuth = 0;
-						break;
 					}
+					break;
 				} while (again);
 				writeAuth();
 				display(f);
