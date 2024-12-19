@@ -246,6 +246,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterBaseUrl;
 	private static String chapterHash;
 	private static Vector chapterFilenames;
+	private static String loadedChapterId;
 	static int chapterPages;
 	private static int chapterPage;
 	static String chapterVolume;
@@ -2480,7 +2481,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				break;
 			}
 			
-			if (chapterFilenames == null) {
+			if (chapterFilenames == null || loadedChapterId != chapterId) {
 				downloadAlert.setString(L[Fetching]);
 				try {
 					loadChapterInfo(chapterId, true);
@@ -3078,7 +3079,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			Form f = listForm;
 
 			try {
-				loadChapterInfo(chapterId, true);
+				loadChapterInfo(chapterId, false);
 			} catch (Exception e) {
 				display(errorAlert(e.toString()), f);
 				break;
@@ -3153,6 +3154,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			String n = data.getString(i);
 			chapterFilenames.addElement(n);
 		}
+		loadedChapterId = id;
 	}
 	
 	// запись состояния авторизации
