@@ -270,6 +270,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String version;
 	
 	private static Image coverPlaceholder;
+	private static Image feedCoverPlaceholder;
 	
 	// files
 	private static List fileList;
@@ -304,6 +305,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean mipmap;
 	static boolean multiPreloader;
 	private static boolean oldFeed;
+	private static boolean newFeedLayout;
 
 	// auth
 	private static String clientId;
@@ -353,6 +355,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		onlineResize = loadingForm.getWidth() < 320;
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
 		multiPreloader = symbianJrt;
+		newFeedLayout = symbianJrt || System.getProperty("kemulator.version") != null;
 		
 		// загрузка настроек
 		try {
@@ -2974,8 +2977,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 
 					String n = attributes.has("title") ? getTitle(attributes.getObject("title")) : "";
-					img = new ImageItem(coverLoading == 3 ? n : null, null,
-							Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
+					img = new ImageItem(coverLoading == 3 ? n : null, feedCoverPlaceholder,
+							newFeedLayout ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE :
+								Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_VCENTER,
 							id, Item.BUTTON);
 					img.setDefaultCommand(feedMangaItemCmd);
 					img.setItemCommandListener(this);
@@ -2985,7 +2989,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					
 					if (coverLoading != 3) {
 						s = new StringItem(null, n);
-						s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+						if (newFeedLayout) {
+							s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_VCENTER);
+							s.setPreferredSize(f.getWidth() - (img.getPreferredWidth() + 8), -1);
+						} else {
+							s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
+						}
 						s.setFont(medboldfont);
 						f.append(s);
 					}
@@ -3323,15 +3332,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static void makeCoverPlaceholder() {
 		if (coverLoading == 3) {
 			coverPlaceholder = null;
+			feedCoverPlaceholder = null;
 			return;
 		}
 		// создаем картинку с каким нибудь заполнением для плейсхолдера
 		try {
 			float h = getHeight() * coverSize / 25F;
-			if (h < 4) h = 4;
+			if (h < 16) h = 16;
 			Graphics g = (coverPlaceholder = Image.createImage((int) (h / 1.6F), (int) h)).getGraphics();
 			g.setColor(0x333333);
 			g.fillRect(0, 0, (int) (h / 1.6F) + 1, (int) h + 1);
+			
+			int fh = ((int)h) >> 1;
+			if (fh < 16) fh = 16;
+			g = (feedCoverPlaceholder = Image.createImage((int) (fh / 1.6F), (int) fh)).getGraphics();
+			g.setColor(0x333333);
+			g.fillRect(0, 0, (int) (h / 1.6F) + 1, (int) fh + 1);
 		} catch (Exception e) {}
 	}
 	

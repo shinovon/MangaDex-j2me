@@ -432,8 +432,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (hh < 0) hh = 0;
 		if (x < -hw) x = -hw;
 		if (x > hw) x = hw;
-		if (y < -hh) y = -hh;
-		if (y > hh) y = hh;
+		if (y < -hh) y = -hh - 50;
+		if (y > hh) y = hh + 50;
 	}
 
 	/**
