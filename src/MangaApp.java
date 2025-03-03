@@ -3991,20 +3991,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (date.indexOf('T') != -1) {
 			String[] dateSplit = split(date.substring(0, date.indexOf('T')), '-');
 			String[] timeSplit = split(date.substring(date.indexOf('T')+1), ':');
-			String second = split(timeSplit[2], '.')[0];
-			int i = second.indexOf('+');
-			if (i == -1) {
-				i = second.indexOf('-');
-			}
-			if (i != -1) {
-				second = second.substring(0, i);
+			if (timeSplit.length == 3) {
+				String second = split(timeSplit[2], '.')[0];
+				int i = second.indexOf('+');
+				if (i == -1) {
+					i = second.indexOf('-');
+				}
+				if (i != -1) {
+					second = second.substring(0, i);
+				}
+				c.set(Calendar.SECOND, Integer.parseInt(second));
 			}
 			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
 			c.set(Calendar.MONTH, Integer.parseInt(dateSplit[1])-1);
 			c.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dateSplit[2]));
 			c.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timeSplit[0]));
 			c.set(Calendar.MINUTE, Integer.parseInt(timeSplit[1]));
-			c.set(Calendar.SECOND, Integer.parseInt(second));
 		} else {
 			String[] dateSplit = split(date, '-');
 			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
