@@ -24,6 +24,9 @@ import javax.microedition.rms.RecordStore;
 import cc.nnproject.json.JSONArray;
 import cc.nnproject.json.JSONObject;
 import cc.nnproject.json.JSONStream;
+//#ifdef NNLCDUIEXT
+//# import ru.nnproject.lcduiext.LCDUIExtensions;
+//#endif
 
 public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemCommandListener, LangConstants {
 
@@ -77,7 +80,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final Font smallboldfont = Font.getFont(0, Font.STYLE_BOLD, Font.SIZE_SMALL);
 	static final Font smallfont = Font.getFont(0, 0, Font.SIZE_SMALL);
 	
-	private static final String[] MANGA_STATUSES = {
+	private static final String[] PUBLICATION_STATUSES = {
 			"ongoing", "completed", "hiatus", "cancelled"
 	};
 	
@@ -94,6 +97,17 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	};
 	
 	private static final String ALL_RATINGS = "&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic";
+	
+	// colors
+//#ifdef NNLCDUIEXT
+//#	private static final int SUGGESTIVE_COLOR = 0xDA7500;
+//#	private static final int EXPLICIT_COLOR = 0xFF4040;
+//#	
+//#	private static final int ONGOING_COLOR = 0x04D000;
+//#	private static final int COMPLETED_COLOR = 0x00C9F5;
+//#	private static final int HIATUS_COLOR = 0xDA7500;
+//#	private static final int CANCELLED_COLOR = 0xFF4040;
+//#endif
 	
 	private static String[][] tags;
 
@@ -145,6 +159,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command nextPageCmd;
 	private static Command gotoPageCmd;
 	private static Command toggleOrderCmd;
+	
+	private static Command itemCmd = new Command(" ", Command.ITEM, 10);
 
 	static Command goCmd;
 	static Command cancelCmd;
@@ -271,6 +287,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	private static Image coverPlaceholder;
 	private static Image feedCoverPlaceholder;
+//#ifdef NNLCDUIEXT
+//#	private static int coverHeight; // cached
+//#endif
 	
 	// files
 	private static List fileList;
@@ -295,8 +314,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String chapterLangFilter = "";
 	private static boolean keepListCovers = true;
 	private static boolean dataSaver = true;
-	private static boolean symbianJrt;
-	private static boolean useLoadingForm;
 	static boolean onlineResize = true;
 	private static String tagsFilter = "";
 	private static boolean showRead;
@@ -307,6 +324,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static boolean oldFeed;
 	private static boolean newFeedLayout;
 
+	// platform
+	private static boolean symbianJrt;
+	private static boolean useLoadingForm;
+//#ifdef NNLCDUIEXT
+//#	private static boolean lcduiExtensions;
+//#endif
+	
 	// auth
 	private static String clientId;
 	private static String clientSecret;
@@ -356,6 +380,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
 		multiPreloader = symbianJrt;
 		newFeedLayout = symbianJrt || System.getProperty("kemulator.version") != null;
+		
+//#ifdef NNLCDUIEXT
+//#		if (symbianJrt) {
+//#			try {
+//#				Class.forName("ru.nnproject.lcduiext.LCDUIExtensions");
+//#				lcduiExtensions = true;
+//#			} catch (Exception e) {}
+//#		}
+//#endif
 		
 		// загрузка настроек
 		try {
@@ -482,9 +515,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		
 		// лого, не грузить если выключены обложки
 		if (coverLoading != 3)
-		try {
-			f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
-		} catch (Exception ignored) {}
+			try {
+				f.append(new ImageItem(null, Image.createImage("/md.png"), Item.LAYOUT_LEFT, null));
+			} catch (Exception ignored) {}
 		
 		StringItem s;
 		
@@ -506,13 +539,40 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(searchCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions)
+//#		try {
+//#			LCDUIExtensions.setButtonIcon(s, Image.createImage("/search.png"));
+//#			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#					LCDUIExtensions.TAlignment_Center,
+//#					LCDUIExtensions.TTextAndIconAlignment_IconAfterText,
+//#					-1, -1);
+//#		} catch (Throwable e) {}
+//#endif
 		
 		// есть авторизация, добавляем доп кнопки
 		if (refreshToken != null) {
+//#ifdef NNLCDUIEXT
+//#			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Follows]) : L[Follows], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
+//#			s.setLayout(lcduiExtensions ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND :
+//#				Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
+//#else
 			s = new StringItem(null, L[Follows]);
-			s.setFont(smallboldfont);
 			s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+//#endif
+			s.setFont(smallboldfont);
 			f.append(s);
+//#ifdef NNLCDUIEXT
+//#			if (lcduiExtensions) {
+//#				try {
+//#					s.addCommand(itemCmd);
+//#					LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
+//#					LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#							-1, -1, -1, -1);
+//#					LCDUIExtensions.setButtonIcon(s, Image.createImage("/follows.png"));
+//#				} catch (Throwable e) {}
+//#			}
+//#endif
 			
 			// обновления юзера
 			s = new StringItem(null, L[Feed], Item.BUTTON);
@@ -521,6 +581,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setDefaultCommand(feedCmd);
 			s.setItemCommandListener(this);
 			f.append(s);
+//#ifdef NNLCDUIEXT
+//#			if (lcduiExtensions) {
+//#				LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#						-1, -1, -1, -1);
+//#			}
+//#endif
 			
 			// библиотека
 			s = new StringItem(null, L[Library], Item.BUTTON);
@@ -529,6 +595,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			s.setDefaultCommand(libraryCmd);
 			s.setItemCommandListener(this);
 			f.append(s);
+//#ifdef NNLCDUIEXT
+//#			if (lcduiExtensions) {
+//#				LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#						-1, -1, -1, -1);
+//#			}
+//#endif
 			
 			// groups
 //			s = new StringItem(null, L[Groups], Item.BUTTON);
@@ -538,9 +610,24 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 //			s.setItemCommandListener(this);
 //			f.append(s);
 			
+//#ifdef NNLCDUIEXT
+//#			s = new StringItem(null, lcduiExtensions ? " ".concat(L[Titles]) : L[Titles], lcduiExtensions ? Item.BUTTON : Item.PLAIN);
+//#			s.setLayout(lcduiExtensions ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND :
+//#				Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER);
+//#			if (lcduiExtensions) {
+//#				try {
+//#					s.addCommand(itemCmd);
+//#					LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
+//#					LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#							-1, -1, -1, -1);
+//#					LCDUIExtensions.setButtonIcon(s, Image.createImage("/titles.png"));
+//#				} catch (Throwable e) {}
+//#			}
+//#else
 			s = new StringItem(null, L[Titles]);
-			s.setFont(smallboldfont);
 			s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE);
+//#endif
+			s.setFont(smallboldfont);
 			f.append(s);
 		}
 		
@@ -551,6 +638,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(recentCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions) {
+//#			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#					-1, -1, -1, -1);
+//#		}
+//#endif
 		
 		// последние обновленные
 		s = new StringItem(null, L[LatestUpdates], Item.BUTTON);
@@ -559,6 +652,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(updatesCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions) {
+//#			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#					-1, -1, -1, -1);
+//#		}
+//#endif
 		
 		// расширенный поиск
 		s = new StringItem(null, L[AdvancedSearch], Item.BUTTON);
@@ -567,6 +666,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(advSearchCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions) {
+//#			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#					-1, -1, -1, -1);
+//#		}
+//#endif
 		
 		// рандом
 		s = new StringItem(null, L[Random], Item.BUTTON);
@@ -575,6 +680,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		s.setDefaultCommand(randomCmd);
 		s.setItemCommandListener(this);
 		f.append(s);
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions) {
+//#			LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#					-1, -1, -1, -1);
+//#		}
+//#endif
 		
 		display.setCurrent(mainForm = f);
 		
@@ -933,7 +1044,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					} catch (Exception e) {}
 				}
 				
-				for(int i = 0; i < rootsList.size(); i++) {
+				for (int i = 0; i < rootsList.size(); i++) {
 					String s = (String) rootsList.elementAt(i);
 					if (s.startsWith("file:///")) s = s.substring(8);
 					if (s.endsWith("/")) s = s.substring(0, s.length() - 1);
@@ -1335,7 +1446,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (running) return; // игнорировать запросы, пока что-то еще грузится
 			coversToLoad.removeAllElements();
 			
-			String id = c == randomCmd ? "random" : ((ImageItem) item).getAltText();
+			String id = c == randomCmd ? "random" :
+//#ifdef NNLCDUIEXT
+//#				item instanceof StringItem ? (String) feedChapterIds.get(item) :
+//#endif
+				(mangaItem = (ImageItem) item).getAltText();
 			if (c == mangaItemCmd) {
 				mangaItem = (ImageItem) item;
 			}
@@ -1728,9 +1843,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					boolean[] sel = new boolean[5];
 					// статус
 					advStatusChoice.getSelectedFlags(sel);
-					for (int i = 0; i < MANGA_STATUSES.length; i++) {
+					for (int i = 0; i < PUBLICATION_STATUSES.length; i++) {
 						if (!sel[i]) continue;
-						sb.append("&status[]=").append(MANGA_STATUSES[i]);
+						sb.append("&status[]=").append(PUBLICATION_STATUSES[i]);
 					}
 					// демография какая-то
 					advDemographicChoice.getSelectedFlags(sel);
@@ -2015,10 +2130,26 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
 				
-				s = new StringItem(null, attributes.getString("contentRating").toUpperCase());
+				s = new StringItem(null, (t = attributes.getString("contentRating")).toUpperCase());
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
+				
+//#ifdef NNLCDUIEXT
+//#				int c = -1;
+//#				if (CONTENT_RATINGS[1].equals(t)) {
+//#					c = SUGGESTIVE_COLOR;
+//#				} else if (CONTENT_RATINGS[2].equals(t) || CONTENT_RATINGS[3].equals(t)) {
+//#					c = EXPLICIT_COLOR;
+//#				}
+//#				if (c != -1 && lcduiExtensions) {
+//#					try {
+//#						LCDUIExtensions.setColor(s, c);
+//#					} catch (Throwable e) {
+//#						e.printStackTrace();
+//#					}
+//#				}
+//#endif
 				
 				// перевод рейтинга для не англ локали
 				if (!"en".equals(lang)) {
@@ -2037,10 +2168,28 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				f.append(s);
 				
 				s = new StringItem(null, (attributes.isNull("year") ? "" : (attributes.getString("year") + ", "))
-						+ attributes.getString("status").toUpperCase());
+						+ (t = attributes.getString("status")).toUpperCase());
 				s.setFont(smallfont);
 				s.setLayout(Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER);
 				f.append(s);
+
+//#ifdef NNLCDUIEXT
+//#				c = -1;
+//#				if (PUBLICATION_STATUSES[0].equals(t)) {
+//#					c = ONGOING_COLOR;
+//#				} else if (CONTENT_RATINGS[1].equals(t)) {
+//#					c = COMPLETED_COLOR;
+//#				} else if (CONTENT_RATINGS[2].equals(t)) {
+//#					c = HIATUS_COLOR;
+//#				} else if (CONTENT_RATINGS[3].equals(t)) {
+//#					c = CANCELLED_COLOR;
+//#				}
+//#				if (c != -1 && lcduiExtensions) {
+//#					try {
+//#						LCDUIExtensions.setColor(s, c);
+//#					} catch (Throwable e) {}
+//#				}
+//#endif
 				
 				// автор
 				t = null;
@@ -2227,6 +2376,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 							}
 							
 							item.setImage(img);
+//#ifdef NNLCDUIEXT
+//#							if (lcduiExtensions) {
+//#								try {
+//#									LCDUIExtensions.update(item);
+//#								} catch (Throwable e) {}
+//#							}
+//#endif
 						} catch (Exception e) {} 
 					}
 				}
@@ -2955,6 +3111,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						}
 					}
 				}
+//#ifdef NNLCDUIEXT
+//#				int w = f.getWidth();
+//#endif
 
 				ImageItem img;
 				StringItem s;
@@ -2977,6 +3136,32 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 
 					String n = attributes.has("title") ? getTitle(attributes.getObject("title")) : "";
+//#ifdef NNLCDUIEXT
+//#					if (lcduiExtensions) {
+//#						s = new StringItem(null, n, StringItem.BUTTON);
+//#						s.setDefaultCommand(feedMangaItemCmd);
+//#						s.setItemCommandListener(this);
+//#						s.setLayout(Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_EXPAND);
+//#						s.setFont(smallboldfont);
+//#						if (coverLoading != 3) s.setPreferredSize(w, (coverHeight >> 1) + 4);
+//#						feedChapterIds.put(s, id);
+//#						f.append(s);
+//#						
+//#						if (coverLoading != 3) try {
+//#							LCDUIExtensions.setButtonText(s, n);
+//#							LCDUIExtensions.setButtonAlignment(s, LCDUIExtensions.TTextAlign_Left,
+//#									-1, -1, -1, -1);
+//#							LCDUIExtensions.setButtonFlags(s, LCDUIExtensions.KAknButtonNoFrame);
+//#							LCDUIExtensions.setButtonIcon(s, feedCoverPlaceholder);
+//#							
+//#							feedChapterIds.put(img = LCDUIExtensions.getButtonIconItem(s), id);
+//#							img.setAltText(id);
+//#							scheduleCover(img, id);
+//#						} catch (Throwable e) {
+//#							e.printStackTrace();
+//#						}
+//#					} else {
+//#endif
 					img = new ImageItem(coverLoading == 3 ? n : null, feedCoverPlaceholder,
 							newFeedLayout ? Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE :
 								Item.LAYOUT_LEFT | Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_VCENTER,
@@ -2998,6 +3183,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setFont(medboldfont);
 						f.append(s);
 					}
+//#ifdef NNLCDUIEXT
+//#					}
+//#endif
 					
 					// chapters
 					Vector ch = (Vector) t.get(id);
@@ -3064,6 +3252,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						s.setItemCommandListener(this);
 						f.append(s);
 						feedChapterIds.put(s, ext ? a.get("externalUrl") : c.get("id"));
+//#ifdef NNLCDUIEXT
+//#						if (lcduiExtensions)
+//#						try {
+//#							LCDUIExtensions.setUnderline(s, false);
+//#						} catch (Throwable e) {}
+//#endif
 					}
 				}
 
@@ -3390,6 +3584,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			} catch (Exception e) {}
 		}
 		if (!back) return;
+//#ifdef NNLCDUIEXT
+//#		if (lcduiExtensions) {
+//#			try {
+//#				LCDUIExtensions.unregisterExtension(d);
+//#			} catch (Throwable e) {}
+//#		}
+//#endif
 		if (p instanceof ViewCommon && !(d instanceof TextBox)) {
 			// очистка мусора после просмотра
 //			view = null;
@@ -4007,20 +4208,22 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (date.indexOf('T') != -1) {
 			String[] dateSplit = split(date.substring(0, date.indexOf('T')), '-');
 			String[] timeSplit = split(date.substring(date.indexOf('T')+1), ':');
-			String second = split(timeSplit[2], '.')[0];
-			int i = second.indexOf('+');
-			if (i == -1) {
-				i = second.indexOf('-');
-			}
-			if (i != -1) {
-				second = second.substring(0, i);
+			if (timeSplit.length == 3) {
+				String second = split(timeSplit[2], '.')[0];
+				int i = second.indexOf('+');
+				if (i == -1) {
+					i = second.indexOf('-');
+				}
+				if (i != -1) {
+					second = second.substring(0, i);
+				}
+				c.set(Calendar.SECOND, Integer.parseInt(second));
 			}
 			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
 			c.set(Calendar.MONTH, Integer.parseInt(dateSplit[1])-1);
 			c.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dateSplit[2]));
 			c.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timeSplit[0]));
 			c.set(Calendar.MINUTE, Integer.parseInt(timeSplit[1]));
-			c.set(Calendar.SECOND, Integer.parseInt(second));
 		} else {
 			String[] dateSplit = split(date, '-');
 			c.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
