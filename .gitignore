@@ -4,3 +4,5 @@ deployed
 bin
 *.class
 *.jar
+/.processed/
+/mtj-build/
