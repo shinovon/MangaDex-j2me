@@ -323,6 +323,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean multiPreloader;
 	private static boolean oldFeed;
 	private static boolean newFeedLayout;
+	static boolean rotate;
 
 	// platform
 	private static boolean symbianJrt;
@@ -379,7 +380,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		onlineResize = loadingForm.getWidth() < 320;
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
 		multiPreloader = symbianJrt;
-		newFeedLayout = symbianJrt || System.getProperty("kemulator.version") != null;
+		newFeedLayout = symbianJrt || System.getProperty("kemulator.mod.version") != null;
 		
 //#ifdef NNLCDUIEXT
 //#		if (symbianJrt) {

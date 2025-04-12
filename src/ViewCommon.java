@@ -15,6 +15,7 @@ import javax.microedition.lcdui.Font;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 import javax.microedition.lcdui.TextBox;
+import javax.microedition.lcdui.game.Sprite;
 
 // from njtai
 public class ViewCommon extends Canvas implements Runnable, CommandListener, LangConstants {
@@ -59,6 +60,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	
 	boolean menu;
 
+	private boolean rotated;
+
 
 	/**
 	 * Creates the view.
@@ -95,6 +98,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	protected final byte[] getImage(int n, boolean forceCacheIgnore) throws InterruptedException {
 		if (forceCacheIgnore)
 			Thread.sleep(500);
+		rotated = false;
 		if (cover) {
 			try {
 				return MangaApp.getCover(null);
@@ -175,7 +179,8 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	}
 	
 	private final byte[] getResizedImage(int n, int size) {
-		String s = ";tw="+(getWidth()*size)+(!longscroll?";th="+(getHeight()*size):"");
+		rotated = MangaApp.rotate;
+		String s = ";tw="+(getWidth()*size)+(!longscroll?";th="+(getHeight()*size):"")+(MangaApp.rotate ? ";r=1" : "");
 		if (cover) {
 			try {
 				return MangaApp.getCover(s);
@@ -416,24 +421,33 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected void limitOffset() {
 		if (hwa) return;
+		
+		int iw = MangaApp.rotate && !rotated ? toDraw.getHeight() : toDraw.getWidth();
+		int ih = MangaApp.rotate && !rotated ? toDraw.getWidth() : toDraw.getHeight();
+		
+		int sw = getWidth();
+		int sh = getHeight();
+		
 		if (zoom == 1) {
 			x = 0;
 			if (longscroll) {
-				int qh = (toDraw.getHeight() - getHeight()) / 2;
+				int qh = (ih - sh) / 2;
 				if (y < -qh) y = -qh;
 				if (y > qh) y = qh;
 			} else y = 0;
 			return;
 		}
 		
-		int hw = (toDraw.getWidth() - getWidth()) / 2;
-		int hh = (toDraw.getHeight() - getHeight()) / 2;
+		int hw = (iw - sw) / 2;
+		int hh = (ih - sh) / 2;
 		if (hw < 0) hw = 0;
 		if (hh < 0) hh = 0;
+		
+		System.out.println(hw + " " + hh + " " + x + " " + y);
 		if (x < -hw) x = -hw;
 		if (x > hw) x = hw;
-		if (y < -hh) y = -hh - 50;
-		if (y > hh) y = hh + 50;
+		if (y < -hh - 50) y = -hh - 50;
+		if (y > hh + 50) y = hh + 50;
 	}
 
 	/**
@@ -523,16 +537,18 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			}
 			if (!MangaApp.onlineResize) {
 				int oh = origImg.getHeight(), ow = origImg.getWidth();
-				int h = getHeight();
+				int tw = MangaApp.rotate ? getHeight() : getHeight();
+				int th = MangaApp.rotate ? getWidth() : getHeight();
+				int h = th;
 				int w = (int) (((float) h / oh) * ow);
-				if (w > getWidth()) {
-					w = getWidth();
+				if (w > tw) {
+					w = tw;
 					h = (int) (((float) w / ow) * oh);
 				}
 	
 				if (!cover && MangaApp.enableLongScroll && (longscroll || oh / ow > 2)) {
 					longscroll = true;
-					w = getWidth();
+					w = tw;
 					h = (int) (((float) w / ow) * oh);
 					if (size == 1 && y == 0)
 						y = h / 2;
@@ -587,11 +603,23 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 				g.fillRect(0, 0, getWidth(), getHeight());
 				limitOffset();
 				if (zoom != 1 || longscroll) {
-					g.drawImage(toDraw, (int) x + getWidth() / 2, (int) y + getHeight() / 2,
-							Graphics.HCENTER | Graphics.VCENTER);
+					if (!rotated && MangaApp.rotate) {
+						g.drawRegion(toDraw, 0, 0, toDraw.getWidth(), toDraw.getHeight(), Sprite.TRANS_ROT90,
+								(int) x + getWidth() / 2, (int) y + getHeight() / 2,
+								Graphics.HCENTER | Graphics.VCENTER);
+					} else {
+						g.drawImage(toDraw, (int) x + getWidth() / 2, (int) y + getHeight() / 2,
+								Graphics.HCENTER | Graphics.VCENTER);
+					}
 				} else {
-					g.drawImage(toDraw, (getWidth() - toDraw.getWidth()) / 2, (getHeight() - toDraw.getHeight()) / 2,
-							0);
+					if (!rotated && MangaApp.rotate) {
+						g.drawRegion(toDraw, 0, 0, toDraw.getWidth(), toDraw.getHeight(), Sprite.TRANS_ROT90,
+								(getWidth() - toDraw.getHeight()) / 2, (getHeight() - toDraw.getWidth()) / 2,
+								0);
+					} else {
+						g.drawImage(toDraw, (getWidth() - toDraw.getWidth()) / 2, (getHeight() - toDraw.getHeight()) / 2,
+								0);
+					}
 				}
 			}
 			// touch captions
@@ -639,7 +667,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected final void keyPressed(int k) {
 		k = qwertyToNum(k);
-		if (k == -7 || k == KEY_NUM9) {
+		if (k == -7) {
 			if (menu) {
 				menu = false;
 				repaint();
@@ -664,6 +692,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			MangaApp.display(null, true);
 			toDraw = orig = null;
 			cache = null;
+			return;
+		}
+		if (k == KEY_NUM9) {
+			MangaApp.rotate = !MangaApp.rotate;
+			MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+			repaint();
 			return;
 		}
 //		if (k == -6) {
