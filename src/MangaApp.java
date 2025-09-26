@@ -2360,11 +2360,12 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						try {
 							String filename = getCover((String) mangaCoversCache.get(mangaId), false);
 							
+							int h = (int) (getHeight() * coverSize / 25F);
+							
 							// картинка с меньшим размером https://api.mangadex.org/docs/03-manga/covers/
-							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg"));
+							Image img = getImage(proxyUrl(COVERSURL + mangaId + '/' + filename + ".256.jpg" + (onlineResize ? ";th=" + h: "")));
 
 							// ресайз обложки
-							int h = (int) (getHeight() * coverSize / 25F);
 							if (mangaForm == null && listForm != null && feedChapterIds.containsKey(item)) {
 								// уменьшить обложки в фиде
 								h >>= 1;
@@ -4023,7 +4024,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String proxyUrl(String url) {
 //		System.out.println(url);
 		if (url == null
-				|| (!useProxy && (url.indexOf(";tw=") == -1 || !onlineResize))
+				|| (!useProxy && (url.indexOf(";tw=") == -1 && url.indexOf(";th=") == -1))
 				|| proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
