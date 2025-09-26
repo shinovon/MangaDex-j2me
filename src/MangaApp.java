@@ -804,11 +804,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 
-				s = new StringItem("Web", "nnp.nnchan.ru");
+				s = new StringItem("Web", "nnproject.cc");
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 
-				s = new StringItem("Donate", "boosty.to/nnproject/donate\nko-fi.com/shinovon");
+				s = new StringItem("Donate", "boosty.to/nnproject/donate");
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 
@@ -816,9 +816,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
 				f.append(s);
 				
-				s = new StringItem(null, "\n292 labs (tm)");
-				s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_LEFT);
-				f.append(s);
 				display(f);
 				return;
 			}
