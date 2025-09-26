@@ -443,7 +443,6 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		if (hw < 0) hw = 0;
 		if (hh < 0) hh = 0;
 		
-		System.out.println(hw + " " + hh + " " + x + " " + y);
 		if (x < -hw) x = -hw;
 		if (x > hw) x = hw;
 		if (y < -hh - 50) y = -hh - 50;
@@ -667,7 +666,7 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 
 	protected final void keyPressed(int k) {
 		k = qwertyToNum(k);
-		if (k == -7) {
+		if (k == -7 || k == -22 || k == 22) {
 			if (menu) {
 				menu = false;
 				repaint();
@@ -692,12 +691,6 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 			MangaApp.display(null, true);
 			toDraw = orig = null;
 			cache = null;
-			return;
-		}
-		if (k == KEY_NUM9) {
-			MangaApp.rotate = !MangaApp.rotate;
-			MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
-			repaint();
 			return;
 		}
 //		if (k == -6) {
@@ -729,6 +722,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		}
 
 		if (!resizing) {
+			if (k == KEY_NUM9) {
+				MangaApp.rotate = !MangaApp.rotate;
+				MangaApp.midlet.start(MangaApp.RUN_ZOOM_VIEW);
+				repaint();
+				return;
+			}
 			// zooming via *0#
 			if (k == KEY_STAR) {
 				zoom = 1;
@@ -1282,6 +1281,12 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 		case 'M':
 		case 'ь':
 			return Canvas.KEY_NUM0;
+		
+		case 'o':
+		case 'O':
+		case 'p':
+		case 'P':
+			return -7;
 
 		default:
 			return k;

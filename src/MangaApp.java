@@ -160,7 +160,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Command gotoPageCmd;
 	private static Command toggleOrderCmd;
 	
-	private static Command itemCmd = new Command(" ", Command.ITEM, 10);
+//#ifdef NNLCDUIEXT
+//#	private static Command itemCmd = new Command(" ", Command.ITEM, 10);
+//#endif
 
 	static Command goCmd;
 	static Command cancelCmd;

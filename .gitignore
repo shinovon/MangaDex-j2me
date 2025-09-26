@@ -6,3 +6,4 @@ bin
 *.jar
 /.processed/
 /mtj-build/
+*.tmp
