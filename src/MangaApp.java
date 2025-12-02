@@ -183,6 +183,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static Form loadingForm;
 //	private static List list2;
 	private static ViewCommon view;
+	private static Displayable current;
 	
 	private static TextField searchField;
 
@@ -363,7 +364,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			downloadPath = "E:/MangaDex";
 		} else if ((p = System.getProperty("java.vendor")) != null && p.indexOf("Android") != -1) { // ж2ме лодырь
 			downloadPath = "C:/MangaDex";
-		} else if (System.getProperty("kemulator.version") != null) { // ннмод
+		} else if (System.getProperty("kemulator.mod.version") != null) { // ннмод
 			downloadPath = "root/MangaDex";
 		} else {
 			// попробовать галерею
@@ -860,7 +861,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					}
 					display(view);
 				} catch (Throwable e) {
-					display(errorAlert(e.toString()));
+					display(errorAlert(e.toString()), null);
 				}
 				return;
 			}
@@ -1431,7 +1432,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			return;
 		}
 		if (c == backCmd) {
-			display(mainForm, true);
+			display(d instanceof Alert ? current : mainForm, true);
 			return;
 		}
 		if (c == exitCmd) {
@@ -1484,7 +1485,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				a.addCommand(openCmd);
 				a.addCommand(backCmd);
 				a.setCommandListener(this);
-				display(a);
+				display(a, null);
 				return;
 			}
 			coversToLoad.removeAllElements();
@@ -2928,14 +2929,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
+						if (refreshToken != null) {
+							refreshToken = null;
+							again = true;
+							continue;
+						}
 						display(errorAlert(e.toString()), f);
 						writeAuth();
 						runAfterAuth = 0;
+						break;
 					}
+					writeAuth();
+					display(f);
 					break;
 				} while (again);
-				writeAuth();
-				display(f);
 			}
 			// задача которая должна быть выполнена после проверки авторизации
 			if (runAfterAuth != 0) {
@@ -3554,6 +3561,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	
 	static void display(Alert a, Displayable d) {
 		if (d == null) {
+			if (display.getCurrent() instanceof Alert && current != null) {
+				display.setCurrent(a, current);
+				return;
+			}
 			display.setCurrent(a);
 			return;
 		}
@@ -3569,12 +3580,15 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display.setCurrent((Alert) d, mainForm);
 			return;
 		}
-		if (d == null)
+		if (d == null) {
 			d = chaptersForm != null ? chaptersForm :
 				mangaForm != null ? mangaForm :
 					listForm != null ? listForm : mainForm;
+		}
+		
 		Displayable p = display.getCurrent();
-		display.setCurrent(d);
+		if (p == loadingForm) p = current;
+		display.setCurrent(current = d);
 		if (p == null || p == d) return;
 		if (!keepListCovers && !back && (p == listForm || p == tempListForm)) {
 			// обнуление обложек
