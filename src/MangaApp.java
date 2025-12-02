@@ -3476,6 +3476,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (j.has(lang)) return j.getString(lang);
 		if (j.has("en")) return j.getString("en");
 		if (j.has("ja")) return j.getString("ja");
+		if (j.has("ja-ro")) return j.getString("ja-ro");
 		return "";
 	}
 	
@@ -3498,6 +3499,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			if (s != null) continue;
 			if (t.has("en")) s = t.getString("en");
 			if (t.has("ja")) s = t.getString("ja");
+			if (t.has("ja-ro")) s = t.getString("ja-ro");
 		}
 		return s;
 	}
