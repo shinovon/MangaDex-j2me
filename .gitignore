@@ -1,9 +1,20 @@
-.settings
-.mtj.tmp
-deployed
-bin
 *.class
 *.jar
+
+# eclipse
+/.settings/
+/bin/
+
+# mtj
+/.mtj.tmp/
 /.processed/
 /mtj-build/
+/deployed/**
 *.tmp
+
+# intellij
+/.idea/
+/out/
+/META-INF/
+*.iml
+proguard*.cfg
