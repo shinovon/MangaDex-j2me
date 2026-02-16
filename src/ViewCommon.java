@@ -63,13 +63,6 @@ public class ViewCommon extends Canvas implements Runnable, CommandListener, Lan
 	private boolean rotated;
 
 
-	/**
-	 * Creates the view.
-	 * 
-	 * @param emo  Object with data.
-	 * @param prev Previous screen.
-	 * @param page Number of page to start.
-	 */
 	public ViewCommon(int page, boolean hwa) {
 		if (page == -2) cover = true;
 		this.page = page;
