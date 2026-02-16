@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 Arman Jussupgaliyev
+ * Copyright (c) 2024-2026 Arman Jussupgaliyev
  */
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
