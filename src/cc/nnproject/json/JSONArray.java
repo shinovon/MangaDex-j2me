@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2024 Arman Jussupgaliyev
+Copyright (c) 2021-2026 Arman Jussupgaliyev
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,8 @@ SOFTWARE.
 */
 package cc.nnproject.json;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.Vector;
 
@@ -47,7 +49,7 @@ public class JSONArray {
 	 * @deprecated Compatibility with org.json
 	 */
 	public JSONArray(String str) {
-		JSONArray tmp = JSONObject.parseArray(str);
+		JSONArray tmp = parseArray(str);
 		elements = tmp.elements;
 		count = tmp.count;
 	}
@@ -168,18 +170,6 @@ public class JSONArray {
 		}
 	}
 	
-	public double getDouble(int index) {
-		return JSONObject.getDouble(get(index));
-	}
-
-	public double getDouble(int index, double def) {
-		try {
-			return getDouble(index);
-		} catch (Exception e) {
-			return def;
-		}
-	}
-	
 	public boolean getBoolean(int index) {
 		Object o = get(index);
 		if (o == JSONObject.TRUE) return true;
@@ -229,13 +219,9 @@ public class JSONArray {
 	public void add(long l) {
 		addElement(new Long(l));
 	}
-
-	public void add(double d) {
-		addElement(new Double(d));
-	}
 	
 	public void add(boolean b) {
-		addElement(new Boolean(b));
+		addElement(b ? JSONObject.TRUE : JSONObject.FALSE);
 	}
 
 	/**
@@ -276,19 +262,12 @@ public class JSONArray {
 		}
 		elements[index] = new Long(l);
 	}
-
-	public void set(int index, double d) {
-		if (index < 0 || index >= count) {
-			throw new RuntimeException("JSON: Index out of bounds: " + index);
-		}
-		elements[index] = new Double(d);
-	}
 	
 	public void set(int index, boolean b) {
 		if (index < 0 || index >= count) {
 			throw new RuntimeException("JSON: Index out of bounds: " + index);
 		}
-		elements[index] = new Boolean(b);
+		elements[index] = b ? JSONObject.TRUE : JSONObject.FALSE;
 	}
 	
 	/**
@@ -315,12 +294,8 @@ public class JSONArray {
 		insertElementAt(new Long(l), index);
 	}
 
-	public void put(int index, double d) {
-		insertElementAt(new Double(d), index);
-	}
-
 	public void put(int index, boolean b) {
-		insertElementAt(new Boolean(b), index);
+		insertElementAt(b ? JSONObject.TRUE : JSONObject.FALSE, index);
 	}
 	
 	public boolean has(Object object) {
@@ -334,13 +309,9 @@ public class JSONArray {
 	public boolean has(long l) {
 		return _indexOf(new Long(l), 0) != -1;
 	}
-
-	public boolean has(double d) {
-		return _indexOf(new Double(d), 0) != -1;
-	}
 	
 	public boolean has(boolean b) {
-		return _indexOf(new Boolean(b), 0) != -1;
+		return _indexOf(b ? JSONObject.TRUE : JSONObject.FALSE, 0) != -1;
 	}
 	
 	public int indexOf(Object object) {
@@ -448,6 +419,82 @@ public class JSONArray {
 		return s.toString();
 	}
 
+	public String format(int l) {
+		int size = count;
+		if (size == 0)
+			return "[]";
+		String t = "";
+		for (int i = 0; i < l; i++) {
+			t = t.concat("  ");
+		}
+		String t2 = t.concat("  ");
+		StringBuffer s = new StringBuffer("[\n");
+		s.append(t2);
+		int i = 0;
+		while (i < size) {
+			Object v = elements[i];
+			if (v instanceof String[])
+				v = elements[i] = JSONObject.parseJSON(((String[]) v)[0]);
+			if (v instanceof JSONObject) {
+				s.append(((JSONObject) v).format(l + 1));
+			} else if (v instanceof JSONArray) {
+				s.append(((JSONArray) v).format(l + 1));
+			} else if (v instanceof String) {
+				s.append("\"").append(JSONObject.escape_utf8((String) v)).append("\"");
+			} else if (v == JSONObject.json_null) {
+				s.append((String) null);
+			} else {
+				s.append(v);
+			}
+			i++;
+			if (i < size) {
+				s.append(",\n").append(t2);
+			}
+		}
+		if (l > 0) {
+			s.append("\n").append(t).append("]");
+		} else {
+			s.append("\n]");
+		}
+		return s.toString();
+	}
+	
+	public void write(OutputStream out) throws IOException {
+		int size = count;
+		out.write((byte) '[');
+		if (size == 0) {
+			out.write((byte) ']');
+			return;
+		}
+		int i = 0;
+		while (i < size) {
+			Object v = elements[i];
+			if (v instanceof JSONObject) {
+				((JSONObject) v).write(out);
+			} else if (v instanceof JSONArray) {
+				((JSONArray) v).write(out);
+			} else if (v instanceof String) {
+				out.write((byte) '"');
+				JSONObject.writeString(out, (String) v);
+				out.write((byte) '"');
+			} else if (v instanceof String[]) {
+				out.write((((String[]) v)[0]).getBytes("UTF-8"));
+			} else if (v == JSONObject.json_null) {
+				out.write((byte) 'n');
+				out.write((byte) 'u');
+				out.write((byte) 'l');
+				out.write((byte) 'l');
+			} else {
+				out.write(String.valueOf(v).getBytes("UTF-8"));
+			}
+			i++;
+			if (i < size) {
+				out.write((byte) ',');
+			}
+		}
+		out.write((byte) '}');
+	}
+
 	public Enumeration elements() {
 		return new Enumeration() {
 			int i = 0;
@@ -525,6 +572,14 @@ public class JSONArray {
 		Object[] tmp = new Object[elements.length * 2];
 		System.arraycopy(elements, 0, tmp, 0, count);
 		elements = tmp;
+	}
+
+	public static JSONArray parseArray(String text) {
+		if (text == null || text.length() <= 1)
+			throw new RuntimeException("JSON: Empty text");
+		if (text.charAt(0) != '[')
+			throw new RuntimeException("JSON: Not JSON array");
+		return (JSONArray) JSONObject.parseJSON(text);
 	}
 
 }
