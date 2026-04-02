@@ -1663,10 +1663,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			g = new ChoiceGroup(L[Rating], ChoiceGroup.MULTIPLE, new String[] {
 					L[Safe], L[Suggestive], L[Erotica], L[Pornographic]
 			}, null);
-			// удалить отфильтрованных рейтинги
-			if (!contentFilter[3]) g.delete(3);
-			if (!contentFilter[2]) g.delete(2);
-			if (!contentFilter[1]) g.delete(1);
+//			if (!contentFilter[3]) g.delete(3);
+//			if (!contentFilter[2]) g.delete(2);
+//			if (!contentFilter[1]) g.delete(1);
 			f.append(advRatingChoice = g);
 			
 			s = new StringItem(null, L[Tags]);
