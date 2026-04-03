@@ -4076,7 +4076,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static String proxyUrl(String url) {
 //		System.out.println(url);
 		if (url == null
-				|| (!useProxy && (url.indexOf(";tw=") == -1 && url.indexOf(";th=") == -1))
+				|| (!useProxy && (url.indexOf(";tw=") == -1 && url.indexOf(";method=") == -1 && url.indexOf(";th=") == -1))
 				|| proxyUrl == null || proxyUrl.length() == 0 || "https://".equals(proxyUrl)) {
 			return url;
 		}
