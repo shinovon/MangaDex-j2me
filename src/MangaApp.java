@@ -297,7 +297,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	// region Settings
 
-	private static String proxyUrl = "http://nnp.nnchan.ru/hproxy.php?";
+	private static String proxyUrl = "http://nnproject.cc/hproxy.php?";
 	private static int coverLoading = 0; // 0 - auto, 1 - single, 2 - multi thread, 3 - disabled
 	private static boolean[] contentFilter = {true, true, true, false};
 	private static String lang = "en";
