@@ -148,4 +148,10 @@ public interface LangConstants {
 	static final int Followed = 147;
 	static final int MDLists = 148;
 	static final int MyMDLists = 149;
+	static final int Reading = 150;
+//	static final int PlanToRead = 151;
+//	static final int Completed_ = 152;
+//	static final int OnHold = 153;
+//	static final int ReReading = 154;
+//	static final int Dropped = 155;
 }

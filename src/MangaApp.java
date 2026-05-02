@@ -61,6 +61,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	private static final int LIST_ARTIST_TITLES = 9;
 	private static final int LIST_GROUP_TITLES = 10;
 //	private static final int LIST_MDLIST = 11;
+	private static final int LIST_FOLLOWED_STATUS = 11;
 	
 	// list2 types TODO
 //	private static final int LIST2_FOLLOWED_GROUPS = 1;
@@ -89,6 +90,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 
 	private static final String[] LANGUAGES = {
 			"en", "ru"
+	};
+	
+	private static final String[] FOLLOW_STATUSES = {
+			"reading", "plan_to_read", "completed", "on_hold", "re_reading", "dropped"
 	};
 
 	private static final String ALL_RATINGS = "&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic";
@@ -275,6 +280,10 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// feed
 	private static final Hashtable feedChapterIds = new Hashtable();
 	private static boolean userFeed;
+	
+	// library
+	private static int currentLibrary; // FOLLOW_STATUSES
+	private static Vector libraryIds;
 	
 	private static final Object coverLoadLock = new Object();
 	private static final Vector coversToLoad = new Vector();
@@ -750,17 +759,27 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				Form f = new Form(L[0]);
 				f.addCommand(backCmd);
 				f.setCommandListener(this);
-				f.setTicker(new Ticker(L[Loading]));
-				
-				display(listForm = f);
-				
-				// для библиотеки надо с начала проверить авторизацию
+
 				if (c == libraryCmd) {
-					listMode = LIST_FOLLOWED;
-					runAfterAuth = RUN_MANGAS;
-					start(RUN_AUTH);
+//					listMode = LIST_FOLLOWED;
+//					runAfterAuth = RUN_MANGAS;
+//					start(RUN_AUTH);
+					f.setTitle(L[Library]);
+					StringItem s;
+					for (int i = 0; i < FOLLOW_STATUSES.length; ++i) {
+						s = new StringItem(null, L[Reading + i], Item.BUTTON);
+						s.setLayout(Item.LAYOUT_NEWLINE_BEFORE | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_EXPAND);
+						s.setItemCommandListener(this);
+						s.setDefaultCommand(new Command(L[Reading + i], Command.ITEM, 20 + i));
+						f.append(s);
+					}
+					// TODO add full library back
+					display(f);
 					return;
 				}
+
+				f.setTicker(new Ticker(L[Loading]));
+				display(listForm = f);
 				
 				listMode = c == searchCmd ? LIST_SEARCH : c == recentCmd ? LIST_RECENT : LIST_UPDATES;
 				start(RUN_MANGAS);
@@ -1262,7 +1281,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				a = (listOffset / listLimit) + 1;
 				b = listTotal / listLimit + (listTotal % listLimit != 0 ? 1 : 0);
 			}
-			TextBox t = new TextBox(L[PageNumber].concat(" (") + a + '/' + b + ")", "", 10, TextField.NUMERIC);
+			TextBox t = new TextBox(L[PageNumber] + "( " + a + '/' + b + ')', "", 10, TextField.NUMERIC);
 			t.addCommand(goCmd);
 			t.addCommand(cancelCmd);
 			t.setCommandListener(this);
@@ -1766,6 +1785,20 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			display(searchForm = f);
 			return;
 		}
+		if (c.getPriority() >= 20) {
+			Form f = new Form(L[0]);
+			f.addCommand(backCmd);
+			f.setCommandListener(this);
+			f.setTicker(new Ticker(L[Loading]));
+			display(listForm = f);
+
+			runAfterAuth = RUN_MANGAS;
+			listMode = LIST_FOLLOWED_STATUS;
+			currentLibrary = c.getPriority() - 20;
+			libraryIds = null;
+			start(RUN_AUTH);
+			return;
+		}
 		commandAction(c, display.getCurrent());
 	}
 
@@ -1786,10 +1819,11 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		running = run != RUN_COVERS && run != RUN_PRELOADER;
 		switch (run) {
 		case RUN_MANGAS: { // поиск и список манг
-			boolean temp;
-			Form f = (temp = listMode == LIST_RELATED) ? tempListForm : listForm;
+			boolean clientSidePagination = listMode == LIST_RELATED || listMode == LIST_FOLLOWED_STATUS;
+			Form f = listMode == LIST_RELATED ? tempListForm : listForm;
+			Vector ids = null;
 			
-			if (useLoadingForm && !temp) display(loadingForm);
+			if (useLoadingForm && !clientSidePagination) display(loadingForm);
 			
 			// очистить все старое
 			f.deleteAll();
@@ -1801,14 +1835,14 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				StringBuffer sb = new StringBuffer("manga?limit=").append(listLimit);
 				
 				// пагинация
-				if (listOffset > 0 && !temp) {
+				if (listOffset > 0 && !clientSidePagination) {
 					sb.append("&offset=").append(listOffset);
 					// добавить команду перехода на пред страницу
 					f.addCommand(prevPageCmd);
 				}
 
 				// фильтр содержимого из настроек, не применяется в расширенном поиске
-				if (listMode != LIST_ADVANCED_SEARCH && listMode != LIST_FOLLOWED) {
+				if (listMode != LIST_ADVANCED_SEARCH && listMode != LIST_FOLLOWED && listMode != LIST_FOLLOWED_STATUS) {
 					if (contentFilter != null)
 					for (int i = 0; i < CONTENT_RATINGS.length; i++) {
 						if (!contentFilter[i]) continue;
@@ -1945,9 +1979,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				}
 				case LIST_RELATED: { // список связанного
 					f.setTitle(L[Related]);
-					for (int i = 0, l = relatedManga.size(); i < l; i++) {
-						sb.append("&ids[]=").append(((JSONObject) relatedManga.elementAt(i)).getString("id"));
-					}
+					ids = relatedManga;
 					break;
 				}
 				case LIST_FOLLOWED: { // библиотека
@@ -1971,50 +2003,79 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					sb.append("&order[latestUploadedChapter]=desc&group=").append(listArg);
 					break;
 				}
-				}
-				
-				JSONObject j = api(sb.toString());
-				JSONArray data = j.getArray("data");
-				
-				// команды пагинации
-				if (!temp) {
-					listTotal = j.getInt("total");
-					if (listTotal > 0)
-						f.addCommand(gotoPageCmd);
-					
-					if (listOffset < listTotal - listLimit)
-						f.addCommand(nextPageCmd);
-				}
-				
-				ImageItem item;
-				for (int i = 0, l = data.size(); i < l && listForm != null; i++) {
-					JSONObject m = data.getObject(i);
-					String id = m.getString("id");
-					JSONObject attributes = m.getObject("attributes");
-					JSONArray relationships = m.getArray("relationships");
-					
-					int k = relationships.size();
-					// получение айдишника обложки
-					for (int p = 0; p < k; p++) {
-						JSONObject r = relationships.getObject(p);
-						if (!"cover_art".equals(r.getString("type"))) continue;
-						if (r.has("attributes")) {
-							mangaCoversCache.put(id, r.getObject("attributes").getString("fileName"));
-						} else {
-							mangaCoversCache.put(id, r.getString("id"));
+				case LIST_FOLLOWED_STATUS: { // list library by status
+					f.setTitle(L[Library].concat(" - ").concat(L[Reading + currentLibrary]));
+					sb.append("&order[latestUploadedChapter]=desc");
+					if (libraryIds == null) {
+						JSONObject res = api("manga/status?status=".concat(FOLLOW_STATUSES[currentLibrary])).getObject("statuses");
+						Enumeration e = res.keys();
+						ids = new Vector();
+						while (e.hasMoreElements()) {
+							String key = (String) e.nextElement();
+//							if (FOLLOW_STATUSES[currentLibrary].equals(res.getString(key)))
+							ids.addElement(key);
 						}
-						break;
+						libraryIds = ids;
+					} else {
+						ids = libraryIds;
+					}
+					break;
+				}
+				}
+
+				content: {
+					if (clientSidePagination) {
+						int l = listTotal = ids.size();
+						if (l == 0) break content;
+						for (int i = listOffset; i < l && i < listLimit; i++) {
+							sb.append("&ids[]=").append(ids.elementAt(i));
+						}
 					}
 
-					item = new ImageItem(attributes.has("title") ? getTitle(attributes.getObject("title")) : "",
-							coverLoading != 3 ? coverPlaceholder : null,
-							Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
-							id, Item.BUTTON);
-					item.addCommand(mangaItemCmd);
-					item.setDefaultCommand(mangaItemCmd);
-					item.setItemCommandListener(this);
-					scheduleCover(item, id);
-					f.append(item);
+					JSONObject j = api(sb.toString());
+					JSONArray data = j.getArray("data");
+
+					// команды пагинации
+
+					if (!clientSidePagination) {
+						listTotal = j.getInt("total");
+					}
+					if (listTotal > listLimit) {
+						f.addCommand(gotoPageCmd);
+						if (listOffset < listTotal - listLimit)
+							f.addCommand(nextPageCmd);
+					}
+
+					ImageItem item;
+					for (int i = 0, l = data.size(); i < l && listForm != null; i++) {
+						JSONObject m = data.getObject(i);
+						String id = m.getString("id");
+						JSONObject attributes = m.getObject("attributes");
+						JSONArray relationships = m.getArray("relationships");
+
+						int k = relationships.size();
+						// получение айдишника обложки
+						for (int p = 0; p < k; p++) {
+							JSONObject r = relationships.getObject(p);
+							if (!"cover_art".equals(r.getString("type"))) continue;
+							if (r.has("attributes")) {
+								mangaCoversCache.put(id, r.getObject("attributes").getString("fileName"));
+							} else {
+								mangaCoversCache.put(id, r.getString("id"));
+							}
+							break;
+						}
+
+						item = new ImageItem(attributes.has("title") ? getTitle(attributes.getObject("title")) : "",
+								coverLoading != 3 ? coverPlaceholder : null,
+								Item.LAYOUT_CENTER | Item.LAYOUT_NEWLINE_AFTER | Item.LAYOUT_NEWLINE_BEFORE,
+								id, Item.BUTTON);
+						item.addCommand(mangaItemCmd);
+						item.setDefaultCommand(mangaItemCmd);
+						item.setItemCommandListener(this);
+						scheduleCover(item, id);
+						f.append(item);
+					}
 				}
 				if (listForm == f)
 					display(f);
@@ -2086,7 +2147,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					if ("cover_art".equals(type)) {
 						mangaCoversCache.put(id, r.getString("id"));
 					} else if ("manga".equals(type)) {
-						relatedManga.addElement(r);
+						relatedManga.addElement(r.getString("id"));
 					} else if ("author".equals(type)) {
 						author = r;
 					} else if ("artist".equals(type)) {
@@ -2866,6 +2927,8 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			break;
 		}
 		case RUN_AUTH: { // авторизация
+			int runAfterAuth = MangaApp.runAfterAuth;
+			MangaApp.runAfterAuth = 0;
 			auth: {
 				Displayable f = display.getCurrent();
 //				f = view != null && f == view ? view :
@@ -2951,7 +3014,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 						}
 						display(errorAlert(e.toString()), f);
 						writeAuth();
-						runAfterAuth = 0;
 						break;
 					}
 					writeAuth();
@@ -2962,7 +3024,6 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			// задача которая должна быть выполнена после проверки авторизации
 			if (runAfterAuth != 0) {
 				MangaApp.run = runAfterAuth;
-				runAfterAuth = 0;
 				run();
 				return;
 			}
@@ -3315,7 +3376,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			listArg = chapterGroup;
 			MangaApp.run = RUN_MANGAS;
 			run();
-			return;
+			break;
 		}
 		}
 		running = false;

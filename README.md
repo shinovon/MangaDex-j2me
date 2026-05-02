@@ -2,7 +2,7 @@
 
 Unofficial MangaDex reader client for J2ME platform.
 
-Compatible with MangaDex API 5.10.2
+Compatible with MangaDex API 5.13.1
 
 ![](res/d.svg)
 
