@@ -2027,7 +2027,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 					if (clientSidePagination) {
 						int l = listTotal = ids.size();
 						if (l == 0) break content;
-						for (int i = listOffset; i < l && i < listLimit; i++) {
+						for (int i = listOffset; i < l && i - listOffset < listLimit; i++) {
 							sb.append("&ids[]=").append(ids.elementAt(i));
 						}
 					}
