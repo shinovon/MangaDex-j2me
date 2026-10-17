@@ -337,6 +337,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	// platform
 	private static boolean symbianJrt;
 	private static boolean useLoadingForm;
+	private static boolean j2meloader;
 //#ifdef NNLCDUIEXT
 //#	private static boolean lcduiExtensions;
 //#endif
@@ -377,6 +378,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		if (symbianJrt = p != null && p.indexOf("platform=S60") != -1) { // 9.3 и выше
 			downloadPath = "E:/MangaDex";
 		} else if ((p = System.getProperty("java.vendor")) != null && p.indexOf("Android") != -1) { // ж2ме лодырь
+			j2meloader = true;
 			downloadPath = "C:/MangaDex";
 		} else if (System.getProperty("kemulator.mod.version") != null) { // ннмод
 			downloadPath = "root/MangaDex";
@@ -3559,8 +3561,19 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 
 	static void display(Displayable d, boolean back) {
+		if (j2meloader) {
+			try {
+				Thread.sleep(20);
+			} catch (Exception ignored) {}
+		}
 		if (d instanceof Alert) {
 			display.setCurrent((Alert) d, mainForm);
+
+			if (j2meloader) {
+				try {
+					Thread.sleep(20);
+				} catch (Exception ignored) {}
+			}
 			return;
 		}
 		if (d == null) {
@@ -3572,6 +3585,13 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		Displayable p = display.getCurrent();
 		if (p == loadingForm) p = current;
 		display.setCurrent(current = d);
+
+		if (j2meloader) {
+			try {
+				Thread.sleep(20);
+			} catch (Exception ignored) {}
+		}
+
 		if (p == null || p == d) return;
 		if (!keepListCovers && !back && (p == listForm || p == tempListForm)) {
 			// обнуление обложек
