@@ -400,6 +400,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
 		multiPreloader = symbianJrt;
 		newFeedLayout = symbianJrt || System.getProperty("kemulator.mod.version") != null;
+		useProxy = !j2meloader && !"mbedtls".equals(System.getProperty("cc.nnproject.symbianext.checkTLS12"));
 		
 //#ifdef NNLCDUIEXT
 //#		if (symbianJrt) {
