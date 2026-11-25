@@ -335,6 +335,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	static boolean rotate;
 
 	// platform
+	private static boolean symbian;
 	private static boolean symbianJrt;
 	private static boolean useLoadingForm;
 	private static boolean j2meloader;
@@ -372,10 +373,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 		version = getAppProperty("MIDlet-Version");
 		(display = Display.getDisplay(this))
 		.setCurrent(loadingForm = new Form("MangaDex"));
-		
-		// определения дефолтного пути куда будет скачиваться манга
+
 		String p = System.getProperty("microedition.platform");
 		symbianJrt = p != null && p.indexOf("platform=S60") != -1;
+		symbian = symbianJrt
+				|| System.getProperty("com.symbian.midp.serversocket.support") != null
+				|| System.getProperty("com.symbian.default.to.suite.icon") != null
+				|| checkClass("com.symbian.midp.io.protocol.http.Protocol")
+				|| checkClass("com.symbian.lcdjava.io.File");
+
+		// определения дефолтного пути куда будет скачиваться манга
 		if (symbianJrt) { // 9.3 и выше
 			downloadPath = "E:/MangaDex";
 		} else if ((p = System.getProperty("java.vendor")) != null && p.indexOf("Android") != -1) { // ж2ме лодырь
@@ -391,11 +398,9 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 				downloadPath = "C:/MangaDex";
 			}
 		}
-		
+
 		// 9.2 workaround
-		useLoadingForm = !symbianJrt &&
-				(System.getProperty("com.symbian.midp.serversocket.support") != null ||
-				System.getProperty("com.symbian.default.to.suite.icon") != null);
+		useLoadingForm = !symbianJrt && symbian;
 		
 		onlineResize = loadingForm.getWidth() < 320;
 		enableLongScroll = symbianJrt || useLoadingForm; // symbian only
@@ -3701,7 +3706,7 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 	}
 	
 	private static Alert loadingAlert() {
-		Alert a = new Alert("", L[Loading], null, null);
+		Alert a = new Alert(symbian && !symbianJrt ? L[0] : "", L[Loading], null, null);
 		a.setCommandListener(midlet);
 		a.addCommand(Alert.DISMISS_COMMAND);
 		a.setIndicator(new Gauge(null, false, Gauge.INDEFINITE, Gauge.CONTINUOUS_RUNNING));
@@ -4429,6 +4434,16 @@ public class MangaApp extends MIDlet implements Runnable, CommandListener, ItemC
 			r.addRecord(b, 0, b.length);
 			r.closeRecordStore();
 		} catch (Exception ignored) {}
+	}
+
+	private static boolean checkClass(String s) {
+		//noinspection RedundantSuppression
+		try {
+			//noinspection ConstantValue // intellij doesn't know
+			return Class.forName(s) != null;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 	
 	static String n(int n) {
